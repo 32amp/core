@@ -1,0 +1,31 @@
+{
+  "name": "portalcharge",
+  "version": "1.0.0",
+  "description": "Contracts for service of charging stations",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/darkrain/portalcharge.git"
+  },
+  "keywords": [
+    "evm",
+    "solidity",
+    "evse"
+  ],
+  "author": "Mikhail Ivantsov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/darkrain/portalcharge/issues"
+  },
+  "homepage": "https://github.com/darkrain/portalcharge#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.8"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "^5.0.2"
+  }
+}

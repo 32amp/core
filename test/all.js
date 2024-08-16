@@ -1,0 +1,271 @@
+const { expect }   =   require('chai');
+const hubModule = require("../ignition/modules/Hub");
+const userModule = require("../ignition/modules/User");
+const UserGroupsModule = require("../ignition/modules/UserGroups");
+const LocationsModule = require("../ignition/modules/Locations");
+const UserAccessModule = require("../ignition/modules/UserAccess");
+const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+
+before(async function() {
+
+
+    accounts = await ethers.getSigners();
+
+    this.testUser = {
+        login: ethers.encodeBytes32String("darkrain"),
+        password: ethers.encodeBytes32String("159753"),
+    }
+
+    this.sudoUser = {
+        login: ethers.encodeBytes32String("sudo"),
+        password: ethers.encodeBytes32String("433455"),
+        token:null
+    }
+
+
+    this.owner = accounts[0].address;
+    this.anotherUser = accounts[1]
+
+    console.log("Deploying Contracts...");
+    
+    const HubDeploy = await ignition.deploy(hubModule);
+
+    this.Hub = HubDeploy.hub;
+    await this.Hub.initialize()
+
+    console.log("Hub deployed to:", this.Hub.target);
+
+    let tx = await this.Hub.addPartner(
+        ethers.toUtf8Bytes("PortalEnergy"),
+        ethers.toUtf8Bytes("RU"),
+        ethers.toUtf8Bytes("POE"),
+        this.owner
+    );
+
+
+    this.partner = await GetEventArgumentsByNameAsync(tx, "AddPartner")
+
+    const UserDeploy = await ignition.deploy(userModule);
+    
+    this.User = UserDeploy.user;
+
+    this.User.initialize(this.partner.id,this.Hub.target, this.sudoUser.login, this.sudoUser.password)
+
+    this.Hub.addModule("User", this.User.target)
+
+    console.log("User deployed to:", this.User.target);
+
+
+
+    const UserGroupsDeploy = await ignition.deploy(UserGroupsModule);
+    this.UserGroups = UserGroupsDeploy.UserGroups;
+    this.UserGroups.initialize(this.partner.id,this.Hub.target)
+
+    this.Hub.addModule("UserGroups", this.UserGroups.target);
+    console.log("UserGroups deployed to:", this.UserGroups.target);
+
+
+
+    const LocationDeploy = await ignition.deploy(LocationsModule);
+    this.Location = await LocationDeploy.Locations;
+    
+    this.Location.initialize(this.partner.id,this.Hub.target)
+
+    this.Hub.addModule("Location", this.Location.target);
+    console.log("Location deployed to:", this.Location.target);
+
+    const UserAccessDeploy = await ignition.deploy(UserAccessModule);
+    this.UserAccess = UserAccessDeploy.UserAccess;
+    this.UserAccess.initialize(this.partner.id,this.Hub.target)
+
+    this.Hub.addModule("UserAccess", this.UserAccess.target);
+    console.log("UserAccess deployed to:", this.UserAccess.target);
+
+})
+
+
+describe("Hub", function(){
+
+
+    it("getMe", async function(){
+        const me = await this.Hub.me();
+
+        expect(me.owner_address).to.equal(this.owner)
+    })
+
+
+    it("getPartnerByAddress", async function(){
+        const me = await this.Hub.getPartnerByAddress(this.owner);
+
+        expect(me.owner_address).to.equal(this.owner)
+    })
+
+    it("getPartnerIdByAddress", async function(){
+        const id = await this.Hub.getPartnerIdByAddress(this.owner);
+
+        expect(1).to.equal(id)
+    })
+
+
+    it("getPartner", async function(){
+        const me = await this.Hub.getPartner(1);
+
+        expect(me.owner_address).to.equal(this.owner)
+    })
+
+    it("getPartnerModules", async function(){
+        const modules = await this.Hub.getPartnerModules(1);
+        
+        expect(modules[0]).to.equal("User")
+        expect(modules[1]).to.equal("UserGroups")
+        expect(modules[2]).to.equal("Location")
+        expect(modules[3]).to.equal("UserAccess")
+        //
+    })
+
+
+    it("getPartners", async function(){
+        const partners = await this.Hub.getPartners()
+
+        expect(partners.length).to.equal(1)
+    })
+})
+
+
+describe("User", function(){
+
+
+    it("authSudoUser", async function(){
+        let auth = await this.User.authByPassword(this.sudoUser.login,this.sudoUser.password)
+        let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
+
+        let token = await this.User.getAuthToken(this.sudoUser.login,this.sudoUser.password, authSuccess.token_id)
+
+        this.sudoUser.token = token[1];        
+
+        expect(token[1].length).to.equal(66)
+    })
+
+
+    it("registerByPassword", async function(){
+
+        let register = await this.User.registerByPassword(this.testUser.login,this.testUser.password)
+        await register.wait()
+
+
+        let auth = await this.User.authByPassword(this.testUser.login,this.testUser.password)
+        let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
+
+        let token = await this.User.getAuthToken(this.testUser.login,this.testUser.password, authSuccess.token_id)
+
+        this.testUser.token = token[1];        
+
+        expect(token[1].length).to.equal(66)
+    })
+
+
+
+    it("isLogin", async function(){
+        const isLogin =  await this.User.isLogin(this.testUser.token);
+
+        expect(Number(isLogin)).to.equal(2)
+    })
+
+
+    it("whoami", async function(){
+        const whoami =  await this.User.whoami(this.testUser.token);
+
+        expect(whoami.enable).to.equal(true);
+        expect(whoami.user_type).to.equal(0);
+        expect(whoami.last_updated).not.to.equal(0);
+
+        expect(whoami.username.toString() == this.testUser.login).to.equal(true)
+    })
+})
+
+
+describe("UserAccess", function(){
+    it("sudo getMyModulesAccess", async function(){
+
+        const accesModules =  await this.UserAccess.getMyModulesAccess(this.sudoUser.token);
+    
+        expect(accesModules[1][0]).to.equal(6)
+        expect(accesModules[1][1]).to.equal(6)
+    })
+
+    it("sudo getModuleAccessLevel", async function(){
+
+        const accessToGroup =  await this.UserAccess.getModuleAccessLevel("UserGroups", 1);
+        expect(accessToGroup).to.equal(6)
+    })
+
+    it("setAccessLevelToModule", async function(){
+        const tx = await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"User", 6);
+        tx.wait()
+
+        const result = await this.UserAccess.getModuleAccessLevel("User",2)
+
+        expect(result).to.equal(6);
+    })
+})
+
+
+
+describe("UserGroups", function(){
+    it("getMyGroups", async function(){
+        
+        const myGroups =  await this.UserGroups.getMyGroups(this.sudoUser.token);
+        expect(myGroups.length).to.equal(1)
+        expect(myGroups[0].name).to.equal("sudo")
+    })
+
+    it("addGroup", async function(){
+        const group =  await this.UserGroups.addGroup(this.sudoUser.token, "test");
+    });
+})
+
+
+
+describe("Locations", function(){
+    const location = {
+        name: "New location",
+        _address: "Dom kolotuskina",
+        city:  ethers.encodeBytes32String("Moskow"),
+        postal_code: ethers.encodeBytes32String("103892"),
+        state: ethers.encodeBytes32String("Moskow"),
+        country: ethers.encodeBytes32String("RUS"),
+        coordinates: {
+            latitude: 30,
+            longtitude: 60
+        },
+        parking_type: 5,
+        facilities: [1,2], // Hotel, Restaurant
+        time_zone : "Moskow/Europe",
+        charging_when_closed: true
+    };
+
+    it("AddLocation", async function(){
+
+        const tx =  await this.Location.addLocation(this.sudoUser.token, location);
+
+        let result = await GetEventArgumentsByNameAsync(tx, "AddLocation")
+        expect(result.uid).to.equal(1)
+        expect(result.partner_id).to.equal(1)
+    })
+
+    it("getLocation", async function(){
+        const newLocation = await this.Location.getLocation(1);
+        expect(newLocation.uid).to.equal(1)
+        expect(newLocation.city).to.equal(location.city)
+        expect(newLocation.postal_code).to.equal(location.postal_code)
+        expect(newLocation.state).to.equal(location.state)
+        expect(newLocation.country).to.equal(location.country)
+        expect(newLocation.coordinates.latitude).to.equal(location.coordinates.latitude)
+        expect(newLocation.coordinates.longtitude).to.equal(location.coordinates.longtitude)
+        expect(newLocation.parking_type).to.equal(location.parking_type)
+        expect(newLocation.facilities.join(",")).to.equal(location.facilities.join(","))
+        expect(newLocation.time_zone).to.equal(location.time_zone)
+        expect(newLocation.charging_when_closed).to.equal(location.charging_when_closed)
+    })
+
+})
