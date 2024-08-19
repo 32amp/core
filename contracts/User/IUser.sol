@@ -8,8 +8,8 @@ interface IUser {
     struct User {
         uint256 id;
         string name;
-        string phone;
-        string email;
+        bytes32 phone;
+        bytes32 email;
         bytes32 username;
         TypeUser user_type;
         bool enable; 

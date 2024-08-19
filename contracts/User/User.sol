@@ -25,7 +25,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         partner_id = _partner_id;
         version = "1.0";
         registerByPassword(sudoUsername, sudopassword);
-        
+        __Ownable_init(msg.sender);
     }
 
     function registerByPassword( bytes32 username, bytes memory password ) public {
@@ -80,13 +80,13 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         token.visual_number = block.timestamp+usersIndex;
 
         token.uid = keccak256(
-            abi.encodePacked(block.difficulty, block.timestamp, user_id, salt, token.date_start, token.date_expire, token.visual_number )
+            abi.encodePacked(block.prevrandao, block.timestamp, user_id, salt, token.date_start, token.date_expire, token.visual_number )
         );
 
         token.issuer = IHub(hubAddress).getPartnerName(partner_id);
 
         bytes32 _token = keccak256(
-            abi.encodePacked(block.difficulty, block.timestamp, user_id, salt)
+            abi.encodePacked(block.prevrandao, block.timestamp, user_id, salt)
         );
         user_tokens[user_id].push(_token);
         auth_tokens[_token] = token;
@@ -112,4 +112,11 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
         return users[user_id];
     }
+
+
+    function _random(uint maxNumber,uint minNumber) private view returns (uint amount) {
+        amount = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender, block.number))) % (maxNumber-minNumber);
+        amount = amount + minNumber;
+        return amount;
+   }
 }
