@@ -36,7 +36,7 @@ before(async function() {
     console.log("Hub deployed to:", this.Hub.target);
 
     let tx = await this.Hub.addPartner(
-        ethers.toUtf8Bytes("PortalEnergy"),
+        ethers.encodeBytes32String("PortalEnergy"),
         ethers.toUtf8Bytes("RU"),
         ethers.toUtf8Bytes("POE"),
         this.owner
@@ -128,6 +128,53 @@ describe("Hub", function(){
         const partners = await this.Hub.getPartners()
 
         expect(partners.length).to.equal(1)
+    })
+
+    it("changeModuleAddress", async function(){
+        await this.Hub.changeModuleAddress("User", this.Hub.target)
+
+        let moduleAdress = await this.Hub.getModule("User", 1)
+        expect(moduleAdress).to.equal(this.Hub.target)
+
+        await this.Hub.changeModuleAddress("User", this.User.target)
+        let moduleAdressBack = await this.Hub.getModule("User", 1)
+        expect(moduleAdressBack).to.equal(this.User.target)
+    })
+
+    it("checkModuleExist", async function(){
+        let checkOne = await this.Hub.checkModuleExist("User", 1)
+
+        expect(checkOne).to.equal(this.User.target)
+
+    })
+
+    it("getPartnerByAddress", async function(){
+        let partner = await this.Hub.getPartnerByAddress(this.owner);
+
+        expect(partner.id).to.equal(1n)
+    })
+
+    it("getPartnerIdByAddress", async function(){
+        let partner = await this.Hub.getPartnerIdByAddress(this.owner)
+        expect(partner).to.equal(1n)
+    })
+
+    it("getPartnerName", async function(){
+        let name = await this.Hub.getPartnerName(1n)
+
+        expect(name).to.equal(ethers.encodeBytes32String("PortalEnergy"))
+    })
+
+    it("getPartnerPartyId", async function(){
+        let partyId = await this.Hub.getPartnerPartyId(1n)
+
+        expect(partyId).to.equal(ethers.hexlify(ethers.toUtf8Bytes("POE")))
+    })
+
+    it("getPartnerCountryCode", async function(){
+        let code = await this.Hub.getPartnerCountryCode(1n)
+        
+        expect(code).to.equal(ethers.hexlify(ethers.toUtf8Bytes("RU")))
     })
 })
 

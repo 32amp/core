@@ -42,11 +42,11 @@ interface IHub {
 
     event  AddPartner(uint256 id, bytes2 country_code, bytes3 party_id, address owner_address);
 
-    function addPartner(bytes memory name,bytes2 country_code,bytes3 party_id, address owner_address) external returns (uint256);
+    function addPartner(bytes32 name,bytes2 country_code,bytes3 party_id, address owner_address) external returns (uint256);
     function addModule(string memory name, address contractAddress) external;
     function changeModuleAddress(string memory name, address contractAddress)  external;
     function getModule(string memory name, uint256 partner_id)  external view returns (address);
-    function checkModuleExist(string memory name, uint256 partner_id)  external view;
+    function checkModuleExist(string memory name, uint256 partner_id)  external view returns (address);
     function getPartnerModules(uint256 partner_id) external view returns (string[] memory);
     function getPartners() external view returns(Member[] memory);
     function me() external view returns(Member memory);

@@ -17,8 +17,6 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     uint256 counter;
 
     string version;
-    
-    event Test(bytes calculated_hash, bytes _secret_key, bytes secret_key);
 
     function initialize() public initializer {
         version = "1.0";
@@ -32,7 +30,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     }
 
 
-    function addPartner(bytes memory name, bytes2 country_code, bytes3 party_id, address owner_address) external onlyOwner returns(uint256) {
+    function addPartner(bytes32 name, bytes2 country_code, bytes3 party_id, address owner_address) external onlyOwner returns(uint256) {
 
         if(name.length < 3)
             revert("name_length_more_than_3");
@@ -45,6 +43,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
 
         IHub.Member memory partnerData;
         partnerData.id = counter;
+        partnerData.name = name;
         partnerData.country_code = country_code;
         partnerData.party_id = party_id;
         partnerData.status = IHub.ConnectionStatus.PLANNED;
@@ -89,9 +88,11 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         return modules[partner_id][name];
     }
 
-    function checkModuleExist(string memory name, uint256 partner_id)  external view {
+    function checkModuleExist(string memory name, uint256 partner_id)  external view  returns (address){
         if(modules[partner_id][name] == address(0))
             revert("module_not_found");
+
+        return modules[partner_id][name];
     }
 
     function getPartnerModules(uint256 partner_id) external view returns (string[] memory){
