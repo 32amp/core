@@ -25,6 +25,6 @@ interface IMessageOracle {
     function activateWhitelist(bool state) external;
     function changePriceForMessage(uint256 value) external;
     function refill(address account) payable external;
-    function send(bytes32 recipient, string memory message) external;
+    function sendMessage(bytes32 recipient, string memory message) external;
     function confirmSend(bytes32 recipient) external;
 }

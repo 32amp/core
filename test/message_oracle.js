@@ -9,7 +9,7 @@ before(async function() {
 
     this.owner = accounts[0].address;
     this.anotherUser = accounts[1]
-    this.testRecipient = this.testRecipient;
+    this.testRecipient = ethers.encodeBytes32String("+79312700684");
     this.testMessage = "3456"
 
     console.log("Deploying Contracts...");
@@ -96,7 +96,7 @@ describe("MessageOracle", function(){
 
 
     it("send", async function(){
-        const tx = await this.MessageOracle.send(this.testRecipient, this.testMessage);
+        const tx = await this.MessageOracle.sendMessage(this.testRecipient, this.testMessage);
 
         let send = await GetEventArgumentsByNameAsync(tx, "Send")
 

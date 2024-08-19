@@ -87,7 +87,7 @@ contract MessageOracle is IMessageOracle, Initializable, OwnableUpgradeable {
     }
 
     // the client calls
-    function send(bytes32 recipient, string memory message) external {
+    function sendMessage(bytes32 recipient, string memory message) external {
         uint256 isSendBefore = messages[recipient].time;
 
         if (isSendBefore > 0) {
