@@ -17,6 +17,7 @@ interface IMessageOracle {
     function getPriceForMessage() external view returns(uint256);
     function getBodyTemplate() external view returns(string memory);
     function isWhitelistEnable() external view returns(bool);
+    function getMessageFor(bytes32 recipient) external view returns(message memory);
     function addOracle(address oracle) external;
     function removeOracle(address oracle) external;
     function addToWhitelist(address oracle) external;

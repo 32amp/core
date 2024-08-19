@@ -51,6 +51,13 @@ contract MessageOracle is IMessageOracle, Initializable, OwnableUpgradeable {
         return whitelistEnable;
     }
 
+
+    function getMessageFor(bytes32 recipient) external view returns(message memory) {
+        if (oracles[msg.sender] == false) revert("access_denied");
+
+        return messages[recipient];
+    }
+
     function addOracle(address oracle) external onlyOwner {
         oracles[oracle] = true;
     }

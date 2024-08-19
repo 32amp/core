@@ -9,6 +9,8 @@ before(async function() {
 
     this.owner = accounts[0].address;
     this.anotherUser = accounts[1]
+    this.testRecipient = this.testRecipient;
+    this.testMessage = "3456"
 
     console.log("Deploying Contracts...");
     
@@ -94,21 +96,26 @@ describe("MessageOracle", function(){
 
 
     it("send", async function(){
-        const tx = await this.MessageOracle.send(ethers.encodeBytes32String("+79312700684"), "3456");
+        const tx = await this.MessageOracle.send(this.testRecipient, this.testMessage);
 
         let send = await GetEventArgumentsByNameAsync(tx, "Send")
 
-        expect(send.recipient).to.equal(ethers.encodeBytes32String("+79312700684"))
+        expect(send.recipient).to.equal(this.testRecipient)
     })
 
     
 
     it("confirmSend", async function(){
-        const tx = await this.MessageOracle.connect(this.anotherUser).confirmSend(ethers.encodeBytes32String("+79312700684"));
+
+        const message = await this.MessageOracle.connect(this.anotherUser).getMessageFor(this.testRecipient);
+        
+        expect(message.text).to.equal(this.testMessage)
+
+        const tx = await this.MessageOracle.connect(this.anotherUser).confirmSend(this.testRecipient);
 
         let send = await GetEventArgumentsByNameAsync(tx, "ConfirmSend")
 
-        expect(send.recipient).to.equal(ethers.encodeBytes32String("+79312700684"))
+        expect(send.recipient).to.equal(this.testRecipient)
     })
 
 
