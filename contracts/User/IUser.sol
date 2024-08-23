@@ -55,14 +55,6 @@ interface IUser {
         uint256 bank_kpp_account;
     }
 
-    struct VerificationData{
-        bool phoneVerifyed;
-        bool emailVerifyed;
-        uint256 verificationCode;
-        uint256 dateStart;
-        uint256 dateExpired;
-    }
-
     struct WebAppUserData{
         uint64 id;
         string userName;

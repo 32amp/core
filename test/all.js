@@ -61,7 +61,7 @@ before(async function() {
     
     this.User = UserDeploy.user;
 
-    this.User.initialize(this.partner.id,this.Hub.target, this.MessageOracle.target, this.sudoUser.login, this.sudoUser.password, ethers.encodeBytes32String("+79999999999"), ethers.encodeBytes32String("8888"))
+    this.User.initialize(this.partner.id,this.Hub.target, this.MessageOracle.target, this.MessageOracle.target, this.sudoUser.login, this.sudoUser.password)
 
     this.Hub.addModule("User", this.User.target)
 
@@ -259,6 +259,28 @@ describe("User", function(){
 
         expect(token[1].length).to.equal(66)
     })
+
+
+
+    it("setTestEmailByPhone", async function(){
+        await this.User.setTestUserByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"));
+    })
+
+    it("sendEmailForAuth, authByEmailCode", async function(){
+
+        await this.User.sendEmailForAuth(ethers.encodeBytes32String("test@example.com"))
+
+        let auth = await this.User.authByEmailCode(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"))
+        let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
+
+        let token = await this.User.getAuthToken(this.testUser.login,this.testUser.password, authSuccess.token_id)
+
+        this.testUser.token = token[1];        
+
+        expect(token[1].length).to.equal(66)
+    })
+
+
 
 
 })

@@ -18,20 +18,27 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(bytes32 => uint256) phone_logins_index;
     mapping(bytes32 => bytes32) sms_codes;
     mapping(bytes32 => bytes32) test_sms_codes;
+    mapping(bytes32 => uint256) email_logins_index;
+    mapping(bytes32 => bytes32) email_codes;
+    mapping(bytes32 => bytes32) test_email_codes;
+    
+
     uint256 usersIndex;
     string version;
     address hubAddress;
     address smsServiceAddress;
+    address emailServiceAddress;
     uint256 partner_id;
 
 
-    function initialize(uint256 _partner_id, address _hubAddress, address _smsServiceAddress, bytes32 sudoUsername, bytes memory sudopassword, bytes32 phone_number, bytes32 code ) external initializer {
+    function initialize(uint256 _partner_id, address _hubAddress, address _smsServiceAddress, address _emailServiceAddress, bytes32 sudoUsername, bytes memory sudopassword ) external initializer {
         hubAddress = _hubAddress;
         smsServiceAddress = _smsServiceAddress;
+        emailServiceAddress = _emailServiceAddress;
         partner_id = _partner_id;
         version = "1.0";
-        _setTestUserByPhone(phone_number, code);
         registerByPassword(sudoUsername, sudopassword);
+        
         __Ownable_init(msg.sender);
     }
 
@@ -40,7 +47,15 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     }
 
     function setTestUserByPhone(bytes32 phone_number, bytes32 code) onlyOwner external {
-        test_sms_codes[phone_number] = code;
+        _setTestUserByPhone(phone_number, code);
+    }
+
+    function _setTestUserByEmail(bytes32 email, bytes32 code) internal {
+        test_email_codes[email] = code;
+    }
+
+    function setTestUserByEmail(bytes32 phone_number, bytes32 code) onlyOwner external {
+        _setTestUserByEmail(phone_number, code);
     }
 
     function registerByPassword( bytes32 username, bytes memory password ) public {
@@ -146,6 +161,33 @@ contract User is IUser, Initializable, OwnableUpgradeable {
             revert("code_not_match");
 
         uint256 exist_id = phone_logins_index[phone_number];
+
+        if (exist_id > 0){
+            _createAuthToken(exist_id, code);
+        }else{
+            uint256 user_id = _addUser();
+            _createAuthToken(user_id, code);
+        }
+    }
+
+    function sendEmailForAuth(bytes32 recipient) external {
+        bytes32 code;
+
+        if(test_email_codes[recipient].length > 0)
+            code = test_email_codes[recipient];
+        else 
+            code = _random(1000,9999);
+
+        IMessageOracle(emailServiceAddress).sendMessage(recipient, code);
+        email_codes[recipient] = code;
+    }
+
+    function authByEmailCode(bytes32 email, bytes32 code) external {
+
+        if(email_codes[email] != code)
+            revert("code_not_match");
+
+        uint256 exist_id = email_logins_index[email];
 
         if (exist_id > 0){
             _createAuthToken(exist_id, code);
