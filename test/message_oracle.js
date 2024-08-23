@@ -10,7 +10,7 @@ before(async function() {
     this.owner = accounts[0].address;
     this.anotherUser = accounts[1]
     this.testRecipient = ethers.encodeBytes32String("+79312700684");
-    this.testMessage = "3456"
+    this.testMessage = ethers.encodeBytes32String("3456")
 
     console.log("Deploying Contracts...");
     

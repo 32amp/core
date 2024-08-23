@@ -4,7 +4,7 @@ pragma solidity ^0.8.12;
 interface IMessageOracle {
 
     struct message {
-        string text;
+        bytes32 text;
         bool delivered;
         uint256 time;
     }
@@ -25,6 +25,6 @@ interface IMessageOracle {
     function activateWhitelist(bool state) external;
     function changePriceForMessage(uint256 value) external;
     function refill(address account) payable external;
-    function sendMessage(bytes32 recipient, string memory message) external;
+    function sendMessage(bytes32 recipient, bytes32 message) external;
     function confirmSend(bytes32 recipient) external;
 }

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IUser.sol";
 import "../Hub/IHub.sol";
+import "../Services/IMessageOracle.sol";
 
 contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(uint256 => IUser.User) users;
@@ -14,18 +15,32 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(uint256 => bytes32[]) user_tokens;
 
     mapping(bytes32 => uint256) logins_index;
+    mapping(bytes32 => uint256) phone_logins_index;
+    mapping(bytes32 => bytes32) sms_codes;
+    mapping(bytes32 => bytes32) test_sms_codes;
     uint256 usersIndex;
     string version;
     address hubAddress;
+    address smsServiceAddress;
     uint256 partner_id;
 
 
-    function initialize(uint256 _partner_id, address _hubAddress, bytes32 sudoUsername, bytes memory sudopassword) external initializer {
+    function initialize(uint256 _partner_id, address _hubAddress, address _smsServiceAddress, bytes32 sudoUsername, bytes memory sudopassword, bytes32 phone_number, bytes32 code ) external initializer {
         hubAddress = _hubAddress;
+        smsServiceAddress = _smsServiceAddress;
         partner_id = _partner_id;
         version = "1.0";
+        _setTestUserByPhone(phone_number, code);
         registerByPassword(sudoUsername, sudopassword);
         __Ownable_init(msg.sender);
+    }
+
+    function _setTestUserByPhone(bytes32 phone_number, bytes32 code) internal {
+        test_sms_codes[phone_number] = code;
+    }
+
+    function setTestUserByPhone(bytes32 phone_number, bytes32 code) onlyOwner external {
+        test_sms_codes[phone_number] = code;
     }
 
     function registerByPassword( bytes32 username, bytes memory password ) public {
@@ -62,7 +77,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
     function authByPassword(bytes32 username, bytes memory pass) external {
         uint256 user_id = _authByPassword(username, pass);
-        _createAuthToken(user_id, pass);
+        _createAuthToken(user_id, bytes32(pass));
     }
 
     function getAuthToken(bytes32 username,bytes memory pass,uint token_id) external view returns (IUser.AuthToken memory, bytes32) {
@@ -71,7 +86,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         return (auth_tokens[token], token);
     }
 
-    function _createAuthToken(uint256 user_id, bytes memory salt) internal {
+    function _createAuthToken(uint256 user_id, bytes32 salt) internal {
         IUser.AuthToken memory token;
         token.date_start = block.timestamp;
         token.date_expire = block.timestamp + 130 days;
@@ -113,10 +128,36 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         return users[user_id];
     }
 
+    function sendSmsForAuth(bytes32 recipient) external {
+        bytes32 code;
 
-    function _random(uint maxNumber,uint minNumber) private view returns (uint amount) {
-        amount = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender, block.number))) % (maxNumber-minNumber);
-        amount = amount + minNumber;
-        return amount;
+        if(test_sms_codes[recipient].length > 0)
+            code = test_sms_codes[recipient];
+        else 
+            code = _random(1000,9999);
+
+        IMessageOracle(smsServiceAddress).sendMessage(recipient, code);
+        sms_codes[recipient] = code;
+    }
+
+    function authBySmsCode(bytes32 phone_number, bytes32 code) external {
+
+        if(sms_codes[phone_number] != code)
+            revert("code_not_match");
+
+        uint256 exist_id = phone_logins_index[phone_number];
+
+        if (exist_id > 0){
+            _createAuthToken(exist_id, code);
+        }else{
+            uint256 user_id = _addUser();
+            _createAuthToken(user_id, code);
+        }
+    }
+
+    function _random(uint max_number,uint min_number) private view returns (bytes32) {
+        uint amount = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender, block.number))) % (max_number-min_number);
+        amount = amount + min_number;
+        return bytes32(abi.encode(amount));
    }
 }

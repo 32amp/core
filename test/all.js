@@ -4,6 +4,8 @@ const userModule = require("../ignition/modules/User");
 const UserGroupsModule = require("../ignition/modules/UserGroups");
 const LocationsModule = require("../ignition/modules/Locations");
 const UserAccessModule = require("../ignition/modules/UserAccess");
+const MessageOracleModule = require("../ignition/modules/MessageOracle");
+
 const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
 
 before(async function() {
@@ -42,18 +44,29 @@ before(async function() {
         this.owner
     );
 
-
     this.partner = await GetEventArgumentsByNameAsync(tx, "AddPartner")
 
+    //
+    const MessageOracle = await ignition.deploy(MessageOracleModule);
+
+    this.MessageOracle = MessageOracle.MessageOracle;
+
+    await this.MessageOracle.initialize(60n, 1n, false, "Message: [message]")
+
+    console.log("MessageOracle for SMS deployed to:", this.MessageOracle.target);
+    
+
+    //
     const UserDeploy = await ignition.deploy(userModule);
     
     this.User = UserDeploy.user;
 
-    this.User.initialize(this.partner.id,this.Hub.target, this.sudoUser.login, this.sudoUser.password)
+    this.User.initialize(this.partner.id,this.Hub.target, this.MessageOracle.target, this.sudoUser.login, this.sudoUser.password, ethers.encodeBytes32String("+79999999999"), ethers.encodeBytes32String("8888"))
 
     this.Hub.addModule("User", this.User.target)
 
     console.log("User deployed to:", this.User.target);
+    await this.MessageOracle.refill(this.User.target,{value:10n});
 
 
 
@@ -228,6 +241,26 @@ describe("User", function(){
 
         expect(whoami.username.toString() == this.testUser.login).to.equal(true)
     })
+
+    it("setTestUserByPhone", async function(){
+        await this.User.setTestUserByPhone(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"));
+    })
+
+    it("sendSmsForAuth, authBySmsCode", async function(){
+
+        await this.User.sendSmsForAuth(ethers.encodeBytes32String("+79999999998"))
+
+        let auth = await this.User.authBySmsCode(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"))
+        let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
+
+        let token = await this.User.getAuthToken(this.testUser.login,this.testUser.password, authSuccess.token_id)
+
+        this.testUser.token = token[1];        
+
+        expect(token[1].length).to.equal(66)
+    })
+
+
 })
 
 
