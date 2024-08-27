@@ -1,3 +1,5 @@
+var CryptoJS = require("crypto-js");
+
 module.exports.ConvertContractResponseStructToNormalObject = function(schemeObjRef, contractResponseStruct) {
     const target = Object.assign({}, schemeObjRef);
     let i = 0;
@@ -38,4 +40,27 @@ module.exports.GetEventArgumentsByNameAsync = async function(transaction, eventN
     }
 
     return false;
+}
+
+module.exports.createpayload = function(initData){
+    
+    let array = []
+    
+    initData.sort()
+
+    for (const [key, value] of initData.entries()) {
+        if(key != "hash")
+            array.push(`${key}=${value}`)
+    }
+
+    return array.join("\n")
+}
+
+module.exports.verifyTelegramWebAppData = function(TELEGRAM_BOT_TOKEN,telegramInitData){
+    const initData = new URLSearchParams(telegramInitData);
+    const payload = createpayload(initData)
+    const hash = initData.get("hash");
+    const secret_key = CryptoJS.HmacSHA256(TELEGRAM_BOT_TOKEN, "WebAppData");
+    const calculated_hash = CryptoJS.HmacSHA256(payload, secret_key).toString();
+    return calculated_hash === hash;
 }

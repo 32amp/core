@@ -26,6 +26,7 @@
     "hardhat": "^2.22.8"
   },
   "dependencies": {
-    "@openzeppelin/contracts-upgradeable": "^5.0.2"
+    "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "crypto-js": "^4.2.0"
   }
 }

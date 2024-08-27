@@ -6,7 +6,8 @@ const LocationsModule = require("../ignition/modules/Locations");
 const UserAccessModule = require("../ignition/modules/UserAccess");
 const MessageOracleModule = require("../ignition/modules/MessageOracle");
 
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+
+const {GetEventArgumentsByNameAsync, createpayload,verifyTelegramWebAppData} = require("../utils/IFBUtils");
 
 before(async function() {
 
@@ -24,11 +25,15 @@ before(async function() {
         token:null
     }
 
+    const tg_bot_token = ethers.toUtf8Bytes("7137095373:AAFxe-tRpq3MqhhfZ4xKAsRQtMUWTsZ4CPo")
 
     this.owner = accounts[0].address;
     this.anotherUser = accounts[1]
 
     console.log("Deploying Contracts...");
+   
+
+    //
     
     const HubDeploy = await ignition.deploy(hubModule);
 
@@ -61,7 +66,7 @@ before(async function() {
     
     this.User = UserDeploy.user;
 
-    this.User.initialize(this.partner.id,this.Hub.target, this.MessageOracle.target, this.MessageOracle.target, this.sudoUser.login, this.sudoUser.password)
+    this.User.initialize(this.partner.id,this.Hub.target, this.MessageOracle.target, this.MessageOracle.target, this.sudoUser.login, this.sudoUser.password, tg_bot_token)
 
     this.Hub.addModule("User", this.User.target)
 
@@ -281,9 +286,18 @@ describe("User", function(){
     })
 
 
+    it("authByTg", async function (){
+        const user_token = "user=%7B%22id%22%3A14097%2C%22first_name%22%3A%22Artem%22%2C%22last_name%22%3A%22Timofeev%22%2C%22username%22%3A%22timas%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%7D&chat_instance=-237986505224524480&chat_type=channel&auth_date=1718456760&hash=92ec5dcf30d621ad100042109975eff18dfbe403a525158a4d1b5dedb9f059af";
 
+
+        const initData = new URLSearchParams(user_token);
+        const payload = createpayload(initData)
+        let result = await this.User.authByTg(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"))
+        expect(result).to.equal(true)
+    })
 
 })
+
 
 
 describe("UserAccess", function(){

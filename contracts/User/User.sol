@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IUser.sol";
 import "../Hub/IHub.sol";
 import "../Services/IMessageOracle.sol";
+import "hardhat/console.sol";
 
 contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(uint256 => IUser.User) users;
@@ -29,14 +30,15 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     address smsServiceAddress;
     address emailServiceAddress;
     uint256 partner_id;
+    bytes tg_bot_token;
 
-
-    function initialize(uint256 _partner_id, address _hubAddress, address _smsServiceAddress, address _emailServiceAddress, bytes32 sudoUsername, bytes memory sudopassword ) external initializer {
+    function initialize(uint256 _partner_id, address _hubAddress, address _smsServiceAddress, address _emailServiceAddress, bytes32 sudoUsername, bytes memory sudopassword, bytes memory  _tg_bot_token ) external initializer {
         hubAddress = _hubAddress;
         smsServiceAddress = _smsServiceAddress;
         emailServiceAddress = _emailServiceAddress;
         partner_id = _partner_id;
         version = "1.0";
+        tg_bot_token = _tg_bot_token;
         registerByPassword(sudoUsername, sudopassword);
         
         __Ownable_init(msg.sender);
@@ -202,4 +204,64 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         amount = amount + min_number;
         return bytes32(abi.encode(amount));
    }
+
+
+    function authByTg(bytes memory payload, bytes32  _hash) public view returns(bool) {
+
+        bytes32 web_app_data = 0x5765624170704461746100000000000000000000000000000000000000000000;
+
+        bytes32 secret_key = hmacsha256(tg_bot_token, abi.encodePacked(web_app_data));
+
+        bytes32 calculated_hash = hmacsha256(payload, abi.encodePacked(secret_key));
+        
+        return calculated_hash == _hash;
+    }
+
+
+    function _xor(bytes memory a, bytes memory b) internal pure returns (bytes memory) {
+
+        require(a.length == b.length, "Inputs must be of equal length");
+        bytes memory result = new bytes(a.length);
+        for (uint i = 0; i < a.length; i++) {
+            result[i] = b[i] ^ a[i];
+        }
+        return result;
+    }
+
+    function hmacsha256( bytes memory message, bytes memory key) internal pure returns (bytes32) {
+
+
+        // Block size for SHA-256 is 64 bytes
+        uint blockSize = 64;
+
+        // If key is longer than block size, hash it
+        if (key.length > blockSize) {
+            key = abi.encodePacked(sha256(key));
+        }
+
+        // Pad key to block size with zeros
+        bytes memory paddedKey = new bytes(blockSize);
+        for (uint i = 0; i < key.length; i++) {
+            paddedKey[i] = key[i];
+        }
+
+        // Create inner and outer padding
+        bytes memory o_key_pad = new bytes(blockSize);
+        bytes memory i_key_pad = new bytes(blockSize);
+
+        for (uint i = 0; i < blockSize; i++) {
+            o_key_pad[i] = 0x5c;
+            i_key_pad[i] = 0x36;
+        }
+
+        // XOR paddedKey with o_key_pad and i_key_pad
+        o_key_pad = _xor(paddedKey, o_key_pad);
+        i_key_pad = _xor(paddedKey, i_key_pad);
+
+        // Perform inner hash
+        bytes32 innerHash = sha256(abi.encodePacked(i_key_pad, message));
+
+        // Perform outer hash
+        return sha256(abi.encodePacked(o_key_pad, innerHash));
+    }
 }
