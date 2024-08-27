@@ -11,6 +11,10 @@ interface IUser {
         bytes32 phone;
         bytes32 email;
         bytes32 username;
+        bytes32 first_name;
+        bytes32 last_name;
+        uint256 tg_id;
+        bytes32 language_code;
         TypeUser user_type;
         bool enable; 
         uint256 last_updated;
@@ -57,9 +61,9 @@ interface IUser {
 
     struct WebAppUserData{
         uint64 id;
-        string userName;
-        bool isPremium;
-        string adressTonSpace;//кошелек тон спейс?
+        bytes32 first_name;
+        bytes32 last_name;
+        bytes32 language_code;
     }
 
     struct CarData{

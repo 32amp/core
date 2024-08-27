@@ -20,6 +20,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(bytes32 => bytes32) sms_codes;
     mapping(bytes32 => bytes32) test_sms_codes;
     mapping(bytes32 => uint256) email_logins_index;
+    mapping(uint256 => uint256) tg_users_index;
     mapping(bytes32 => bytes32) email_codes;
     mapping(bytes32 => bytes32) test_email_codes;
     
@@ -206,7 +207,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
    }
 
 
-    function authByTg(bytes memory payload, bytes32  _hash) public view returns(bool) {
+    function authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) public {
 
         bytes32 web_app_data = 0x5765624170704461746100000000000000000000000000000000000000000000;
 
@@ -214,7 +215,21 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
         bytes32 calculated_hash = hmacsha256(payload, abi.encodePacked(secret_key));
         
-        return calculated_hash == _hash;
+        if(calculated_hash == _hash){
+            if(tg_users_index[user_data.id] == 0){
+                uint256 user_id = _addUser();
+                tg_users_index[user_data.id] = user_id;
+                users[user_id].first_name = user_data.first_name;
+                users[user_id].last_name = user_data.last_name;
+                users[user_id].tg_id = user_data.id;
+                users[user_id].language_code = user_data.language_code;
+                _createAuthToken(user_id, calculated_hash);
+            }else{
+                _createAuthToken(tg_users_index[user_data.id], calculated_hash);
+            }
+        }else{
+            revert("access_denied");
+        }
     }
 
 

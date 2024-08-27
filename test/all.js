@@ -292,8 +292,24 @@ describe("User", function(){
 
         const initData = new URLSearchParams(user_token);
         const payload = createpayload(initData)
-        let result = await this.User.authByTg(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"))
-        expect(result).to.equal(true)
+
+        const user_data = JSON.parse(initData.get("user")); 
+
+        const web_app_data = {
+            id: user_data.id,
+            first_name: ethers.encodeBytes32String(user_data.first_name),
+            last_name:ethers.encodeBytes32String(user_data.last_name),
+            language_code:ethers.encodeBytes32String(user_data.language_code),
+        }
+        
+        let auth = await this.User.authByTg(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data)
+        let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
+
+        let token = await this.User.getAuthToken(this.testUser.login,this.testUser.password, authSuccess.token_id)
+
+        this.testUser.token = token[1];        
+
+        expect(token[1].length).to.equal(66)
     })
 
 })
