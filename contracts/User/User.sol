@@ -231,7 +231,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
    }
 
 
-    function authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) public {
+    function authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) external {
 
         bytes32 web_app_data = 0x5765624170704461746100000000000000000000000000000000000000000000;
 
