@@ -40,14 +40,8 @@ interface IUser {
     }
 
     struct Company {
-        uint256 id;
         string name;
         string description;
-        uint256 meta;
-    }
-
-    struct CompanyMeta {
-        uint256 id;
         uint256 inn;
         uint256 kpp;
         uint256 ogrn;

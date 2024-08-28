@@ -312,21 +312,52 @@ describe("User", function(){
 
 
     it("addCar, getCars, removeCar", async function(){
-        await this.User.addCar(this.testUser.token,{
+        await this.User.addCar(this.testUser.token,0,{
             brand:"Tesla",
             model:"Model 3",
             connectors: [1,2]
         })
 
-        const cars = await this.User.getCars(this.testUser.token)
+        const cars = await this.User.getCars(this.testUser.token, 0)
 
         expect(cars[0].brand).to.equal("Tesla")
 
-        await this.User.removeCar(this.testUser.token, 0)
+        await this.User.removeCar(this.testUser.token, 0,0)
 
-        const cars_zero = await this.User.getCars(this.testUser.token)
+        const cars_zero = await this.User.getCars(this.testUser.token,0)
 
         expect(cars_zero.length).to.equal(0)
+    })
+
+    it("updateBaseData", async function(){
+        await this.User.updateBaseData(this.testUser.token, 0, ethers.encodeBytes32String("Pavel"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
+        let whoami =  await this.User.whoami(this.testUser.token);
+        expect(whoami.first_name.toString()).to.equal( ethers.encodeBytes32String("Pavel").toString())
+
+        await this.User.updateBaseData(this.sudoUser.token, whoami.id, ethers.encodeBytes32String("Nikolay"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
+
+        whoami = await this.User.whoami(this.testUser.token);
+        expect(whoami.first_name.toString()).to.equal( ethers.encodeBytes32String("Nikolay").toString())
+    })
+
+    it("updateCompanyInfo", async function(){
+        await this.User.updateCompanyInfo(this.testUser.token, 0, {
+            name: "Portal",
+            description: "Wow",
+            inn:1212,
+            kpp: 121212,
+            ogrn: 8767,
+            bank_account: 1212121,
+            bank_name: "SuperBank",
+            bank_bik: 3232234234,
+            bank_corr_account: 66543,
+            bank_inn: 51442456,
+            bank_kpp_account: 787878
+        })
+
+        let info = await this.User.getCompanyInfo(this.testUser.token, 0)
+        
+        expect(info.name).to.equal("Portal")
     })
 
 })

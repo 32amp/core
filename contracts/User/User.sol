@@ -4,12 +4,14 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IUser.sol";
+import "./IUserAccess.sol";
 import "../Hub/IHub.sol";
 import "../Services/IMessageOracle.sol";
 import "hardhat/console.sol";
 
 contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(uint256 => IUser.User) users;
+    mapping(uint256 => IUser.Company) user_company_data;
     mapping(uint256 => IUser.CarData[]) user_cars;
     mapping(uint256 => bytes32) passwords;
     mapping(bytes32 => IUser.AuthToken) auth_tokens;
@@ -33,6 +35,10 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     address emailServiceAddress;
     uint256 partner_id;
     bytes tg_bot_token;
+
+    function _UserAccess() private view returns(IUserAccess) {
+        return IUserAccess(IHub(hubAddress).getModule("UserAccess", partner_id));
+    }
 
     function initialize(uint256 _partner_id, address _hubAddress, address _smsServiceAddress, address _emailServiceAddress, bytes32 sudoUsername, bytes memory sudopassword, bytes memory  _tg_bot_token ) external initializer {
         hubAddress = _hubAddress;
@@ -149,6 +155,21 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         return users[user_id];
     }
 
+    function getUser(bytes32 _token, uint256 _user_id) external view returns (IUser.User memory) {
+        uint256 user_id = this.isLogin(_token);
+
+        if (user_id == 0) revert("access_denied");
+
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", user_id);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }
+
+        return users[_user_id];
+    }
+
     function sendSmsForAuth(bytes32 recipient) external {
         bytes32 code;
 
@@ -239,29 +260,51 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         users[user_id].language_code = language_code;
     }
 
-    function updateMyData(bytes32 _token, bytes32 first_name, bytes32 last_name, bytes32 language_code) external {
-        uint256 user_id = this.isLogin(_token);
+    function updateBaseData(bytes32 _token, uint256 user_id, bytes32 first_name, bytes32 last_name, bytes32 language_code) external {
+        uint256 my_user_id = this.isLogin(_token);
 
-        if (user_id == 0) revert("access_denied");
+        if (my_user_id == 0) revert("access_denied");
+
+        if(user_id == 0){
+            _updateData(my_user_id,first_name, last_name, language_code);
+            return;
+        }
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }
+
         _updateData(user_id,first_name, last_name, language_code);
     }
 
 
-    function addCar(bytes32 _token, CarData memory car_data) external{
-        uint256 user_id = this.isLogin(_token);
+    function addCar(bytes32 _token, uint256 user_id, CarData memory car_data) external{
+        uint256 my_user_id = this.isLogin(_token);
 
-        if (user_id == 0) revert("access_denied");
+        if (my_user_id == 0) revert("access_denied_1");
+
+        if(user_id == 0){
+            user_cars[my_user_id].push(car_data);
+            return;
+        }
+
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied_2");
+        }
 
         user_cars[user_id].push(car_data);
+
     }
 
-    function removeCar(bytes32 _token, uint _index) external {
-        uint256 user_id = this.isLogin(_token);
-
-        if (user_id == 0) revert("access_denied");
+    function _removeCar(uint256 user_id, uint _index) internal {
 
         if (_index >= user_cars[user_id].length) {
-            revert("car_cont_found");
+            revert("car_not_found");
         }
    
         for (uint i = _index; i < user_cars[user_id].length - 1; i++) {
@@ -271,12 +314,85 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         user_cars[user_id].pop();
     }
 
-    function getCars(bytes32 _token) external view returns(CarData[] memory) {
-        uint256 user_id = this.isLogin(_token);
 
-        if (user_id == 0) revert("access_denied");
+    function removeCar(bytes32 _token, uint256 user_id, uint _index) external {
+        uint256 my_user_id = this.isLogin(_token);
 
+        if (my_user_id == 0) revert("access_denied");
+
+        if(user_id == 0){
+            _removeCar(my_user_id, _index);
+            return;
+        }
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }
+
+        _removeCar(user_id, _index);
+    }
+
+
+    function getCars(bytes32 _token, uint256 user_id) external view returns(CarData[] memory) {
+        uint256 my_user_id = this.isLogin(_token);
+
+        if (my_user_id == 0) revert("access_denied");
+
+        if(user_id == 0)
+            return user_cars[my_user_id];
+
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }
+    
         return user_cars[user_id];
+        
+    }
+
+    function updateCompanyInfo(bytes32 _token, uint256 user_id, Company memory company_data) external{
+        uint256 my_user_id = this.isLogin(_token);
+
+        if (my_user_id == 0) revert("access_denied");
+
+        if(user_id == 0){
+            users[my_user_id].user_type = IUser.TypeUser.COMPANY;
+
+            user_company_data[my_user_id] = company_data;
+            return;
+        }
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }
+
+        users[user_id].user_type = IUser.TypeUser.COMPANY;
+
+        user_company_data[user_id] = company_data;
+
+    }
+
+    function getCompanyInfo(bytes32 _token, uint256 user_id) external view returns(Company memory){
+        uint256 my_user_id = this.isLogin(_token);
+
+        if (my_user_id == 0) revert("access_denied");
+        
+        if(user_id == 0)
+            return user_company_data[my_user_id];
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }    
+        
+        return user_company_data[user_id];
     }
 
 
