@@ -69,7 +69,7 @@ interface IUser {
     struct CarData{
         string brand;
         string model;
-        string[] connectors;
+        uint8[] connectors;
     }
 
     struct AutoPaymentData {

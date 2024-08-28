@@ -10,6 +10,7 @@ import "hardhat/console.sol";
 
 contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(uint256 => IUser.User) users;
+    mapping(uint256 => IUser.CarData[]) user_cars;
     mapping(uint256 => bytes32) passwords;
     mapping(bytes32 => IUser.AuthToken) auth_tokens;
     mapping(bytes32 => IUser.AuthToken) public_tokens;
@@ -80,6 +81,8 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         users[usersIndex].enable = true;
         return usersIndex;
     }
+
+    
 
     function _authByPassword(bytes32 username, bytes memory pass) private view returns (uint256) {
         uint256 user_id = logins_index[username];
@@ -219,10 +222,8 @@ contract User is IUser, Initializable, OwnableUpgradeable {
             if(tg_users_index[user_data.id] == 0){
                 uint256 user_id = _addUser();
                 tg_users_index[user_data.id] = user_id;
-                users[user_id].first_name = user_data.first_name;
-                users[user_id].last_name = user_data.last_name;
                 users[user_id].tg_id = user_data.id;
-                users[user_id].language_code = user_data.language_code;
+                _updateData(user_id,user_data.first_name, user_data.last_name, user_data.language_code);
                 _createAuthToken(user_id, calculated_hash);
             }else{
                 _createAuthToken(tg_users_index[user_data.id], calculated_hash);
@@ -230,6 +231,52 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         }else{
             revert("access_denied");
         }
+    }
+
+    function _updateData(uint256 user_id, bytes32 first_name, bytes32 last_name, bytes32 language_code) internal {
+        users[user_id].first_name = first_name;
+        users[user_id].last_name = last_name;
+        users[user_id].language_code = language_code;
+    }
+
+    function updateMyData(bytes32 _token, bytes32 first_name, bytes32 last_name, bytes32 language_code) external {
+        uint256 user_id = this.isLogin(_token);
+
+        if (user_id == 0) revert("access_denied");
+        _updateData(user_id,first_name, last_name, language_code);
+    }
+
+
+    function addCar(bytes32 _token, CarData memory car_data) external{
+        uint256 user_id = this.isLogin(_token);
+
+        if (user_id == 0) revert("access_denied");
+
+        user_cars[user_id].push(car_data);
+    }
+
+    function removeCar(bytes32 _token, uint _index) external {
+        uint256 user_id = this.isLogin(_token);
+
+        if (user_id == 0) revert("access_denied");
+
+        if (_index >= user_cars[user_id].length) {
+            revert("car_cont_found");
+        }
+   
+        for (uint i = _index; i < user_cars[user_id].length - 1; i++) {
+            user_cars[user_id][i] = user_cars[user_id][i + 1];
+        }
+
+        user_cars[user_id].pop();
+    }
+
+    function getCars(bytes32 _token) external view returns(CarData[] memory) {
+        uint256 user_id = this.isLogin(_token);
+
+        if (user_id == 0) revert("access_denied");
+
+        return user_cars[user_id];
     }
 
 

@@ -213,10 +213,8 @@ describe("User", function(){
 
 
     it("registerByPassword", async function(){
-
         let register = await this.User.registerByPassword(this.testUser.login,this.testUser.password)
         await register.wait()
-
 
         let auth = await this.User.authByPassword(this.testUser.login,this.testUser.password)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
@@ -310,6 +308,25 @@ describe("User", function(){
         this.testUser.token = token[1];        
 
         expect(token[1].length).to.equal(66)
+    })
+
+
+    it("addCar, getCars, removeCar", async function(){
+        await this.User.addCar(this.testUser.token,{
+            brand:"Tesla",
+            model:"Model 3",
+            connectors: [1,2]
+        })
+
+        const cars = await this.User.getCars(this.testUser.token)
+
+        expect(cars[0].brand).to.equal("Tesla")
+
+        await this.User.removeCar(this.testUser.token, 0)
+
+        const cars_zero = await this.User.getCars(this.testUser.token)
+
+        expect(cars_zero.length).to.equal(0)
     })
 
 })
