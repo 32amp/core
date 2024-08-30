@@ -5,9 +5,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../Hub/IHub.sol";
 import "../User/IUser.sol";
+import "../User/IUserAccess.sol";
 import "hardhat/console.sol";
 
-contract UserAccess is Initializable, OwnableUpgradeable {
+contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
 
     mapping( string => mapping( bytes32 => mapping( uint256 => AccessLevel ) ) ) private object_access;
     mapping( string => mapping( uint256 => bytes32[] ) ) private object_access_list;
@@ -21,15 +22,6 @@ contract UserAccess is Initializable, OwnableUpgradeable {
     mapping( uint256 => mapping(string => AccessLevel) ) private group_modules_access;
     mapping( uint256 => string[] ) private group_modules_access_list;
 
-    // ZERO - Access denied
-    // FIRST - Only view
-    // SECOND - View and Run
-    // THIRD - View, Run, Edit
-    // FOURTH - View, Edit, Add
-    // FIFTH - View, Edit, Add, Delete
-    // GOD - GODMODE
-
-    enum  AccessLevel{ZERO, FIRST, SECOND, THIRD, FOURTH, FIFTH, GOD} 
 
 
     string version;
@@ -123,15 +115,15 @@ contract UserAccess is Initializable, OwnableUpgradeable {
         return uint(object_access[module][object_id][user_id]);
     }
 
-    function getGroupModuleAccessLevel(string memory module, uint256 group_id) public view returns(uint){
+    function getGroupModuleAccessLevel(string memory module, uint256 group_id) external view returns(uint){
         return uint(group_modules_access[group_id][module]);
     }
 
-    function getGroupObjectAccessLevel(string memory module, bytes32 object_id, uint256 group_id) public view returns(AccessLevel){
-        return group_object_access[module][object_id][group_id];
+    function getGroupObjectAccessLevel(string memory module, bytes32 object_id, uint256 group_id) external view returns(uint){
+        return uint(group_object_access[module][object_id][group_id]);
     }
 
-    function getMyModulesAccess(bytes32 _token) public view returns(string[] memory, uint[] memory){
+    function getMyModulesAccess(bytes32 _token) external view returns(string[] memory, uint[] memory){
         uint256 isLogin = _isLogin(_token);
         uint[] memory accessLevel = new uint[](modules_access_list[isLogin].length);
 

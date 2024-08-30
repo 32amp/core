@@ -9,15 +9,15 @@ interface IUserAccess {
     // THIRD - view, edit, add
     // FOURTH - view, edit, add, delete
 
-    enum AccessLevel{ZERO, FIRST, SECOND, THIRD, FOURTH}
+    enum  AccessLevel{ZERO, FIRST, SECOND, THIRD, FOURTH, FIFTH, GOD} 
 
-    function addModule(string memory _module) external;
-
-    function getModules() external view returns(string[] memory);
-
-    function checkModuleExist(string memory module) external view;
+    function setAccessLevelToModule(bytes32 _token, uint256 user_id, string memory module, AccessLevel access_level) external;
 
     function getModuleAccessLevel(string memory module, uint256 user_id) external view returns(uint);
 
-    function getObjectAccessLevel(string memory module, bytes32 object_id, uint256 user_id) external view returns(AccessLevel);
+    function getObjectAccessLevel(string memory module, bytes32 object_id, uint256 user_id) external view returns(uint);
+    function setAccessLevelToModuleObject(bytes32 _token, bytes32 object_id, uint256 user_id, string memory module, AccessLevel access_level) external;
+    function getGroupModuleAccessLevel(string memory module, uint256 group_id) external view returns(uint);
+    function getGroupObjectAccessLevel(string memory module, bytes32 object_id, uint256 group_id) external view returns(uint);
+    function getMyModulesAccess(bytes32 _token) external view returns(string[] memory, uint[] memory);
 }
