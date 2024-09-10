@@ -400,7 +400,10 @@ describe("UserGroups", function(){
     })
 
     it("addGroup", async function(){
-        const group =  await this.UserGroups.addGroup(this.sudoUser.token, "test");
+        await this.UserGroups.addGroup(this.sudoUser.token, "test");
+        const myGroups =  await this.UserGroups.getMyGroups(this.sudoUser.token);
+        expect(myGroups.length).to.equal(2)
+        
     });
 })
 
@@ -415,13 +418,14 @@ describe("Locations", function(){
         state: ethers.encodeBytes32String("Moskow"),
         country: ethers.encodeBytes32String("RUS"),
         coordinates: {
-            latitude: 30,
-            longtitude: 60
+            latitude: ethers.parseEther("59.694982"),
+            longitude: ethers.parseEther("30.416469")
         },
         parking_type: 5,
         facilities: [1,2], // Hotel, Restaurant
         time_zone : "Moskow/Europe",
-        charging_when_closed: true
+        charging_when_closed: true,
+        publish: true
     };
 
     it("AddLocation", async function(){
@@ -446,6 +450,46 @@ describe("Locations", function(){
         expect(newLocation.facilities.join(",")).to.equal(location.facilities.join(","))
         expect(newLocation.time_zone).to.equal(location.time_zone)
         expect(newLocation.charging_when_closed).to.equal(location.charging_when_closed)
+    })
+
+
+    it("addlocations", async function(){
+        const fs = require('fs');
+        const coords = JSON.parse( fs.readFileSync(__dirname+"/../coords.json", 'utf8'))
+
+        for (let index = 0; index < coords.length; index++) {
+            const coord = coords[index];
+            const loc = location;
+            loc.coordinates.latitude = ethers.parseEther(coord.lat);
+            loc.coordinates.longitude = ethers.parseEther(coord.lon);
+
+            await this.Location.addLocation(this.sudoUser.token, loc);
+            //await this.Location.addLocation(this.sudoUser.token, loc);
+            //await this.Location.addLocation(this.sudoUser.token, loc);
+
+        }
+    })
+
+
+    it("inArea", async function(){
+        const locations = await this.Location.inArea(ethers.parseEther("59.702530"),ethers.parseEther("30.425396"),ethers.parseEther("59.687259"),ethers.parseEther("30.402737"), 0, [1], true)
+        expect(locations[0].length).to.equal(1)
+    })
+
+
+    it("inAreaMany", async function(){
+
+        let locations_1 = await this.Location.inArea(ethers.parseEther("66.537305"),ethers.parseEther("177.814396"),ethers.parseEther("43.146425"),ethers.parseEther("11.585331"),0, [1], true)
+    
+
+        locations_2 = await this.Location.inArea(ethers.parseEther("66.537305"),ethers.parseEther("177.814396"),ethers.parseEther("43.146425"),ethers.parseEther("11.585331"),50, [1], true)
+        console.log(locations_2[0].length, locations_2[1])
+
+        console.log(locations_1[0][0].coordinates.latitude, locations_2[0][0].coordinates.latitude )
+
+        locations_3 = await this.Location.inArea(ethers.parseEther("66.537305"),ethers.parseEther("177.814396"),ethers.parseEther("43.146425"),ethers.parseEther("11.585331"),1100, [1], true)
+        console.log(locations_3[0].length, locations_3[1])
+        console.log(locations_3[0][0].coordinates.latitude, locations_3[0][1].coordinates.latitude )
     })
 
 })

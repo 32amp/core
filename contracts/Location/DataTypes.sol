@@ -246,7 +246,7 @@ interface DataTypesLocation {
    
     struct GeoLocation {
         int256 latitude;
-        int256 longtitude;
+        int256 longitude;
     }
 
 
@@ -312,6 +312,7 @@ interface DataTypesLocation {
         uint256 evse_id;
         uint256 sync_id;
         uint256 last_updated;
+        ConnectorStatus status;
     }
 }
 

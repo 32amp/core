@@ -9,8 +9,13 @@ import "./ILocation.sol";
 import "../User/IUser.sol";
 import "../User/IUserAccess.sol";
 
+import "hardhat/console.sol";
+
 contract Location is ILocation, Initializable {
     mapping(uint256 => DataTypesLocation.Location) locations;
+    uint256[] locationIds;
+
+
     uint256 locationCounter;
     address hubContract;
     string version;
@@ -58,6 +63,7 @@ contract Location is ILocation, Initializable {
         newLocation.facilities = add.facilities;
         newLocation.time_zone = add.time_zone;
         newLocation.charging_when_closed = add.charging_when_closed;
+        newLocation.publish = add.publish;
 
 
         newLocation.operator = partner_id;
@@ -68,8 +74,10 @@ contract Location is ILocation, Initializable {
         newLocation.uid = locationCounter;
         locations[locationCounter] = newLocation;
         
+        locationIds.push(locationCounter);
+
         emit AddLocation(locationCounter, partner_id, user_id);
-        
+
         return locationCounter;
     }
 
@@ -77,6 +85,84 @@ contract Location is ILocation, Initializable {
     function getLocation(uint256 id) external view returns (DataTypesLocation.Location memory){
         return locations[id];
     }
+
+    function inArea(
+        int256 topRightLat,
+        int256 topRightLong,
+        int256 bottomLeftLat,
+        int256 bottomLeftLong,
+        uint256 offset,
+        uint8[] memory connectors, // TODO add filter by connector
+        bool onlyFreeConnectors // TODO add filter by connector
+    ) public view returns (DataTypesLocation.Location[] memory, uint256) {
+        uint256 output_count = 50;
+        uint256 count = 0;
+        
+        // Первоначальный подсчет количества локаций в области
+        for (uint256 i = 0; i < locationIds.length; i++) {
+            uint256 id = locationIds[i];
+
+            if (
+                locations[id].coordinates.latitude <= topRightLat &&
+                locations[id].coordinates.latitude >= bottomLeftLat &&
+                locations[id].coordinates.longitude <= topRightLong &&
+                locations[id].coordinates.longitude >= bottomLeftLong &&
+                locations[id].publish
+            ) {
+                count++;
+            }
+        }
+        console.log(offset, count);
+        if(offset >= count)
+            revert("big_offset");
+
+        // Создание идекса для вывода
+        uint256[] memory outputIds = new uint256[](count);
+        uint256 _index = 0;
+        for (uint256 i = 0; i < locationIds.length; i++) {
+            uint256 id = locationIds[i];
+
+            if (
+                locations[id].coordinates.latitude <= topRightLat &&
+                locations[id].coordinates.latitude >= bottomLeftLat &&
+                locations[id].coordinates.longitude <= topRightLong &&
+                locations[id].coordinates.longitude >= bottomLeftLong &&
+                locations[id].publish
+            ) {
+                
+                outputIds[_index] = id;
+                _index++;
+            }
+        }
+
+
+        if(count < output_count )
+            output_count = count;
+
+        if(count-offset < output_count)
+            output_count = count-offset;
+
+        // Создание массива для хранения результатов
+        DataTypesLocation.Location[] memory results = new DataTypesLocation.Location[](output_count);
+        uint256 index = 0;
+
+        // Заполнение массива результатами
+        for (uint256 i = offset; i < outputIds.length; i++) {
+            uint256 id = outputIds[i];
+
+            if(output_count == index)
+                break;
+
+            results[index] = locations[id];
+            index++;
+
+        }
+
+        return (results,count);
+    }
+
+
+
 
     function exist(uint256 location_id) public view returns (bool) {
         

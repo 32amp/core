@@ -22,6 +22,7 @@ interface ILocation {
         DataTypesLocation.Facility[] facilities;
         string time_zone;
         bool charging_when_closed;
+        bool publish;
     }
 
     event AddLocation(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );

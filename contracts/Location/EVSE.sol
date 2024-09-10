@@ -13,7 +13,7 @@ contract EVSE is Initializable {
     string version;
 
 
-    function initialize(address hubContract) public initializer {
+    function initialize(address hubContract, address locationContract) public initializer {
         hub = IHub(hubContract);
         version = "1.0";
     }
@@ -26,7 +26,7 @@ contract EVSE is Initializable {
 
     }
 
-    function addLocation() public {
+    function addStation() public {
         
     }
 
