@@ -464,16 +464,6 @@ describe("Locations", function(){
             loc.coordinates.longitude =coord.lon;
 
             await this.Location.addLocation(this.sudoUser.token, loc);
-            await this.Location.addLocation(this.sudoUser.token, loc);
-            await this.Location.addLocation(this.sudoUser.token, loc);
-            await this.Location.addLocation(this.sudoUser.token, loc);
-            await this.Location.addLocation(this.sudoUser.token, loc);
-            //await this.Location.addLocation(this.sudoUser.token, loc);
-            //await this.Location.addLocation(this.sudoUser.token, loc);
-            //await this.Location.addLocation(this.sudoUser.token, loc);
-            //await this.Location.addLocation(this.sudoUser.token, loc);
-            //await this.Location.addLocation(this.sudoUser.token, loc);
-            //await this.Location.addLocation(this.sudoUser.token, loc);
 
         }
     })
@@ -483,7 +473,7 @@ describe("Locations", function(){
 
         // all saint peterburg
         const locations = await this.Location.inArea("60.133835","30.933217","59.630048","29.649831", 0, [1], true)
-        //console.log(locations[0])
+        console.log("inArea count:",locations[1])
         expect(locations[0].length).to.equal(50)
     })
 

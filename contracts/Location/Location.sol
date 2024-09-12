@@ -105,7 +105,7 @@ contract Location is ILocation, Initializable {
         int256 bottomLeftLong_integerPart = splitCoordinate(bottomLeftLong);
 
         uint256 count = 0;
-        uint256 output_count = 50;
+        uint256 output_count = 40;
         int256 i_vertical_start;
         int256 i_vertical_end;
         int256 i_horisontal_start;
@@ -132,20 +132,34 @@ contract Location is ILocation, Initializable {
 
                 if(locations_index[i_2][i].length > 0){
                     count += locations_index[i_2][i].length;
+
                 }
             }
         }
 
-        uint256[] memory outputIds = new uint256[](count);
+
+        if(count < output_count )
+            output_count = count;
+
+        if(count-offset < output_count)
+            output_count = count-offset;
+
+        DataTypesLocation.Location[] memory results = new DataTypesLocation.Location[](output_count);
+
+        console.log("output_count %s",output_count);
 
         uint index = 0;
+        uint index_2 = 0;
 
         for (int i = i_vertical_start; i <= i_vertical_end; i++) {
             for (int i_2 = i_horisontal_start; i_2 < i_horisontal_end; i_2++) {
 
                 if(locations_index[i_2][i].length > 0){
                     for (uint i_loc = 0; i_loc < locations_index[i_2][i].length; i_loc++) {
-                        outputIds[index] = locations_index[i_2][i][i_loc];
+                            if(index >= offset && index_2 < output_count){
+                                results[index_2] = locations[locations_index[i_2][i][i_loc]];
+                                index_2++;
+                            }
                         index++;
                     }
                 }
@@ -153,12 +167,8 @@ contract Location is ILocation, Initializable {
         }
 
     
-        if(count < output_count )
-            output_count = count;
 
-        if(count-offset < output_count)
-            output_count = count-offset;
-
+/* 
         // Создание массива для хранения результатов
         DataTypesLocation.Location[] memory results = new DataTypesLocation.Location[](output_count);
         uint256 _index = 0;
@@ -173,7 +183,7 @@ contract Location is ILocation, Initializable {
             results[_index] = locations[id];
             _index++;
 
-        }
+        } */
 
         return (results,count);
     }
