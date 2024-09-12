@@ -8,7 +8,6 @@ import "./DataTypes.sol";
 
 
 interface ILocation {
- 
 
     struct Add {
         string name;

@@ -10,6 +10,10 @@ module.exports = {
         enabled: true,
         runs: 200,
       },
+      viaIR: true,
     },
+  },
+  mocha: {
+    timeout: 300000
   }
 };

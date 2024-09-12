@@ -3,6 +3,7 @@ pragma solidity ^0.8.12;
 
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../Hub/IHub.sol";
 import "./DataTypes.sol";
 import "./ILocation.sol";
@@ -13,8 +14,8 @@ import "hardhat/console.sol";
 
 contract Location is ILocation, Initializable {
     mapping(uint256 => DataTypesLocation.Location) locations;
-    uint256[] locationIds;
 
+    mapping(int256 => mapping(int256 => uint256[])) locations_index;
 
     uint256 locationCounter;
     address hubContract;
@@ -48,6 +49,9 @@ contract Location is ILocation, Initializable {
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             revert("access_denied");
         }
+
+
+        
         
         locationCounter++;
         DataTypesLocation.Location memory newLocation;
@@ -73,9 +77,9 @@ contract Location is ILocation, Initializable {
         newLocation.last_updated = block.timestamp;
         newLocation.uid = locationCounter;
         locations[locationCounter] = newLocation;
-        
-        locationIds.push(locationCounter);
-
+        int256 lat_integerPart = splitCoordinate(newLocation.coordinates.latitude);
+        int256 lon_integerPart = splitCoordinate(newLocation.coordinates.longitude);
+        locations_index[lat_integerPart][lon_integerPart].push(locationCounter);
         emit AddLocation(locationCounter, partner_id, user_id);
 
         return locationCounter;
@@ -87,55 +91,68 @@ contract Location is ILocation, Initializable {
     }
 
     function inArea(
-        int256 topRightLat,
-        int256 topRightLong,
-        int256 bottomLeftLat,
-        int256 bottomLeftLong,
+        string memory topRightLat,
+        string memory topRightLong,
+        string memory bottomLeftLat,
+        string memory bottomLeftLong,
         uint256 offset,
         uint8[] memory connectors, // TODO add filter by connector
         bool onlyFreeConnectors // TODO add filter by connector
     ) public view returns (DataTypesLocation.Location[] memory, uint256) {
-        uint256 output_count = 50;
+        int256 topRightLat_integerPart = splitCoordinate(topRightLat);
+        int256 topRightLong_integerPart = splitCoordinate(topRightLong);
+        int256 bottomLeftLat_integerPart = splitCoordinate(bottomLeftLat);
+        int256 bottomLeftLong_integerPart = splitCoordinate(bottomLeftLong);
+
         uint256 count = 0;
-        
-        // Первоначальный подсчет количества локаций в области
-        for (uint256 i = 0; i < locationIds.length; i++) {
-            uint256 id = locationIds[i];
+        uint256 output_count = 50;
+        int256 i_vertical_start;
+        int256 i_vertical_end;
+        int256 i_horisontal_start;
+        int256 i_horisontal_end;
 
-            if (
-                locations[id].coordinates.latitude <= topRightLat &&
-                locations[id].coordinates.latitude >= bottomLeftLat &&
-                locations[id].coordinates.longitude <= topRightLong &&
-                locations[id].coordinates.longitude >= bottomLeftLong &&
-                locations[id].publish
-            ) {
-                count++;
+        if(topRightLong_integerPart < bottomLeftLong_integerPart){
+            i_vertical_start = topRightLong_integerPart;
+            i_vertical_end = bottomLeftLong_integerPart;
+        }else{
+            i_vertical_start = bottomLeftLong_integerPart;
+            i_vertical_end = topRightLong_integerPart;
+        }
+
+        if(topRightLat_integerPart < bottomLeftLat_integerPart){
+            i_horisontal_start = topRightLat_integerPart;
+            i_horisontal_end = bottomLeftLat_integerPart;
+        }else{
+            i_horisontal_start = bottomLeftLat_integerPart;
+            i_horisontal_end = topRightLat_integerPart;
+        }
+
+        for (int i = i_vertical_start; i <= i_vertical_end; i++) {
+            for (int i_2 = i_horisontal_start; i_2 < i_horisontal_end; i_2++) {
+
+                if(locations_index[i_2][i].length > 0){
+                    count += locations_index[i_2][i].length;
+                }
             }
         }
-        console.log(offset, count);
-        if(offset >= count)
-            revert("big_offset");
 
-        // Создание идекса для вывода
         uint256[] memory outputIds = new uint256[](count);
-        uint256 _index = 0;
-        for (uint256 i = 0; i < locationIds.length; i++) {
-            uint256 id = locationIds[i];
 
-            if (
-                locations[id].coordinates.latitude <= topRightLat &&
-                locations[id].coordinates.latitude >= bottomLeftLat &&
-                locations[id].coordinates.longitude <= topRightLong &&
-                locations[id].coordinates.longitude >= bottomLeftLong &&
-                locations[id].publish
-            ) {
-                
-                outputIds[_index] = id;
-                _index++;
+        uint index = 0;
+
+        for (int i = i_vertical_start; i <= i_vertical_end; i++) {
+            for (int i_2 = i_horisontal_start; i_2 < i_horisontal_end; i_2++) {
+
+                if(locations_index[i_2][i].length > 0){
+                    for (uint i_loc = 0; i_loc < locations_index[i_2][i].length; i_loc++) {
+                        outputIds[index] = locations_index[i_2][i][i_loc];
+                        index++;
+                    }
+                }
             }
         }
 
-
+    
         if(count < output_count )
             output_count = count;
 
@@ -144,17 +161,17 @@ contract Location is ILocation, Initializable {
 
         // Создание массива для хранения результатов
         DataTypesLocation.Location[] memory results = new DataTypesLocation.Location[](output_count);
-        uint256 index = 0;
+        uint256 _index = 0;
 
         // Заполнение массива результатами
         for (uint256 i = offset; i < outputIds.length; i++) {
             uint256 id = outputIds[i];
 
-            if(output_count == index)
+            if(output_count == _index)
                 break;
 
-            results[index] = locations[id];
-            index++;
+            results[_index] = locations[id];
+            _index++;
 
         }
 
@@ -170,6 +187,57 @@ contract Location is ILocation, Initializable {
             return true;
         
         return false;
+    }
+
+    function splitCoordinate(string memory coordinate) public pure returns (int256) {
+        bytes memory coordinateBytes = bytes(coordinate);
+        uint dotIndex;
+        bool dotFound = false;
+        bool isNegative = false;
+        uint startIndex = 0;
+
+        // Проверить, есть ли знак минус в начале
+        if (coordinateBytes[0] == "-") {
+            isNegative = true;
+            startIndex = 1;
+        }
+
+        // Найти индекс точки
+        for (uint i = startIndex; i < coordinateBytes.length; i++) {
+            if (coordinateBytes[i] == ".") {
+                dotIndex = i;
+                dotFound = true;
+                break;
+            }
+        }
+
+        require(dotFound, "No decimal point found");
+
+        // Создать массив байтов для целой части
+        bytes memory integerPartBytes = new bytes(dotIndex - startIndex);
+
+        // Заполнить целую часть
+        for (uint i = startIndex; i < dotIndex; i++) {
+            integerPartBytes[i - startIndex] = coordinateBytes[i];
+        }
+
+        // Преобразовать целую часть в int256
+        int256 integerPart = parseInt(integerPartBytes);
+
+        // Учитывать отрицательность числа
+        if (isNegative) {
+            integerPart = -integerPart;
+        }
+        return integerPart;
+    }
+
+    function parseInt(bytes memory b) internal pure returns (int256) {
+        int256 result = 0;
+        for (uint i = 0; i < b.length; i++) {
+            require(b[i] >= 0x30 && b[i] <= 0x39, "Invalid character in integer part");
+            result = result * 10 + int256(uint256(uint8(b[i]) - 48));
+        }
+        return result;
     }
 
 }

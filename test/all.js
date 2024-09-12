@@ -418,8 +418,8 @@ describe("Locations", function(){
         state: ethers.encodeBytes32String("Moskow"),
         country: ethers.encodeBytes32String("RUS"),
         coordinates: {
-            latitude: ethers.parseEther("59.694982"),
-            longitude: ethers.parseEther("30.416469")
+            latitude: "59.694982",
+            longitude: "30.416469"
         },
         parking_type: 5,
         facilities: [1,2], // Hotel, Restaurant
@@ -460,10 +460,18 @@ describe("Locations", function(){
         for (let index = 0; index < coords.length; index++) {
             const coord = coords[index];
             const loc = location;
-            loc.coordinates.latitude = ethers.parseEther(coord.lat);
-            loc.coordinates.longitude = ethers.parseEther(coord.lon);
+            loc.coordinates.latitude = coord.lat;
+            loc.coordinates.longitude =coord.lon;
 
             await this.Location.addLocation(this.sudoUser.token, loc);
+            await this.Location.addLocation(this.sudoUser.token, loc);
+            await this.Location.addLocation(this.sudoUser.token, loc);
+            await this.Location.addLocation(this.sudoUser.token, loc);
+            await this.Location.addLocation(this.sudoUser.token, loc);
+            //await this.Location.addLocation(this.sudoUser.token, loc);
+            //await this.Location.addLocation(this.sudoUser.token, loc);
+            //await this.Location.addLocation(this.sudoUser.token, loc);
+            //await this.Location.addLocation(this.sudoUser.token, loc);
             //await this.Location.addLocation(this.sudoUser.token, loc);
             //await this.Location.addLocation(this.sudoUser.token, loc);
 
@@ -472,24 +480,20 @@ describe("Locations", function(){
 
 
     it("inArea", async function(){
-        const locations = await this.Location.inArea(ethers.parseEther("59.702530"),ethers.parseEther("30.425396"),ethers.parseEther("59.687259"),ethers.parseEther("30.402737"), 0, [1], true)
-        expect(locations[0].length).to.equal(1)
+
+        // all saint peterburg
+        const locations = await this.Location.inArea("60.133835","30.933217","59.630048","29.649831", 0, [1], true)
+        //console.log(locations[0])
+        expect(locations[0].length).to.equal(50)
     })
 
 
     it("inAreaMany", async function(){
 
-        let locations_1 = await this.Location.inArea(ethers.parseEther("66.537305"),ethers.parseEther("177.814396"),ethers.parseEther("43.146425"),ethers.parseEther("11.585331"),0, [1], true)
+        let locations_1 = await this.Location.inArea("66.537305","177.814396","43.146425","11.585331",0, [1], true)
     
+        console.log(locations_1[0].length, locations_1[1])
 
-        locations_2 = await this.Location.inArea(ethers.parseEther("66.537305"),ethers.parseEther("177.814396"),ethers.parseEther("43.146425"),ethers.parseEther("11.585331"),50, [1], true)
-        console.log(locations_2[0].length, locations_2[1])
-
-        console.log(locations_1[0][0].coordinates.latitude, locations_2[0][0].coordinates.latitude )
-
-        locations_3 = await this.Location.inArea(ethers.parseEther("66.537305"),ethers.parseEther("177.814396"),ethers.parseEther("43.146425"),ethers.parseEther("11.585331"),1100, [1], true)
-        console.log(locations_3[0].length, locations_3[1])
-        console.log(locations_3[0][0].coordinates.latitude, locations_3[0][1].coordinates.latitude )
     })
 
 })
