@@ -113,10 +113,7 @@ contract Location is ILocation, Initializable {
     function inAreaLocalSearch(inAreaInput memory input, uint64 output_count) private view returns (DataTypesLocation.Location[] memory, uint256) {
         uint64 count = 0;
 
-        int16 topRightLat_integerPart = splitCoordinate(input.topRightLat);
-        int16 topRightLong_integerPart = splitCoordinate(input.topRightLong);
-        
-        uint256[] storage locationIds =  locations_index[topRightLat_integerPart][topRightLong_integerPart];
+        uint256[] storage locationIds =  locations_index[splitCoordinate(input.topRightLat)][splitCoordinate(input.topRightLong)];
 
         int256 topRightLat = stringToInt32(input.topRightLat);
         int256 bottomLeftLat = stringToInt32(input.bottomLeftLat);
@@ -145,22 +142,26 @@ contract Location is ILocation, Initializable {
 
         // Создание идекса для вывода
         uint256[] memory outputIds = new uint256[](count);
-        uint256 _index = 0;
-        for (uint256 i = 0; i < locationIds.length; i++) {
-            uint256 id = locationIds[i];
 
-            if (
-                locations[id].coordinates.latitude <= topRightLat &&
-                locations[id].coordinates.latitude >= bottomLeftLat &&
-                locations[id].coordinates.longitude <= topRightLong &&
-                locations[id].coordinates.longitude >= bottomLeftLong &&
-                locations[id].publish
-            ) {
-                
-                outputIds[_index] = id;
-                _index++;
+        {
+            uint256 _index = 0;
+            for (uint256 i = 0; i < locationIds.length; i++) {
+                uint256 id = locationIds[i];
+    
+                if (
+                    locations[id].coordinates.latitude <= topRightLat &&
+                    locations[id].coordinates.latitude >= bottomLeftLat &&
+                    locations[id].coordinates.longitude <= topRightLong &&
+                    locations[id].coordinates.longitude >= bottomLeftLong &&
+                    locations[id].publish
+                ) {
+                    
+                    outputIds[_index] = id;
+                    _index++;
+                }
             }
         }
+
 
 
         if(count < output_count )
@@ -171,18 +172,21 @@ contract Location is ILocation, Initializable {
 
         // Создание массива для хранения результатов
         DataTypesLocation.Location[] memory results = new DataTypesLocation.Location[](output_count);
-        uint256 index = 0;
 
-        // Заполнение массива результатами
-        for (uint256 i = input.offset; i < outputIds.length; i++) {
-            uint256 id = outputIds[i];
+        {
+            uint256 index = 0;
 
-            if(output_count == index)
-                break;
+            // Заполнение массива результатами
+            for (uint256 i = input.offset; i < outputIds.length; i++) {
+                uint256 id = outputIds[i];
 
-            results[index] = locations[id];
-            index++;
+                if(output_count == index)
+                    break;
 
+                results[index] = locations[id];
+                index++;
+
+            }
         }
 
         return (results,count);
