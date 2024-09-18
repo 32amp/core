@@ -9,6 +9,12 @@ import "./DataTypes.sol";
 
 interface ILocation {
 
+    struct GeoLocation {
+        string latitude;
+        string longitude;
+    }
+
+
     struct Add {
         string name;
         string _address;
@@ -16,12 +22,22 @@ interface ILocation {
         bytes32 postal_code;
         bytes32 state;
         bytes32 country;
-        DataTypesLocation.GeoLocation coordinates;
+        GeoLocation coordinates;
         DataTypesLocation.ParkingType parking_type;
         DataTypesLocation.Facility[] facilities;
         string time_zone;
         bool charging_when_closed;
         bool publish;
+    }
+
+    struct inAreaInput {
+        string topRightLat;
+        string topRightLong;
+        string bottomLeftLat;
+        string bottomLeftLong;
+        uint64 offset;
+        uint8[] connectors; // TODO add filter by connector
+        bool onlyFreeConnectors; // TODO add filter by connector
     }
 
     event AddLocation(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );

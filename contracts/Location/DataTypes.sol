@@ -245,8 +245,8 @@ interface DataTypesLocation {
 
    
     struct GeoLocation {
-        string latitude;
-        string longitude;
+        int256 latitude;
+        int256 longitude;
     }
 
 

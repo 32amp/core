@@ -15,7 +15,7 @@ import "hardhat/console.sol";
 contract Location is ILocation, Initializable {
     mapping(uint256 => DataTypesLocation.Location) locations;
 
-    mapping(int256 => mapping(int256 => uint256[])) locations_index;
+    mapping(int16 => mapping(int16 => uint256[])) locations_index;
 
     uint256 locationCounter;
     address hubContract;
@@ -62,7 +62,8 @@ contract Location is ILocation, Initializable {
         newLocation.postal_code = add.postal_code;
         newLocation.state = add.state;
         newLocation.country = add.country;
-        newLocation.coordinates = add.coordinates;
+        newLocation.coordinates.latitude = stringToInt32(add.coordinates.latitude);
+        newLocation.coordinates.longitude = stringToInt32(add.coordinates.longitude);
         newLocation.parking_type = add.parking_type;
         newLocation.facilities = add.facilities;
         newLocation.time_zone = add.time_zone;
@@ -77,8 +78,8 @@ contract Location is ILocation, Initializable {
         newLocation.last_updated = block.timestamp;
         newLocation.uid = locationCounter;
         locations[locationCounter] = newLocation;
-        int256 lat_integerPart = splitCoordinate(newLocation.coordinates.latitude);
-        int256 lon_integerPart = splitCoordinate(newLocation.coordinates.longitude);
+        int16 lat_integerPart = splitCoordinate(add.coordinates.latitude);
+        int16 lon_integerPart = splitCoordinate(add.coordinates.longitude);
         locations_index[lat_integerPart][lon_integerPart].push(locationCounter);
         emit AddLocation(locationCounter, partner_id, user_id);
 
@@ -90,50 +91,74 @@ contract Location is ILocation, Initializable {
         return locations[id];
     }
 
-    function inArea(
-        string memory topRightLat,
-        string memory topRightLong,
-        string memory bottomLeftLat,
-        string memory bottomLeftLong,
-        uint256 offset,
-        uint8[] memory connectors, // TODO add filter by connector
-        bool onlyFreeConnectors // TODO add filter by connector
-    ) public view returns (DataTypesLocation.Location[] memory, uint256) {
-        int256 topRightLat_integerPart = splitCoordinate(topRightLat);
-        int256 topRightLong_integerPart = splitCoordinate(topRightLong);
-        int256 bottomLeftLat_integerPart = splitCoordinate(bottomLeftLat);
-        int256 bottomLeftLong_integerPart = splitCoordinate(bottomLeftLong);
 
-        uint256 count = 0;
-        uint256 output_count = 40;
-        int256 i_vertical_start;
-        int256 i_vertical_end;
-        int256 i_horisontal_start;
-        int256 i_horisontal_end;
+    function inArea(inAreaInput memory input) external view returns (DataTypesLocation.Location[] memory, uint256) {
 
-        if(topRightLong_integerPart < bottomLeftLong_integerPart){
-            i_vertical_start = topRightLong_integerPart;
-            i_vertical_end = bottomLeftLong_integerPart;
-        }else{
-            i_vertical_start = bottomLeftLong_integerPart;
-            i_vertical_end = topRightLong_integerPart;
+        uint64 output_count = 50;
+
+
+        int16 topRightLat_integerPart = splitCoordinate(input.topRightLat);
+        int16 topRightLong_integerPart = splitCoordinate(input.topRightLong);
+        int16 bottomLeftLat_integerPart = splitCoordinate(input.bottomLeftLat);
+        int16 bottomLeftLong_integerPart = splitCoordinate(input.bottomLeftLong);
+
+
+        if(topRightLat_integerPart != bottomLeftLat_integerPart && topRightLong_integerPart != bottomLeftLong_integerPart)
+            return inAreaGlobalSearch(input,output_count);
+        else
+            return inAreaLocalSearch(input,output_count);
+    }
+
+
+    function inAreaLocalSearch(inAreaInput memory input, uint64 output_count) private view returns (DataTypesLocation.Location[] memory, uint256) {
+        uint64 count = 0;
+
+        int16 topRightLat_integerPart = splitCoordinate(input.topRightLat);
+        int16 topRightLong_integerPart = splitCoordinate(input.topRightLong);
+        
+        uint256[] storage locationIds =  locations_index[topRightLat_integerPart][topRightLong_integerPart];
+
+        int256 topRightLat = stringToInt32(input.topRightLat);
+        int256 bottomLeftLat = stringToInt32(input.bottomLeftLat);
+        int256 topRightLong = stringToInt32(input.topRightLong);
+        int256 bottomLeftLong = stringToInt32(input.bottomLeftLong);
+
+        // Первоначальный подсчет количества локаций в области
+        for (uint256 i = 0; i < locationIds.length; i++) {
+            uint256 id = locationIds[i];
+
+            if (
+                locations[id].coordinates.latitude <= topRightLat &&
+                locations[id].coordinates.latitude >= bottomLeftLat &&
+                locations[id].coordinates.longitude <= topRightLong &&
+                locations[id].coordinates.longitude >= bottomLeftLong &&
+                locations[id].publish
+            ) {
+                count++;
+            }
         }
+        
+        
 
-        if(topRightLat_integerPart < bottomLeftLat_integerPart){
-            i_horisontal_start = topRightLat_integerPart;
-            i_horisontal_end = bottomLeftLat_integerPart;
-        }else{
-            i_horisontal_start = bottomLeftLat_integerPart;
-            i_horisontal_end = topRightLat_integerPart;
-        }
+        if(input.offset >= count)
+            revert("big_offset");
 
-        for (int i = i_vertical_start; i <= i_vertical_end; i++) {
-            for (int i_2 = i_horisontal_start; i_2 < i_horisontal_end; i_2++) {
+        // Создание идекса для вывода
+        uint256[] memory outputIds = new uint256[](count);
+        uint256 _index = 0;
+        for (uint256 i = 0; i < locationIds.length; i++) {
+            uint256 id = locationIds[i];
 
-                if(locations_index[i_2][i].length > 0){
-                    count += locations_index[i_2][i].length;
-
-                }
+            if (
+                locations[id].coordinates.latitude <= topRightLat &&
+                locations[id].coordinates.latitude >= bottomLeftLat &&
+                locations[id].coordinates.longitude <= topRightLong &&
+                locations[id].coordinates.longitude >= bottomLeftLong &&
+                locations[id].publish
+            ) {
+                
+                outputIds[_index] = id;
+                _index++;
             }
         }
 
@@ -141,53 +166,104 @@ contract Location is ILocation, Initializable {
         if(count < output_count )
             output_count = count;
 
-        if(count-offset < output_count)
-            output_count = count-offset;
+        if(count-input.offset < output_count)
+            output_count = count-input.offset;
+
+        // Создание массива для хранения результатов
+        DataTypesLocation.Location[] memory results = new DataTypesLocation.Location[](output_count);
+        uint256 index = 0;
+
+        // Заполнение массива результатами
+        for (uint256 i = input.offset; i < outputIds.length; i++) {
+            uint256 id = outputIds[i];
+
+            if(output_count == index)
+                break;
+
+            results[index] = locations[id];
+            index++;
+
+        }
+
+        return (results,count);
+    }
+
+    function inAreaGlobalSearch(inAreaInput memory input, uint64 output_count) private view returns (DataTypesLocation.Location[] memory, uint256) {
+
+        uint64 count = 0;
+        int16 i_vertical_start;
+        int16 i_vertical_end;
+        int16 i_horisontal_start;
+        int16 i_horisontal_end;
+        
+        {
+            int16 topRightLat_integerPart = splitCoordinate(input.topRightLat);
+            int16 topRightLong_integerPart = splitCoordinate(input.topRightLong);
+            int16 bottomLeftLat_integerPart = splitCoordinate(input.bottomLeftLat);
+            int16 bottomLeftLong_integerPart = splitCoordinate(input.bottomLeftLong);
+
+            if(topRightLong_integerPart < bottomLeftLong_integerPart){
+                i_vertical_start = topRightLong_integerPart;
+                i_vertical_end = bottomLeftLong_integerPart;
+            }else{
+                i_vertical_start = bottomLeftLong_integerPart;
+                i_vertical_end = topRightLong_integerPart;
+            }
+
+            if(topRightLat_integerPart < bottomLeftLat_integerPart){
+                i_horisontal_start = topRightLat_integerPart;
+                i_horisontal_end = bottomLeftLat_integerPart;
+            }else{
+                i_horisontal_start = bottomLeftLat_integerPart;
+                i_horisontal_end = topRightLat_integerPart;
+            }
+        }
+
+        
+        for (int16 i = i_vertical_start; i <= i_vertical_end; i++) {
+            for (int16 i_2 = i_horisontal_start; i_2 < i_horisontal_end; i_2++) {
+
+                if(locations_index[i_2][i].length > 0){
+                    count += uint64(locations_index[i_2][i].length);
+
+                }
+            }
+        }
+
+        if(input.offset >= count)
+            revert("big_offset");
+        
+        if(count < output_count )
+            output_count = count;
+
+        if(count-input.offset < output_count)
+            output_count = count-input.offset;
 
         DataTypesLocation.Location[] memory results = new DataTypesLocation.Location[](output_count);
 
-        console.log("output_count %s",output_count);
 
-        uint index = 0;
-        uint index_2 = 0;
+        {
+            uint32 index = 0;
+            uint8 index_2 = 0;
 
-        for (int i = i_vertical_start; i <= i_vertical_end; i++) {
-            for (int i_2 = i_horisontal_start; i_2 < i_horisontal_end; i_2++) {
+            for (int16 i = i_vertical_start; i <= i_vertical_end; i++) {
+                for (int16 i_2 = i_horisontal_start; i_2 < i_horisontal_end; i_2++) {
 
-                if(locations_index[i_2][i].length > 0){
-                    for (uint i_loc = 0; i_loc < locations_index[i_2][i].length; i_loc++) {
-                            if(index >= offset && index_2 < output_count){
+                    if(locations_index[i_2][i].length > 0){
+                        for (uint i_loc = 0; i_loc < locations_index[i_2][i].length; i_loc++) {
+                            if(index >= input.offset && index_2 < output_count){
                                 results[index_2] = locations[locations_index[i_2][i][i_loc]];
                                 index_2++;
                             }
-                        index++;
+                            index++;
+                        }
                     }
                 }
             }
         }
 
-    
-
-/* 
-        // Создание массива для хранения результатов
-        DataTypesLocation.Location[] memory results = new DataTypesLocation.Location[](output_count);
-        uint256 _index = 0;
-
-        // Заполнение массива результатами
-        for (uint256 i = offset; i < outputIds.length; i++) {
-            uint256 id = outputIds[i];
-
-            if(output_count == _index)
-                break;
-
-            results[_index] = locations[id];
-            _index++;
-
-        } */
-
         return (results,count);
     }
-
 
 
 
@@ -199,7 +275,7 @@ contract Location is ILocation, Initializable {
         return false;
     }
 
-    function splitCoordinate(string memory coordinate) public pure returns (int256) {
+    function splitCoordinate(string memory coordinate) public pure returns (int16) {
         bytes memory coordinateBytes = bytes(coordinate);
         uint dotIndex;
         bool dotFound = false;
@@ -230,24 +306,79 @@ contract Location is ILocation, Initializable {
         for (uint i = startIndex; i < dotIndex; i++) {
             integerPartBytes[i - startIndex] = coordinateBytes[i];
         }
-
+        // Добавить десятые
+        // integerPartBytes[dotIndex] = coordinateBytes[dotIndex + 1];
         // Преобразовать целую часть в int256
-        int256 integerPart = parseInt(integerPartBytes);
+        int16 integerPart = parseInt(integerPartBytes);
 
         // Учитывать отрицательность числа
         if (isNegative) {
             integerPart = -integerPart;
         }
+
+
         return integerPart;
     }
 
-    function parseInt(bytes memory b) internal pure returns (int256) {
-        int256 result = 0;
+    function parseInt32(bytes memory b) internal pure returns (int32) {
+        int32 result = 0;
         for (uint i = 0; i < b.length; i++) {
+
+            if(b[i] == ".")
+                continue;
+
             require(b[i] >= 0x30 && b[i] <= 0x39, "Invalid character in integer part");
-            result = result * 10 + int256(uint256(uint8(b[i]) - 48));
+            result = result * 10 + int32(uint32(uint8(b[i]) - 48));
         }
         return result;
     }
+
+    function stringToInt32(string memory floatString) public pure returns (int256) {
+        bytes memory byteString = bytes(floatString);
+        int256 integerPart = 0;
+        bool isNegative = false;
+        uint256 i = 0;
+
+        // Check for negative sign
+        if (byteString[i] == '-') {
+            isNegative = true;
+            i++;
+        }
+
+        uint limit = 18;
+
+        // Iterate through each character until we hit a '.' or end of string
+        for (; i <= limit; i++) {
+
+            if(i < byteString.length){
+                if (byteString[i] == '.') {
+                    limit = limit + i;
+                    continue; // Stop at the decimal point
+                }
+    
+                require(byteString[i] >= '0' && byteString[i] <= '9', "Invalid character in input string");
+    
+                
+                    integerPart = integerPart * 10 + int64(uint64(uint8(byteString[i]) - 48));
+            }else
+                integerPart = integerPart * 10 + int64(0);
+        }
+
+        if (isNegative) {
+            integerPart = -integerPart;
+        }
+
+        return integerPart;
+    }
+
+    function parseInt(bytes memory b) internal pure returns (int16) {
+        int16 result = 0;
+        for (uint i = 0; i < b.length; i++) {
+            require(b[i] >= 0x30 && b[i] <= 0x39, "Invalid character in integer part");
+            result = result * 10 + int16(uint16(uint8(b[i]) - 48));
+        }
+        return result;
+    }
+
 
 }

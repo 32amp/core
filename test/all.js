@@ -438,14 +438,18 @@ describe("Locations", function(){
     })
 
     it("getLocation", async function(){
+
+        
         const newLocation = await this.Location.getLocation(1);
+        
         expect(newLocation.uid).to.equal(1)
         expect(newLocation.city).to.equal(location.city)
         expect(newLocation.postal_code).to.equal(location.postal_code)
         expect(newLocation.state).to.equal(location.state)
         expect(newLocation.country).to.equal(location.country)
-        expect(newLocation.coordinates.latitude).to.equal(location.coordinates.latitude)
-        expect(newLocation.coordinates.longtitude).to.equal(location.coordinates.longtitude)
+
+        expect(newLocation.coordinates.latitude).to.equal(ethers.parseEther(location.coordinates.latitude))
+        expect(newLocation.coordinates.longitude).to.equal(ethers.parseEther(location.coordinates.longitude))
         expect(newLocation.parking_type).to.equal(location.parking_type)
         expect(newLocation.facilities.join(",")).to.equal(location.facilities.join(","))
         expect(newLocation.time_zone).to.equal(location.time_zone)
@@ -463,26 +467,57 @@ describe("Locations", function(){
             loc.coordinates.latitude = coord.lat;
             loc.coordinates.longitude =coord.lon;
 
-            await this.Location.addLocation(this.sudoUser.token, loc);
+            let tx = await this.Location.addLocation(this.sudoUser.token, loc);
+
+            let result = await GetEventArgumentsByNameAsync(tx, "AddLocation")
+
+
+            let newLocation = await this.Location.getLocation(Number(result.uid));
+            expect(newLocation.coordinates.latitude).to.equal(ethers.parseEther(loc.coordinates.latitude))
+            expect(newLocation.coordinates.longitude).to.equal(ethers.parseEther(loc.coordinates.longitude))
+
+
 
         }
     })
 
 
-    it("inArea", async function(){
+    it("inArea all kirov zavod", async function(){
 
-        // all saint peterburg
-        const locations = await this.Location.inArea("60.133835","30.933217","59.630048","29.649831", 0, [1], true)
-        console.log("inArea count:",locations[1])
+        const locations = await this.Location.inArea({topRightLat:"59.883143",topRightLong:"30.270558",bottomLeftLat:"59.870363",bottomLeftLong:"30.247867", offset:0, connectors:[1], onlyFreeConnectors:true})
+        expect(locations[0].length).to.equal(2)
+    })
+
+    it("inArea all saint petersburg", async function(){
+
+        // all saint petersburg
+        const locations = await this.Location.inArea({topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:0, connectors:[1], onlyFreeConnectors:true})
+
         expect(locations[0].length).to.equal(50)
     })
 
 
+    it("inArea all saint petersburg with offset", async function(){
+
+        // all saint petersburg
+        const locations = await this.Location.inArea({topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:50, connectors:[1], onlyFreeConnectors:true})
+
+        expect(locations[0].length).to.equal(24)
+    })
+
+
+
     it("inAreaMany", async function(){
 
-        let locations_1 = await this.Location.inArea("66.537305","177.814396","43.146425","11.585331",0, [1], true)
-    
-        console.log(locations_1[0].length, locations_1[1])
+        let locations_1 = await this.Location.inArea({topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:0, connectors:[1], onlyFreeConnectors:true})
+        expect(locations_1[1]).to.equal(1135n)
+
+    })
+
+    it("inAreaMany with offset", async function(){
+
+        let locations_1 = await this.Location.inArea({topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:50, connectors:[1], onlyFreeConnectors:true})
+        expect(locations_1[0].length).to.equal(50)
 
     })
 
