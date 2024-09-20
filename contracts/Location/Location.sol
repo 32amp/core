@@ -9,10 +9,13 @@ import "./DataTypes.sol";
 import "./ILocation.sol";
 import "../User/IUser.sol";
 import "../User/IUserAccess.sol";
-
+import "../Utils.sol";
 import "hardhat/console.sol";
 
 contract Location is ILocation, Initializable {
+
+    using Utils for string;
+
     mapping(uint256 => DataTypesLocation.Location) locations;
 
     mapping(int16 => mapping(int16 => uint256[])) locations_index;
@@ -62,8 +65,8 @@ contract Location is ILocation, Initializable {
         newLocation.postal_code = add.postal_code;
         newLocation.state = add.state;
         newLocation.country = add.country;
-        newLocation.coordinates.latitude = stringToInt32(add.coordinates.latitude);
-        newLocation.coordinates.longitude = stringToInt32(add.coordinates.longitude);
+        newLocation.coordinates.latitude = add.coordinates.latitude.stringToInt32();
+        newLocation.coordinates.longitude = add.coordinates.longitude.stringToInt32();
         newLocation.parking_type = add.parking_type;
         newLocation.facilities = add.facilities;
         newLocation.time_zone = add.time_zone;
@@ -78,8 +81,8 @@ contract Location is ILocation, Initializable {
         newLocation.last_updated = block.timestamp;
         newLocation.uid = locationCounter;
         locations[locationCounter] = newLocation;
-        int16 lat_integerPart = splitCoordinate(add.coordinates.latitude);
-        int16 lon_integerPart = splitCoordinate(add.coordinates.longitude);
+        int16 lat_integerPart = add.coordinates.latitude.splitCoordinate();
+        int16 lon_integerPart = add.coordinates.longitude.splitCoordinate();
         locations_index[lat_integerPart][lon_integerPart].push(locationCounter);
         emit AddLocation(locationCounter, partner_id, user_id);
 
@@ -97,10 +100,10 @@ contract Location is ILocation, Initializable {
         uint64 output_count = 50;
 
 
-        int16 topRightLat_integerPart = splitCoordinate(input.topRightLat);
-        int16 topRightLong_integerPart = splitCoordinate(input.topRightLong);
-        int16 bottomLeftLat_integerPart = splitCoordinate(input.bottomLeftLat);
-        int16 bottomLeftLong_integerPart = splitCoordinate(input.bottomLeftLong);
+        int16 topRightLat_integerPart = input.topRightLat.splitCoordinate();
+        int16 topRightLong_integerPart = input.topRightLong.splitCoordinate();
+        int16 bottomLeftLat_integerPart = input.bottomLeftLat.splitCoordinate();
+        int16 bottomLeftLong_integerPart = input.bottomLeftLong.splitCoordinate();
 
 
         if(topRightLat_integerPart != bottomLeftLat_integerPart && topRightLong_integerPart != bottomLeftLong_integerPart)
@@ -113,12 +116,12 @@ contract Location is ILocation, Initializable {
     function inAreaLocalSearch(inAreaInput memory input, uint64 output_count) private view returns (DataTypesLocation.Location[] memory, uint256) {
         uint64 count = 0;
 
-        uint256[] storage locationIds =  locations_index[splitCoordinate(input.topRightLat)][splitCoordinate(input.topRightLong)];
+        uint256[] storage locationIds =  locations_index[input.topRightLat.splitCoordinate()][input.topRightLong.splitCoordinate()];
 
-        int256 topRightLat = stringToInt32(input.topRightLat);
-        int256 bottomLeftLat = stringToInt32(input.bottomLeftLat);
-        int256 topRightLong = stringToInt32(input.topRightLong);
-        int256 bottomLeftLong = stringToInt32(input.bottomLeftLong);
+        int256 topRightLat = input.topRightLat.stringToInt32();
+        int256 bottomLeftLat = input.bottomLeftLat.stringToInt32();
+        int256 topRightLong = input.topRightLong.stringToInt32();
+        int256 bottomLeftLong = input.bottomLeftLong.stringToInt32();
 
         // Первоначальный подсчет количества локаций в области
         for (uint256 i = 0; i < locationIds.length; i++) {
@@ -136,7 +139,6 @@ contract Location is ILocation, Initializable {
         }
         
         
-
         if(input.offset >= count)
             revert("big_offset");
 
@@ -201,10 +203,10 @@ contract Location is ILocation, Initializable {
         int16 i_horisontal_end;
         
         {
-            int16 topRightLat_integerPart = splitCoordinate(input.topRightLat);
-            int16 topRightLong_integerPart = splitCoordinate(input.topRightLong);
-            int16 bottomLeftLat_integerPart = splitCoordinate(input.bottomLeftLat);
-            int16 bottomLeftLong_integerPart = splitCoordinate(input.bottomLeftLong);
+            int16 topRightLat_integerPart = input.topRightLat.splitCoordinate();
+            int16 topRightLong_integerPart = input.topRightLong.splitCoordinate();
+            int16 bottomLeftLat_integerPart = input.bottomLeftLat.splitCoordinate();
+            int16 bottomLeftLong_integerPart = input.bottomLeftLong.splitCoordinate();
 
             if(topRightLong_integerPart < bottomLeftLong_integerPart){
                 i_vertical_start = topRightLong_integerPart;
@@ -279,110 +281,6 @@ contract Location is ILocation, Initializable {
         return false;
     }
 
-    function splitCoordinate(string memory coordinate) public pure returns (int16) {
-        bytes memory coordinateBytes = bytes(coordinate);
-        uint dotIndex;
-        bool dotFound = false;
-        bool isNegative = false;
-        uint startIndex = 0;
-
-        // Проверить, есть ли знак минус в начале
-        if (coordinateBytes[0] == "-") {
-            isNegative = true;
-            startIndex = 1;
-        }
-
-        // Найти индекс точки
-        for (uint i = startIndex; i < coordinateBytes.length; i++) {
-            if (coordinateBytes[i] == ".") {
-                dotIndex = i;
-                dotFound = true;
-                break;
-            }
-        }
-
-        require(dotFound, "No decimal point found");
-
-        // Создать массив байтов для целой части
-        bytes memory integerPartBytes = new bytes(dotIndex - startIndex);
-
-        // Заполнить целую часть
-        for (uint i = startIndex; i < dotIndex; i++) {
-            integerPartBytes[i - startIndex] = coordinateBytes[i];
-        }
-        // Добавить десятые
-        // integerPartBytes[dotIndex] = coordinateBytes[dotIndex + 1];
-        // Преобразовать целую часть в int256
-        int16 integerPart = parseInt(integerPartBytes);
-
-        // Учитывать отрицательность числа
-        if (isNegative) {
-            integerPart = -integerPart;
-        }
-
-
-        return integerPart;
-    }
-
-    function parseInt32(bytes memory b) internal pure returns (int32) {
-        int32 result = 0;
-        for (uint i = 0; i < b.length; i++) {
-
-            if(b[i] == ".")
-                continue;
-
-            require(b[i] >= 0x30 && b[i] <= 0x39, "Invalid character in integer part");
-            result = result * 10 + int32(uint32(uint8(b[i]) - 48));
-        }
-        return result;
-    }
-
-    function stringToInt32(string memory floatString) public pure returns (int256) {
-        bytes memory byteString = bytes(floatString);
-        int256 integerPart = 0;
-        bool isNegative = false;
-        uint256 i = 0;
-
-        // Check for negative sign
-        if (byteString[i] == '-') {
-            isNegative = true;
-            i++;
-        }
-
-        uint limit = 18;
-
-        // Iterate through each character until we hit a '.' or end of string
-        for (; i <= limit; i++) {
-
-            if(i < byteString.length){
-                if (byteString[i] == '.') {
-                    limit = limit + i;
-                    continue; // Stop at the decimal point
-                }
-    
-                require(byteString[i] >= '0' && byteString[i] <= '9', "Invalid character in input string");
-    
-                
-                    integerPart = integerPart * 10 + int64(uint64(uint8(byteString[i]) - 48));
-            }else
-                integerPart = integerPart * 10 + int64(0);
-        }
-
-        if (isNegative) {
-            integerPart = -integerPart;
-        }
-
-        return integerPart;
-    }
-
-    function parseInt(bytes memory b) internal pure returns (int16) {
-        int16 result = 0;
-        for (uint i = 0; i < b.length; i++) {
-            require(b[i] >= 0x30 && b[i] <= 0x39, "Invalid character in integer part");
-            result = result * 10 + int16(uint16(uint8(b[i]) - 48));
-        }
-        return result;
-    }
 
 
 }
