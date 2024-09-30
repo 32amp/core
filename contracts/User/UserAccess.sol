@@ -135,4 +135,21 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
     }
 
 
+    function checkAccess(string memory module, bytes32 object_id, bytes32 _token, uint level) external view{
+        uint256 user_id = _isLogin(_token);
+
+        uint access_level = getModuleAccessLevel(module, user_id);
+
+        if(access_level < level){
+            revert("module_access_denied");
+        }
+
+        uint access_level_obj = getObjectAccessLevel(module, object_id, user_id);
+
+        if(access_level_obj < level){
+            revert("obj_access_denied");
+        }
+
+    }
+
 }

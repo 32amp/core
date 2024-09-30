@@ -48,30 +48,15 @@ contract Location is ILocation, Initializable {
         return IUser(IHub(hubContract).getModule("User", partner_id));
     }
 
-    function _checkLocationAccess(uint256 location_id, bytes32 _token) internal view{
-        uint256 user_id = _User().isLogin(_token);
 
-        uint access_level = _UserAccess().getModuleAccessLevel("Location", user_id);
-
-        if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
-            revert("module_access_denied");
-        }
-
-        uint access_level_obj = _UserAccess().getObjectAccessLevel("Location", bytes32(location_id), user_id);
-
-        if(access_level_obj < uint(IUserAccess.AccessLevel.FOURTH)){
-            revert("obj_access_denied");
-        }
-
-    }
 
     function addRelatedLocation(uint256 location_id, bytes32 _token, DataTypesLocation.AdditionalGeoLocation calldata add ) public {
-        _checkLocationAccess( location_id, _token);
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         related_locations[location_id].push(add);
     }
 
     function removeRelatedLocation(uint256 location_id, bytes32 _token, uint loc_id) external {
-        _checkLocationAccess( location_id, _token);
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         for (uint i = loc_id; i < related_locations[location_id].length - 1; i++) {
             related_locations[location_id][i] = related_locations[location_id][i + 1];
         }
@@ -79,12 +64,12 @@ contract Location is ILocation, Initializable {
     }
 
     function addImage(uint256 location_id, bytes32 _token, DataTypesLocation.Image calldata add ) public {
-        _checkLocationAccess( location_id, _token);
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         images_location[location_id].push(add);
     }
 
     function removeImage(uint256 location_id, bytes32 _token, uint image_id) external {
-        _checkLocationAccess( location_id, _token);
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         for (uint i = image_id; i < images_location[location_id].length - 1; i++) {
             images_location[location_id][i] = images_location[location_id][i + 1];
         }
@@ -92,13 +77,13 @@ contract Location is ILocation, Initializable {
     }
 
     function addDirection(uint256 location_id, bytes32 _token, DataTypesLocation.DisplayText calldata add ) public {
-        _checkLocationAccess( location_id, _token);
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         directions_location[location_id].push(add);
     }
 
 
     function removeDirection(uint256 location_id, bytes32 _token, uint direction_id) external {
-        _checkLocationAccess( location_id, _token);
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         for (uint i = direction_id; i < directions_location[location_id].length - 1; i++) {
             directions_location[location_id][i] = directions_location[location_id][i + 1];
         }
@@ -106,7 +91,7 @@ contract Location is ILocation, Initializable {
     }
 
     function setOpeningTimes(uint256 location_id, bytes32 _token, DataTypesLocation.Hours calldata add ) public {
-        _checkLocationAccess( location_id, _token);
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         opening_times_location[location_id] = add;
     }
 
