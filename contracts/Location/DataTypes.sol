@@ -184,8 +184,8 @@ interface DataTypesLocation {
     }
 
     struct AdditionalGeoLocation {
-        string latitude;
-        string longtitude;
+        int256 latitude;
+        int256 longtitude;
         DisplayText[] name;
     }
 
@@ -212,7 +212,7 @@ interface DataTypesLocation {
         string thumbnail;
         ImageCategory category;
         ImageType _type;
-        uint16 with;
+        uint16 width;
         uint16 height;
     }
 
@@ -246,7 +246,7 @@ interface DataTypesLocation {
    
     struct GeoLocation {
         int256 latitude;
-        int256 longitude;
+        int256 longtitude;
     }
 
 
@@ -264,17 +264,13 @@ interface DataTypesLocation {
         bytes32 state;
         bytes32 country;
         GeoLocation coordinates;
-        //AdditionalGeoLocation[] related_locations;
         ParkingType parking_type;
-        //uint256[] evses;
-        //DisplayText[] directions;
+        uint256[] evses;
         uint256 operator;
         uint256 owner;
         Facility[] facilities;
         string time_zone;
-        //Hours opening_times;
         bool charging_when_closed;
-        //Image[] images;
         uint256 last_updated;
     }
 

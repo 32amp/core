@@ -94,12 +94,13 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
 
     function setAccessLevelToModuleObject(bytes32 _token, bytes32 object_id, uint256 user_id, string memory module, AccessLevel access_level) external {
         uint256 isLogin = _isLogin(_token);
-        uint accessLevel = getObjectAccessLevel(module, object_id, isLogin);
+        uint accessLevel = getModuleAccessLevel(module, isLogin);
+        
 
         if(accessLevel < uint(AccessLevel.FOURTH) )
             revert("access_denied");
 
-       if(uint(access_level) < accessLevel )
+       if(uint(access_level) > accessLevel )
             revert("cannot_set_level_more_than_you_have");
 
         _setAccessLevelToObject(user_id, module, object_id, access_level);

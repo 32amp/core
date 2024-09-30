@@ -18,6 +18,11 @@ contract Location is ILocation, Initializable {
 
     mapping(uint256 => DataTypesLocation.Location) locations;
 
+    mapping(uint256 => DataTypesLocation.AdditionalGeoLocation[]) related_locations;
+    mapping(uint256 => DataTypesLocation.Image[]) images_location;
+    mapping(uint256 => DataTypesLocation.Hours) opening_times_location; 
+    mapping(uint256 => DataTypesLocation.DisplayText[]) directions_location;
+
     mapping(int16 => mapping(int16 => uint256[])) locations_index;
 
     uint256 locationCounter;
@@ -43,7 +48,70 @@ contract Location is ILocation, Initializable {
         return IUser(IHub(hubContract).getModule("User", partner_id));
     }
 
-    function addLocation(bytes32 _token, Add memory add ) public returns(uint256) {
+    function _checkLocationAccess(uint256 location_id, bytes32 _token) internal view{
+        uint256 user_id = _User().isLogin(_token);
+
+        uint access_level = _UserAccess().getModuleAccessLevel("Location", user_id);
+
+        if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
+            revert("module_access_denied");
+        }
+
+        uint access_level_obj = _UserAccess().getObjectAccessLevel("Location", bytes32(location_id), user_id);
+
+        if(access_level_obj < uint(IUserAccess.AccessLevel.FOURTH)){
+            revert("obj_access_denied");
+        }
+
+    }
+
+    function addRelatedLocation(uint256 location_id, bytes32 _token, DataTypesLocation.AdditionalGeoLocation calldata add ) public {
+        _checkLocationAccess( location_id, _token);
+        related_locations[location_id].push(add);
+    }
+
+    function removeRelatedLocation(uint256 location_id, bytes32 _token, uint loc_id) external {
+        _checkLocationAccess( location_id, _token);
+        for (uint i = loc_id; i < related_locations[location_id].length - 1; i++) {
+            related_locations[location_id][i] = related_locations[location_id][i + 1];
+        }
+        related_locations[location_id].pop();
+    }
+
+    function addImage(uint256 location_id, bytes32 _token, DataTypesLocation.Image calldata add ) public {
+        _checkLocationAccess( location_id, _token);
+        images_location[location_id].push(add);
+    }
+
+    function removeImage(uint256 location_id, bytes32 _token, uint image_id) external {
+        _checkLocationAccess( location_id, _token);
+        for (uint i = image_id; i < images_location[location_id].length - 1; i++) {
+            images_location[location_id][i] = images_location[location_id][i + 1];
+        }
+        images_location[location_id].pop();
+    }
+
+    function addDirection(uint256 location_id, bytes32 _token, DataTypesLocation.DisplayText calldata add ) public {
+        _checkLocationAccess( location_id, _token);
+        directions_location[location_id].push(add);
+    }
+
+
+    function removeDirection(uint256 location_id, bytes32 _token, uint direction_id) external {
+        _checkLocationAccess( location_id, _token);
+        for (uint i = direction_id; i < directions_location[location_id].length - 1; i++) {
+            directions_location[location_id][i] = directions_location[location_id][i + 1];
+        }
+        directions_location[location_id].pop();
+    }
+
+    function setOpeningTimes(uint256 location_id, bytes32 _token, DataTypesLocation.Hours calldata add ) public {
+        _checkLocationAccess( location_id, _token);
+        opening_times_location[location_id] = add;
+    }
+
+
+    function addLocation(bytes32 _token, Add memory add ) public {
 
         uint256 user_id = _User().isLogin(_token);
 
@@ -52,9 +120,6 @@ contract Location is ILocation, Initializable {
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             revert("access_denied");
         }
-
-
-        
         
         locationCounter++;
         DataTypesLocation.Location memory newLocation;
@@ -66,7 +131,7 @@ contract Location is ILocation, Initializable {
         newLocation.state = add.state;
         newLocation.country = add.country;
         newLocation.coordinates.latitude = add.coordinates.latitude.stringToInt32();
-        newLocation.coordinates.longitude = add.coordinates.longitude.stringToInt32();
+        newLocation.coordinates.longtitude = add.coordinates.longtitude.stringToInt32();
         newLocation.parking_type = add.parking_type;
         newLocation.facilities = add.facilities;
         newLocation.time_zone = add.time_zone;
@@ -80,18 +145,22 @@ contract Location is ILocation, Initializable {
         newLocation.party_id = IHub(hubContract).getPartnerPartyId(partner_id);
         newLocation.last_updated = block.timestamp;
         newLocation.uid = locationCounter;
+        
         locations[locationCounter] = newLocation;
+        
         int16 lat_integerPart = add.coordinates.latitude.splitCoordinate();
-        int16 lon_integerPart = add.coordinates.longitude.splitCoordinate();
+        int16 lon_integerPart = add.coordinates.longtitude.splitCoordinate();
+        
         locations_index[lat_integerPart][lon_integerPart].push(locationCounter);
-        emit AddLocation(locationCounter, partner_id, user_id);
 
-        return locationCounter;
+        _UserAccess().setAccessLevelToModuleObject(_token,bytes32(locationCounter),user_id,"Location",IUserAccess.AccessLevel.FOURTH);
+        
+        emit AddLocation(locationCounter, partner_id, user_id);
     }
 
 
-    function getLocation(uint256 id) external view returns (DataTypesLocation.Location memory){
-        return locations[id];
+    function getLocation(uint256 id) external view returns (DataTypesLocation.Location memory, DataTypesLocation.AdditionalGeoLocation[] memory, DataTypesLocation.Image[] memory, DataTypesLocation.Hours memory, DataTypesLocation.DisplayText[] memory){
+        return (locations[id],related_locations[id], images_location[id], opening_times_location[id], directions_location[id]);
     }
 
 
@@ -130,8 +199,8 @@ contract Location is ILocation, Initializable {
             if (
                 locations[id].coordinates.latitude <= topRightLat &&
                 locations[id].coordinates.latitude >= bottomLeftLat &&
-                locations[id].coordinates.longitude <= topRightLong &&
-                locations[id].coordinates.longitude >= bottomLeftLong &&
+                locations[id].coordinates.longtitude <= topRightLong &&
+                locations[id].coordinates.longtitude >= bottomLeftLong &&
                 locations[id].publish
             ) {
                 count++;
@@ -153,8 +222,8 @@ contract Location is ILocation, Initializable {
                 if (
                     locations[id].coordinates.latitude <= topRightLat &&
                     locations[id].coordinates.latitude >= bottomLeftLat &&
-                    locations[id].coordinates.longitude <= topRightLong &&
-                    locations[id].coordinates.longitude >= bottomLeftLong &&
+                    locations[id].coordinates.longtitude <= topRightLong &&
+                    locations[id].coordinates.longtitude >= bottomLeftLong &&
                     locations[id].publish
                 ) {
                     
@@ -271,8 +340,6 @@ contract Location is ILocation, Initializable {
         return (results,count);
     }
 
-
-
     function exist(uint256 location_id) public view returns (bool) {
         
         if(locations[location_id].uid == location_id)
@@ -281,6 +348,7 @@ contract Location is ILocation, Initializable {
         return false;
     }
 
+    //function addImage()
 
 
 }

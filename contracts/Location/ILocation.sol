@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPLV3
 pragma solidity ^0.8.12;
 
-
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "../Hub/IHub.sol";
 import "./DataTypes.sol";
 
 
@@ -11,7 +8,7 @@ interface ILocation {
 
     struct GeoLocation {
         string latitude;
-        string longitude;
+        string longtitude;
     }
 
 
@@ -44,9 +41,10 @@ interface ILocation {
 
     function getVersion() external view returns(string memory);
 
-    function addLocation(bytes32 _token, Add memory add) external returns(uint256);
-    function getLocation(uint256 id) external returns (DataTypesLocation.Location memory);
+    function addLocation(bytes32 _token, Add memory add) external;
+    function getLocation(uint256 id) external returns (DataTypesLocation.Location memory, DataTypesLocation.AdditionalGeoLocation[] memory, DataTypesLocation.Image[] memory, DataTypesLocation.Hours memory, DataTypesLocation.DisplayText[] memory);
 
     function exist(uint256 location_id) external returns(bool);
+    function inArea(inAreaInput memory input) external view returns (DataTypesLocation.Location[] memory, uint256);
 
 }

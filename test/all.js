@@ -419,7 +419,7 @@ describe("Locations", function(){
         country: ethers.encodeBytes32String("RUS"),
         coordinates: {
             latitude: "59.694982",
-            longitude: "30.416469"
+            longtitude: "30.416469"
         },
         parking_type: 5,
         facilities: [1,2], // Hotel, Restaurant
@@ -427,6 +427,52 @@ describe("Locations", function(){
         charging_when_closed: true,
         publish: true
     };
+
+    const image = {
+        url: "https://upload.wikimedia.org/wikipedia/ru/thumb/e/e8/BORAT%21.jpg/201px-BORAT%21.jpg",
+        thumbnail: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Borat_in_Cologne.jpg/220px-Borat_in_Cologne.jpg",
+        category: 3,
+        _type: 1,
+        width: 100,
+        height: 100
+    };
+
+    const relatedLocation = {
+        latitude: ethers.parseEther("59.694982"),
+        longtitude: ethers.parseEther("30.416469"),
+        name: [{
+            language: "ru",
+            text: "Кафе"
+        }]
+    };
+
+    const openingTimes = {
+        twentyfourseven: true,
+        regular_hours:[
+            {
+                week_day:1,
+                period_begin:"7:00",
+                period_end:"21:00"
+            }
+        ],
+        exceptional_openings:[
+            {
+                begin:7,
+                end:21
+            }
+        ],
+        exceptional_closings:[
+            {
+                begin:7,
+                end:21
+            }
+        ],
+    }
+
+    const direction = {
+        language: "ru",
+        text: "Заезд с улицы колотушкина, возле волшебного дуба"        
+    }
 
     it("AddLocation", async function(){
 
@@ -437,23 +483,87 @@ describe("Locations", function(){
         expect(result.partner_id).to.equal(1)
     })
 
+    it("addRelatedLocation", async function(){
+
+        await this.Location.addRelatedLocation(1, this.sudoUser.token, relatedLocation);
+
+    })
+
+    it("addImage", async function(){
+        await this.Location.addImage(1, this.sudoUser.token, image);
+    })
+
+    it("addDirection", async function(){
+        await this.Location.addDirection(1, this.sudoUser.token, direction);
+    })
+
+    it("setOpeningTimes", async function(){
+        await this.Location.setOpeningTimes(1, this.sudoUser.token, openingTimes);
+    })
+
     it("getLocation", async function(){
 
         
         const newLocation = await this.Location.getLocation(1);
         
-        expect(newLocation.uid).to.equal(1)
-        expect(newLocation.city).to.equal(location.city)
-        expect(newLocation.postal_code).to.equal(location.postal_code)
-        expect(newLocation.state).to.equal(location.state)
-        expect(newLocation.country).to.equal(location.country)
+        expect(newLocation[0].uid).to.equal(1)
+        expect(newLocation[0].city).to.equal(location.city)
+        expect(newLocation[0].postal_code).to.equal(location.postal_code)
+        expect(newLocation[0].state).to.equal(location.state)
+        expect(newLocation[0].country).to.equal(location.country)
 
-        expect(newLocation.coordinates.latitude).to.equal(ethers.parseEther(location.coordinates.latitude))
-        expect(newLocation.coordinates.longitude).to.equal(ethers.parseEther(location.coordinates.longitude))
-        expect(newLocation.parking_type).to.equal(location.parking_type)
-        expect(newLocation.facilities.join(",")).to.equal(location.facilities.join(","))
-        expect(newLocation.time_zone).to.equal(location.time_zone)
-        expect(newLocation.charging_when_closed).to.equal(location.charging_when_closed)
+        expect(newLocation[0].coordinates.latitude).to.equal(ethers.parseEther(location.coordinates.latitude))
+        expect(newLocation[0].coordinates.longtitude).to.equal(ethers.parseEther(location.coordinates.longtitude))
+        expect(newLocation[0].parking_type).to.equal(location.parking_type)
+        expect(newLocation[0].facilities.join(",")).to.equal(location.facilities.join(","))
+        expect(newLocation[0].time_zone).to.equal(location.time_zone)
+        expect(newLocation[0].charging_when_closed).to.equal(location.charging_when_closed)
+        // relatedlocation
+        expect(newLocation[1][0].latitude).to.equal(relatedLocation.latitude)
+        expect(newLocation[1][0].longtitude).to.equal(relatedLocation.longtitude)
+        expect(newLocation[1][0].name[0].language).to.equal(relatedLocation.name[0].language)
+        expect(newLocation[1][0].name[0].text).to.equal(relatedLocation.name[0].text)
+        //image
+        expect(newLocation[2][0].url).to.equal(image.url)
+        expect(newLocation[2][0].thumbnail).to.equal(image.thumbnail)
+        expect(newLocation[2][0].category).to.equal(image.category)
+        expect(newLocation[2][0]._type).to.equal(image._type)
+        expect(newLocation[2][0].width).to.equal(image.width)
+        expect(newLocation[2][0].height).to.equal(image.height)
+
+        //OpeningTimes
+        expect(newLocation[3].twentyfourseven).to.equal(openingTimes.twentyfourseven)
+        expect(newLocation[3].regular_hours.week_day).to.equal(openingTimes.regular_hours.week_day)
+        expect(newLocation[3].regular_hours.period_begin).to.equal(openingTimes.regular_hours.period_begin)
+        expect(newLocation[3].regular_hours.period_end).to.equal(openingTimes.regular_hours.period_end)
+        expect(newLocation[3].exceptional_openings.begin).to.equal(openingTimes.exceptional_openings.begin)
+        expect(newLocation[3].exceptional_openings.end).to.equal(openingTimes.exceptional_openings.end)
+        expect(newLocation[3].exceptional_closings.begin).to.equal(openingTimes.exceptional_closings.begin)
+        expect(newLocation[3].exceptional_closings.end).to.equal(openingTimes.exceptional_closings.end)
+
+        // Direction
+        expect(newLocation[4][0].language).to.equal(direction.language)
+        expect(newLocation[4][0].text).to.equal(direction.text)
+
+    })
+
+
+    it("removeRelatedLocation", async function(){
+        await this.Location.removeRelatedLocation(1, this.sudoUser.token, 1); 
+        const newLocation = await this.Location.getLocation(1);
+        expect(newLocation[1].length).to.equal(0)
+    })
+
+    it("removeImage", async function(){
+        await this.Location.removeImage(1, this.sudoUser.token, 1); 
+        const newLocation = await this.Location.getLocation(1);
+        expect(newLocation[2].length).to.equal(0)
+    })
+
+    it("removeDirection", async function(){
+        await this.Location.removeDirection(1, this.sudoUser.token, 1); 
+        const newLocation = await this.Location.getLocation(1);
+        expect(newLocation[4].length).to.equal(0)
     })
 
 
@@ -465,7 +575,7 @@ describe("Locations", function(){
             const coord = coords[index];
             const loc = location;
             loc.coordinates.latitude = coord.lat;
-            loc.coordinates.longitude =coord.lon;
+            loc.coordinates.longtitude =coord.lon;
 
             let tx = await this.Location.addLocation(this.sudoUser.token, loc);
 
@@ -473,10 +583,8 @@ describe("Locations", function(){
 
 
             let newLocation = await this.Location.getLocation(Number(result.uid));
-            expect(newLocation.coordinates.latitude).to.equal(ethers.parseEther(loc.coordinates.latitude))
-            expect(newLocation.coordinates.longitude).to.equal(ethers.parseEther(loc.coordinates.longitude))
-
-
+            expect(newLocation[0].coordinates.latitude).to.equal(ethers.parseEther(loc.coordinates.latitude))
+            expect(newLocation[0].coordinates.longtitude).to.equal(ethers.parseEther(loc.coordinates.longtitude))
 
         }
     })
