@@ -302,7 +302,7 @@ interface DataTypesLocation {
         int16 max_amperage;
         int16 max_electric_power;
         bytes32[] tariff_ids;
-        string terms_and_conditions; // url
+        string terms_and_conditions_url;
         uint256 partner_id;
         uint256 location_id;
         uint256 evse_id;
