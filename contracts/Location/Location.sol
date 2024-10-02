@@ -50,10 +50,10 @@ contract Location is ILocation, Initializable {
 
 
 
-    function addRelatedLocation(uint256 location_id, bytes32 _token, DataTypesLocation.AdditionalGeoLocation calldata add ) public {
+    function addRelatedLocation(uint256 location_id, bytes32 _token, DataTypesLocation.AdditionalGeoLocation calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         related_locations[location_id].push(add);
-        locations[location_id].last_updated = block.timestamp;
+        _updated(location_id);
     }
 
     function removeRelatedLocation(uint256 location_id, bytes32 _token, uint loc_id) external {
@@ -62,13 +62,13 @@ contract Location is ILocation, Initializable {
             related_locations[location_id][i] = related_locations[location_id][i + 1];
         }
         related_locations[location_id].pop();
-        locations[location_id].last_updated = block.timestamp;
+        _updated(location_id);
     }
 
-    function addImage(uint256 location_id, bytes32 _token, DataTypesLocation.Image calldata add ) public {
+    function addImage(uint256 location_id, bytes32 _token, DataTypesLocation.Image calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         images_location[location_id].push(add);
-        locations[location_id].last_updated = block.timestamp;
+        _updated(location_id);
     }
 
     function removeImage(uint256 location_id, bytes32 _token, uint image_id) external {
@@ -77,13 +77,13 @@ contract Location is ILocation, Initializable {
             images_location[location_id][i] = images_location[location_id][i + 1];
         }
         images_location[location_id].pop();
-        locations[location_id].last_updated = block.timestamp;
+        _updated(location_id);
     }
 
-    function addDirection(uint256 location_id, bytes32 _token, DataTypesLocation.DisplayText calldata add ) public {
+    function addDirection(uint256 location_id, bytes32 _token, DataTypesLocation.DisplayText calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         directions_location[location_id].push(add);
-        locations[location_id].last_updated = block.timestamp;
+        _updated(location_id);
     }
 
 
@@ -93,17 +93,17 @@ contract Location is ILocation, Initializable {
             directions_location[location_id][i] = directions_location[location_id][i + 1];
         }
         directions_location[location_id].pop();
-        locations[location_id].last_updated = block.timestamp;
+        _updated(location_id);
     }
 
-    function setOpeningTimes(uint256 location_id, bytes32 _token, DataTypesLocation.Hours calldata add ) public {
+    function setOpeningTimes(uint256 location_id, bytes32 _token, DataTypesLocation.Hours calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         opening_times_location[location_id] = add;
-        locations[location_id].last_updated = block.timestamp;
+        _updated(location_id); 
     }
 
 
-    function addLocation(bytes32 _token, Add memory add ) public {
+    function addLocation(bytes32 _token, Add memory add ) external {
 
         uint256 user_id = _User().isLogin(_token);
 
@@ -340,4 +340,7 @@ contract Location is ILocation, Initializable {
         return false;
     }
 
+    function _updated(uint256 location_id) internal {
+        locations[location_id].last_updated = block.timestamp;
+    }
 }

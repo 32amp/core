@@ -46,5 +46,12 @@ interface ILocation {
 
     function exist(uint256 location_id) external returns(bool);
     function inArea(inAreaInput memory input) external view returns (DataTypesLocation.Location[] memory, uint256);
+    function addRelatedLocation(uint256 location_id, bytes32 _token, DataTypesLocation.AdditionalGeoLocation calldata add ) external;
+    function removeRelatedLocation(uint256 location_id, bytes32 _token, uint loc_id) external;
+    function addImage(uint256 location_id, bytes32 _token, DataTypesLocation.Image calldata add ) external;
+    function removeImage(uint256 location_id, bytes32 _token, uint image_id) external;
+    function addDirection(uint256 location_id, bytes32 _token, DataTypesLocation.DisplayText calldata add ) external;
+    function removeDirection(uint256 location_id, bytes32 _token, uint direction_id) external;
+    function setOpeningTimes(uint256 location_id, bytes32 _token, DataTypesLocation.Hours calldata add ) external;
 
 }
