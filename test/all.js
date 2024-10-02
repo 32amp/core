@@ -3,6 +3,7 @@ const hubModule = require("../ignition/modules/Hub");
 const userModule = require("../ignition/modules/User");
 const UserGroupsModule = require("../ignition/modules/UserGroups");
 const LocationsModule = require("../ignition/modules/Locations");
+const EVSEModule = require("../ignition/modules/EVSE");
 const UserAccessModule = require("../ignition/modules/UserAccess");
 const MessageOracleModule = require("../ignition/modules/MessageOracle");
 
@@ -92,6 +93,18 @@ before(async function() {
     this.Hub.addModule("Location", this.Location.target);
     console.log("Location deployed to:", this.Location.target);
 
+
+
+    const EVSEDeploy = await ignition.deploy(EVSEModule);
+    this.EVSE = await EVSEDeploy.EVSE;
+    
+    this.EVSE.initialize(this.partner.id,this.Hub.target)
+
+    this.Hub.addModule("EVSE", this.EVSE.target);
+    console.log("EVSE deployed to:", this.EVSE.target);
+
+
+
     const UserAccessDeploy = await ignition.deploy(UserAccessModule);
     this.UserAccess = UserAccessDeploy.UserAccess;
     this.UserAccess.initialize(this.partner.id,this.Hub.target)
@@ -137,7 +150,8 @@ describe("Hub", function(){
         expect(modules[0]).to.equal("User")
         expect(modules[1]).to.equal("UserGroups")
         expect(modules[2]).to.equal("Location")
-        expect(modules[3]).to.equal("UserAccess")
+        expect(modules[3]).to.equal("EVSE")
+        expect(modules[4]).to.equal("UserAccess")
         //
     })
 

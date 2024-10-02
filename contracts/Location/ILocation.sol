@@ -44,6 +44,7 @@ interface ILocation {
         uint64 offset;
         uint8[] connectors; // TODO add filter by connector
         bool onlyFreeConnectors; // TODO add filter by connector
+        bool publish; //TODO add filter by publish flag
     }
 
     event AddLocation(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );

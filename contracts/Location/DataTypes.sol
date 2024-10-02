@@ -282,7 +282,7 @@ interface DataTypesLocation {
         StatusSchedule[] status_schedule;
         Capabilities[] capabilities;
         Connector[] connectors;
-        bytes4 floor_level;
+        int8 floor_level;
         GeoLocation coordinates;
         bytes16 physical_reference;
         DisplayText[] directions;
@@ -304,8 +304,6 @@ interface DataTypesLocation {
         bytes32[] tariff_ids;
         string terms_and_conditions_url;
         uint256 partner_id;
-        uint256 location_id;
-        uint256 evse_id;
         uint256 sync_id;
         uint256 last_updated;
         ConnectorStatus status;

@@ -32,8 +32,8 @@ contract Connector is Initializable {
 
     function addConnector(DataTypesLocation.Connector memory connector, bytes32 _token) external {
         
-        require(evse.exist(connector.evse_id), "evse_not_exist");
-        require(location.exist(connector.location_id), "location_not_exist");
+        //require(evse.exist(connector.evse_id), "evse_not_exist");
+        //require(location.exist(connector.location_id), "location_not_exist");
         
         connectorIndex++;
     }

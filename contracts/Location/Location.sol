@@ -184,6 +184,8 @@ contract Location is ILocation, Initializable {
     }
 
 
+
+    
     function inArea(inAreaInput memory input) external view returns (DataTypesLocation.Location[] memory, uint256) {
 
         uint64 output_count = 50;
