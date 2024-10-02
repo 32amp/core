@@ -53,5 +53,7 @@ interface ILocation {
     function addDirection(uint256 location_id, bytes32 _token, DataTypesLocation.DisplayText calldata add ) external;
     function removeDirection(uint256 location_id, bytes32 _token, uint direction_id) external;
     function setOpeningTimes(uint256 location_id, bytes32 _token, DataTypesLocation.Hours calldata add ) external;
+    function addEVSE(uint256 location_id, bytes32 _token, uint256 add ) external;
+    function removeEVSE(uint256 location_id, bytes32 _token, uint evse) external;
 
 }

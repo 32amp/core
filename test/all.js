@@ -497,6 +497,10 @@ describe("Locations", function(){
         await this.Location.addDirection(1, this.sudoUser.token, direction);
     })
 
+    it("addEVSE", async function(){
+        await this.Location.addEVSE(1, this.sudoUser.token, 1);
+    })
+
     it("setOpeningTimes", async function(){
         await this.Location.setOpeningTimes(1, this.sudoUser.token, openingTimes);
     })
@@ -564,6 +568,13 @@ describe("Locations", function(){
         await this.Location.removeDirection(1, this.sudoUser.token, 1); 
         const newLocation = await this.Location.getLocation(1);
         expect(newLocation[4].length).to.equal(0)
+    })
+
+    it("removeEVSE", async function(){
+        await this.Location.removeEVSE(1, this.sudoUser.token, 1); 
+        // TODO create return EVSE object in get location
+        //const newLocation = await this.Location.getLocation(1);
+        //expect(newLocation[4].length).to.equal(0)
     })
 
 

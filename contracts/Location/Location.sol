@@ -22,6 +22,7 @@ contract Location is ILocation, Initializable {
     mapping(uint256 => DataTypesLocation.Image[]) images_location;
     mapping(uint256 => DataTypesLocation.Hours) opening_times_location; 
     mapping(uint256 => DataTypesLocation.DisplayText[]) directions_location;
+    mapping(uint256 => uint256[]) evses_location;
 
     mapping(int16 => mapping(int16 => uint256[])) locations_index;
 
@@ -93,6 +94,24 @@ contract Location is ILocation, Initializable {
             directions_location[location_id][i] = directions_location[location_id][i + 1];
         }
         directions_location[location_id].pop();
+        _updated(location_id);
+    }
+
+
+    function addEVSE(uint256 location_id, bytes32 _token, uint256 add ) external {
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+        // TODO add check evse exist and permission
+        evses_location[location_id].push(add);
+        _updated(location_id);
+    }
+
+
+    function removeEVSE(uint256 location_id, bytes32 _token, uint evse) external {
+        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+        for (uint i = evse; i < evses_location[location_id].length - 1; i++) {
+            evses_location[location_id][i] = evses_location[location_id][i + 1];
+        }
+        evses_location[location_id].pop();
         _updated(location_id);
     }
 
