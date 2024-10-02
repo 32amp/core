@@ -27,6 +27,15 @@ interface ILocation {
         bool publish;
     }
 
+
+    struct outLocation {
+        DataTypesLocation.Location location;
+        DataTypesLocation.AdditionalGeoLocation[] related_locations;
+        DataTypesLocation.Image[] images;
+        DataTypesLocation.Hours opening_times;
+        DataTypesLocation.DisplayText[] directions;
+    }
+
     struct inAreaInput {
         string topRightLat;
         string topRightLong;
@@ -42,7 +51,7 @@ interface ILocation {
     function getVersion() external view returns(string memory);
 
     function addLocation(bytes32 _token, Add memory add) external;
-    function getLocation(uint256 id) external returns (DataTypesLocation.Location memory, DataTypesLocation.AdditionalGeoLocation[] memory, DataTypesLocation.Image[] memory, DataTypesLocation.Hours memory, DataTypesLocation.DisplayText[] memory);
+    function getLocation(uint256 id) external view returns (outLocation memory);
 
     function exist(uint256 location_id) external returns(bool);
     function inArea(inAreaInput memory input) external view returns (DataTypesLocation.Location[] memory, uint256);

@@ -510,44 +510,44 @@ describe("Locations", function(){
         
         const newLocation = await this.Location.getLocation(1);
         
-        expect(newLocation[0].uid).to.equal(1)
-        expect(newLocation[0].city).to.equal(location.city)
-        expect(newLocation[0].postal_code).to.equal(location.postal_code)
-        expect(newLocation[0].state).to.equal(location.state)
-        expect(newLocation[0].country).to.equal(location.country)
+        expect(newLocation.location.uid).to.equal(1)
+        expect(newLocation.location.city).to.equal(location.city)
+        expect(newLocation.location.postal_code).to.equal(location.postal_code)
+        expect(newLocation.location.state).to.equal(location.state)
+        expect(newLocation.location.country).to.equal(location.country)
 
-        expect(newLocation[0].coordinates.latitude).to.equal(ethers.parseEther(location.coordinates.latitude))
-        expect(newLocation[0].coordinates.longtitude).to.equal(ethers.parseEther(location.coordinates.longtitude))
-        expect(newLocation[0].parking_type).to.equal(location.parking_type)
-        expect(newLocation[0].facilities.join(",")).to.equal(location.facilities.join(","))
-        expect(newLocation[0].time_zone).to.equal(location.time_zone)
-        expect(newLocation[0].charging_when_closed).to.equal(location.charging_when_closed)
+        expect(newLocation.location.coordinates.latitude).to.equal(ethers.parseEther(location.coordinates.latitude))
+        expect(newLocation.location.coordinates.longtitude).to.equal(ethers.parseEther(location.coordinates.longtitude))
+        expect(newLocation.location.parking_type).to.equal(location.parking_type)
+        expect(newLocation.location.facilities.join(",")).to.equal(location.facilities.join(","))
+        expect(newLocation.location.time_zone).to.equal(location.time_zone)
+        expect(newLocation.location.charging_when_closed).to.equal(location.charging_when_closed)
         // relatedlocation
-        expect(newLocation[1][0].latitude).to.equal(relatedLocation.latitude)
-        expect(newLocation[1][0].longtitude).to.equal(relatedLocation.longtitude)
-        expect(newLocation[1][0].name[0].language).to.equal(relatedLocation.name[0].language)
-        expect(newLocation[1][0].name[0].text).to.equal(relatedLocation.name[0].text)
+        expect(newLocation.related_locations[0].latitude).to.equal(relatedLocation.latitude)
+        expect(newLocation.related_locations[0].longtitude).to.equal(relatedLocation.longtitude)
+        expect(newLocation.related_locations[0].name[0].language).to.equal(relatedLocation.name[0].language)
+        expect(newLocation.related_locations[0].name[0].text).to.equal(relatedLocation.name[0].text)
         //image
-        expect(newLocation[2][0].url).to.equal(image.url)
-        expect(newLocation[2][0].thumbnail).to.equal(image.thumbnail)
-        expect(newLocation[2][0].category).to.equal(image.category)
-        expect(newLocation[2][0]._type).to.equal(image._type)
-        expect(newLocation[2][0].width).to.equal(image.width)
-        expect(newLocation[2][0].height).to.equal(image.height)
+        expect(newLocation.images[0].url).to.equal(image.url)
+        expect(newLocation.images[0].thumbnail).to.equal(image.thumbnail)
+        expect(newLocation.images[0].category).to.equal(image.category)
+        expect(newLocation.images[0]._type).to.equal(image._type)
+        expect(newLocation.images[0].width).to.equal(image.width)
+        expect(newLocation.images[0].height).to.equal(image.height)
 
         //OpeningTimes
-        expect(newLocation[3].twentyfourseven).to.equal(openingTimes.twentyfourseven)
-        expect(newLocation[3].regular_hours.week_day).to.equal(openingTimes.regular_hours.week_day)
-        expect(newLocation[3].regular_hours.period_begin).to.equal(openingTimes.regular_hours.period_begin)
-        expect(newLocation[3].regular_hours.period_end).to.equal(openingTimes.regular_hours.period_end)
-        expect(newLocation[3].exceptional_openings.begin).to.equal(openingTimes.exceptional_openings.begin)
-        expect(newLocation[3].exceptional_openings.end).to.equal(openingTimes.exceptional_openings.end)
-        expect(newLocation[3].exceptional_closings.begin).to.equal(openingTimes.exceptional_closings.begin)
-        expect(newLocation[3].exceptional_closings.end).to.equal(openingTimes.exceptional_closings.end)
+        expect(newLocation.opening_times.twentyfourseven).to.equal(openingTimes.twentyfourseven)
+        expect(newLocation.opening_times.regular_hours.week_day).to.equal(openingTimes.regular_hours.week_day)
+        expect(newLocation.opening_times.regular_hours.period_begin).to.equal(openingTimes.regular_hours.period_begin)
+        expect(newLocation.opening_times.regular_hours.period_end).to.equal(openingTimes.regular_hours.period_end)
+        expect(newLocation.opening_times.exceptional_openings.begin).to.equal(openingTimes.exceptional_openings.begin)
+        expect(newLocation.opening_times.exceptional_openings.end).to.equal(openingTimes.exceptional_openings.end)
+        expect(newLocation.opening_times.exceptional_closings.begin).to.equal(openingTimes.exceptional_closings.begin)
+        expect(newLocation.opening_times.exceptional_closings.end).to.equal(openingTimes.exceptional_closings.end)
 
         // Direction
-        expect(newLocation[4][0].language).to.equal(direction.language)
-        expect(newLocation[4][0].text).to.equal(direction.text)
+        expect(newLocation.directions[0].language).to.equal(direction.language)
+        expect(newLocation.directions[0].text).to.equal(direction.text)
 
     })
 
@@ -555,19 +555,19 @@ describe("Locations", function(){
     it("removeRelatedLocation", async function(){
         await this.Location.removeRelatedLocation(1, this.sudoUser.token, 1); 
         const newLocation = await this.Location.getLocation(1);
-        expect(newLocation[1].length).to.equal(0)
+        expect(newLocation.related_locations.length).to.equal(0)
     })
 
     it("removeImage", async function(){
         await this.Location.removeImage(1, this.sudoUser.token, 1); 
         const newLocation = await this.Location.getLocation(1);
-        expect(newLocation[2].length).to.equal(0)
+        expect(newLocation.images.length).to.equal(0)
     })
 
     it("removeDirection", async function(){
         await this.Location.removeDirection(1, this.sudoUser.token, 1); 
         const newLocation = await this.Location.getLocation(1);
-        expect(newLocation[4].length).to.equal(0)
+        expect(newLocation.directions.length).to.equal(0)
     })
 
     it("removeEVSE", async function(){

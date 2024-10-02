@@ -170,8 +170,17 @@ contract Location is ILocation, Initializable {
     }
 
 
-    function getLocation(uint256 id) external view returns (DataTypesLocation.Location memory, DataTypesLocation.AdditionalGeoLocation[] memory, DataTypesLocation.Image[] memory, DataTypesLocation.Hours memory, DataTypesLocation.DisplayText[] memory){
-        return (locations[id],related_locations[id], images_location[id], opening_times_location[id], directions_location[id]);
+    function getLocation(uint256 id) external view returns (outLocation memory){
+
+        outLocation memory loc;
+        
+        loc.location = locations[id];
+        loc.related_locations = related_locations[id];
+        loc.images = images_location[id];
+        loc.opening_times = opening_times_location[id];
+        loc.directions = directions_location[id];
+
+        return loc;
     }
 
 
