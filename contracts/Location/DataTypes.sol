@@ -209,7 +209,7 @@ interface DataTypesLocation {
 
     struct Image {
         string url;
-        string thumbnail;
+        string thumbnail_ipfs;
         ImageCategory category;
         ImageType _type;
         uint16 width;
@@ -275,37 +275,24 @@ interface DataTypesLocation {
     }
 
     struct EVSE {
-        uint256 uid;
-        string evse_id;
-        bytes2 label;
-        EVSEStatus status;
-        StatusSchedule[] status_schedule;
-        Capabilities[] capabilities;
-        Connector[] connectors;
-        int8 floor_level;
-        GeoLocation coordinates;
-        bytes16 physical_reference;
+        string evse_id; 
+        uint256 evse_model;
+        bytes32 physical_reference;
         DisplayText[] directions;
-        ParkingRestriction[] parking_restrictions;
-        Image[] images;
-        uint256 location_id;
-        uint256 sync_id;
-        uint256 last_updated;
     }
 
     struct Connector {
-        bytes32 id;
+        //uint256 id;
         ConnectorTypes standard;
         ConnectorFormat format;
         PowerType power_type;
         int16 max_voltage;
         int16 max_amperage;
         int16 max_electric_power;
-        bytes32[] tariff_ids;
+        uint256[] tariff_ids;
         string terms_and_conditions_url;
-        uint256 partner_id;
-        uint256 sync_id;
-        uint256 last_updated;
+        
+        //uint256 last_updated;
         ConnectorStatus status;
     }
 }

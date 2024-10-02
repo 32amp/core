@@ -85,7 +85,7 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
         if(accessLevel < uint(AccessLevel.FOURTH) )
             revert("access_denied");
 
-       if(uint(access_level) < accessLevel )
+       if(uint(access_level) > accessLevel )
             revert("cannot_set_level_more_than_you_have");
 
         _setAccessLevelToModule(user_id, module, access_level);

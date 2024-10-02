@@ -9,21 +9,16 @@ import "./DataTypes.sol";
 
 
 contract Connector is Initializable {
-    mapping (uint256 => DataTypesLocation.Connector)  connectors;
-    mapping (bytes5 => uint256)  connectorIndexPartner;
-    uint256 connectorIndex;
-
-    IHub hub;
-    EVSE evse;
-    Location location;
+    address hubContract;
     string version;
+    uint256 partner_id;
+    uint256 connectorcounter;
 
-    function initialize(address hubContract, address evseContract, address locationContract) external initializer {
-        hub = IHub(hubContract);
-        evse = EVSE(evseContract);
-        location = Location(locationContract);
+
+    function initialize(uint256 _partner_id, address _hubContract) public initializer {
+        hubContract = _hubContract;
+        partner_id = _partner_id;
         version = "1.0";
-        connectorIndex = 0;
     }
 
     function getVersion() public view returns(string memory){
@@ -35,7 +30,7 @@ contract Connector is Initializable {
         //require(evse.exist(connector.evse_id), "evse_not_exist");
         //require(location.exist(connector.location_id), "location_not_exist");
         
-        connectorIndex++;
+        
     }
 
 }

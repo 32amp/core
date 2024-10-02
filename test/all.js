@@ -444,7 +444,7 @@ describe("Locations", function(){
 
     const image = {
         url: "https://upload.wikimedia.org/wikipedia/ru/thumb/e/e8/BORAT%21.jpg/201px-BORAT%21.jpg",
-        thumbnail: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Borat_in_Cologne.jpg/220px-Borat_in_Cologne.jpg",
+        thumbnail_ipfs: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Borat_in_Cologne.jpg/220px-Borat_in_Cologne.jpg",
         category: 3,
         _type: 1,
         width: 100,
@@ -617,14 +617,14 @@ describe("Locations", function(){
 
     it("inArea all kirov zavod", async function(){
 
-        const locations = await this.Location.inArea({topRightLat:"59.883143",topRightLong:"30.270558",bottomLeftLat:"59.870363",bottomLeftLong:"30.247867", offset:0, connectors:[1], onlyFreeConnectors:true})
+        const locations = await this.Location.inArea({publish: true, topRightLat:"59.883143",topRightLong:"30.270558",bottomLeftLat:"59.870363",bottomLeftLong:"30.247867", offset:0, connectors:[1], onlyFreeConnectors:true})
         expect(locations[0].length).to.equal(2)
     })
 
     it("inArea all saint petersburg", async function(){
 
         // all saint petersburg
-        const locations = await this.Location.inArea({topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:0, connectors:[1], onlyFreeConnectors:true})
+        const locations = await this.Location.inArea({publish: true, topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:0, connectors:[1], onlyFreeConnectors:true})
 
         expect(locations[0].length).to.equal(50)
     })
@@ -633,7 +633,7 @@ describe("Locations", function(){
     it("inArea all saint petersburg with offset", async function(){
 
         // all saint petersburg
-        const locations = await this.Location.inArea({topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:50, connectors:[1], onlyFreeConnectors:true})
+        const locations = await this.Location.inArea({publish: true, topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:50, connectors:[1], onlyFreeConnectors:true})
 
         expect(locations[0].length).to.equal(24)
     })
@@ -642,16 +642,112 @@ describe("Locations", function(){
 
     it("inAreaMany", async function(){
 
-        let locations_1 = await this.Location.inArea({topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:0, connectors:[1], onlyFreeConnectors:true})
+        let locations_1 = await this.Location.inArea({publish: true, topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:0, connectors:[1], onlyFreeConnectors:true})
         expect(locations_1[1]).to.equal(1135n)
 
     })
 
     it("inAreaMany with offset", async function(){
 
-        let locations_1 = await this.Location.inArea({topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:50, connectors:[1], onlyFreeConnectors:true})
+        let locations_1 = await this.Location.inArea({publish: true, topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:50, connectors:[1], onlyFreeConnectors:true})
         expect(locations_1[0].length).to.equal(50)
 
     })
 
+})
+
+
+describe("EVSE", function(){
+    const EVSE = {
+        evse_id: "ufo0001",
+        evse_model: 1,
+        physical_reference: ethers.encodeBytes32String("Под номером 10"),
+        directions: [
+            {
+                language: "ru",
+                text: "Возле пожарного выхода",
+            }
+        ]
+    }
+
+    const EVSEmeta = {
+        status_schedule: [
+            {
+                begin: 123123123, // timestamp
+                end:123123123, // timestamp
+                status: 6 // maintance
+            }
+        ],
+        capabilities: [1,2,3],
+        coordinates: {
+            latitude: ethers.parseEther("59.694982"),
+            longtitude: ethers.parseEther("30.416469")
+        },
+        parking_restrictions: [0,2,3],
+        floor_level:1
+    }
+
+    const image = {
+        url: "https://wikimedia.org/",
+        thumbnail_ipfs: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Borat_in_Cologne.jpg/220px-Borat_in_Cologne.jpg",
+        category: 3,
+        _type: 1,
+        width: 100,
+        height: 100
+    };
+
+    it("add", async function(){
+        await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"EVSE", 4);
+        
+        const tx =  await this.EVSE.add(this.testUser.token, EVSE, 1);
+
+        let result = await GetEventArgumentsByNameAsync(tx, "AddEVSE")
+        expect(result.uid).to.equal(1)
+        expect(result.partner_id).to.equal(1)
+
+    })
+
+    it("setMeta", async function(){
+        await this.EVSE.setMeta(this.testUser.token, 1, EVSEmeta)
+    })
+
+    it("addImage", async function(){
+        await this.EVSE.addImage(1, this.testUser.token, image);
+    })
+
+    it("get", async function(){
+        const evse = await this.EVSE.get(1)
+
+        expect(evse.evse.evse_id).to.equal(EVSE.evse_id)
+        expect(evse.evse.evse_model).to.equal(EVSE.evse_model)
+        expect(evse.evse.physical_reference).to.equal(EVSE.physical_reference)
+        expect(evse.evse.directions.language).to.equal(EVSE.directions.language)
+        expect(evse.evse.directions.text).to.equal(EVSE.directions.text)
+
+        expect(evse.meta.status_schedule.begin).to.equal(EVSEmeta.status_schedule.begin)
+        expect(evse.meta.status_schedule.end).to.equal(EVSEmeta.status_schedule.end)
+        expect(evse.meta.status_schedule.status).to.equal(EVSEmeta.status_schedule.status)
+        expect(evse.meta.capabilities[0]).to.equal(EVSEmeta.capabilities[0])
+        expect(evse.meta.coordinates.latitude).to.equal(EVSEmeta.coordinates.latitude)
+        expect(evse.meta.coordinates.longtitude).to.equal(EVSEmeta.coordinates.longtitude)
+        expect(evse.meta.parking_restrictions[0]).to.equal(EVSEmeta.parking_restrictions[0])
+        expect(evse.meta.floor_level).to.equal(EVSEmeta.floor_level)
+
+
+        expect(evse.images[0].url).to.equal(image.url)
+        expect(evse.images[0].thumbnail).to.equal(image.thumbnail)
+        expect(evse.images[0].category).to.equal(image.category)
+        expect(evse.images[0]._type).to.equal(image._type)
+        expect(evse.images[0].width).to.equal(image.width)
+        expect(evse.images[0].height).to.equal(image.height)
+
+    })
+
+
+
+    it("removeImage", async function(){
+        await this.EVSE.removeImage(1, this.testUser.token, 1); 
+        const evse = await this.EVSE.get(1);
+        expect(evse.images.length).to.equal(0)
+    })
 })
