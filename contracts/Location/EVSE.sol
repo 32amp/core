@@ -86,6 +86,7 @@ contract EVSE is IEVSE, Initializable {
 
         _UserAccess().setAccessLevelToModuleObject(_token,bytes32(evsecounter),user_id,"EVSE",IUserAccess.AccessLevel.FOURTH);
 
+
         emit AddEVSE(evsecounter, partner_id, user_id);        
     }
 

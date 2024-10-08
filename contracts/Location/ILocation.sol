@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 
 import "./DataTypes.sol";
-
+import "./IEVSE.sol";
 
 interface ILocation {
 
@@ -34,6 +34,7 @@ interface ILocation {
         DataTypesLocation.Image[] images;
         DataTypesLocation.Hours opening_times;
         DataTypesLocation.DisplayText[] directions;
+        IEVSE.outEVSE[] evses;
     }
 
     struct inAreaInput {

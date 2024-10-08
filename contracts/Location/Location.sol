@@ -179,12 +179,19 @@ contract Location is ILocation, Initializable {
     function getLocation(uint256 id) external view returns (outLocation memory){
 
         outLocation memory loc;
-        
+        IEVSE.outEVSE[] memory evses = new IEVSE.outEVSE[](evses_location[id].length);
+
+        for (uint i = 0; i < evses_location[id].length; i++) {
+            evses[i] = _EVSE().get(evses_location[id][i]);
+        }
+
+
         loc.location = locations[id];
         loc.related_locations = related_locations[id];
         loc.images = images_location[id];
         loc.opening_times = opening_times_location[id];
         loc.directions = directions_location[id];
+        loc.evses = evses;
 
         return loc;
     }

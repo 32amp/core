@@ -750,6 +750,31 @@ describe("Location: Pairing", function(){
 
     it("addEVSE", async function(){
         await this.Location.addEVSE(1, this.testUser.token, 1);
+        const loc = await this.Location.getLocation(1);
+
+
+        expect(loc.evses[0].evse.evse_id).to.equal(EVSE.evse_id)
+        expect(loc.evses[0].evse.evse_model).to.equal(EVSE.evse_model)
+        expect(loc.evses[0].evse.physical_reference).to.equal(EVSE.physical_reference)
+        expect(loc.evses[0].evse.directions.language).to.equal(EVSE.directions.language)
+        expect(loc.evses[0].evse.directions.text).to.equal(EVSE.directions.text)
+
+        expect(loc.evses[0].meta.status_schedule.begin).to.equal(EVSEmeta.status_schedule.begin)
+        expect(loc.evses[0].meta.status_schedule.end).to.equal(EVSEmeta.status_schedule.end)
+        expect(loc.evses[0].meta.status_schedule.status).to.equal(EVSEmeta.status_schedule.status)
+        expect(loc.evses[0].meta.capabilities[0]).to.equal(EVSEmeta.capabilities[0])
+        expect(loc.evses[0].meta.coordinates.latitude).to.equal(EVSEmeta.coordinates.latitude)
+        expect(loc.evses[0].meta.coordinates.longtitude).to.equal(EVSEmeta.coordinates.longtitude)
+        expect(loc.evses[0].meta.parking_restrictions[0]).to.equal(EVSEmeta.parking_restrictions[0])
+        expect(loc.evses[0].meta.floor_level).to.equal(EVSEmeta.floor_level)
+
+
+        expect(loc.evses[0].images[0].url).to.equal(image.url)
+        expect(loc.evses[0].images[0].thumbnail).to.equal(image.thumbnail)
+        expect(loc.evses[0].images[0].category).to.equal(image.category)
+        expect(loc.evses[0].images[0]._type).to.equal(image._type)
+        expect(loc.evses[0].images[0].width).to.equal(image.width)
+        expect(loc.evses[0].images[0].height).to.equal(image.height)
     })
 
     it("removeEVSE", async function(){
