@@ -24,6 +24,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         avaliable_modules["UserGroups"] = true;
         avaliable_modules["UserAccess"] = true;
         avaliable_modules["Location"] = true;
+        avaliable_modules["LocationSearch"] = true;
         avaliable_modules["EVSE"] = true;
         avaliable_modules["Connector"] = true;
         __Ownable_init(msg.sender);

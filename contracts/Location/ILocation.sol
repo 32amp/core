@@ -36,17 +36,8 @@ interface ILocation {
         DataTypesLocation.DisplayText[] directions;
         IEVSE.outEVSE[] evses;
     }
+    
 
-    struct inAreaInput {
-        string topRightLat;
-        string topRightLong;
-        string bottomLeftLat;
-        string bottomLeftLong;
-        uint64 offset;
-        uint8[] connectors; // TODO add filter by connector
-        bool onlyFreeConnectors; // TODO add filter by connector
-        bool publish; //TODO add filter by publish flag
-    }
 
     event AddLocation(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
 
@@ -56,7 +47,6 @@ interface ILocation {
     function getLocation(uint256 id) external view returns (outLocation memory);
 
     function exist(uint256 location_id) external returns(bool);
-    function inArea(inAreaInput memory input) external view returns (DataTypesLocation.Location[] memory, uint256);
     function addRelatedLocation(uint256 location_id, bytes32 _token, DataTypesLocation.AdditionalGeoLocation calldata add ) external;
     function removeRelatedLocation(uint256 location_id, bytes32 _token, uint loc_id) external;
     function addImage(uint256 location_id, bytes32 _token, DataTypesLocation.Image calldata add ) external;
