@@ -78,14 +78,16 @@ contract EVSE is IEVSE, Initializable {
 
         evses[evsecounter] = evse;
 
-        evses_last_updated[evsecounter] = block.timestamp;
+
+        
         evses_status[evsecounter] = DataTypesLocation.EVSEStatus.Planned;
         evses_related_location[evsecounter] = location_id;
 
         _UserAccess().setAccessLevelToModuleObject(_token,bytes32(evsecounter),user_id,"EVSE",IUserAccess.AccessLevel.FOURTH);
 
-
+        _Location().addEVSE(_token, location_id, evsecounter);
         emit AddEVSE(evsecounter, partner_id, user_id);        
+        _updated(evsecounter);
     }
 
     function setMeta(bytes32 _token, uint256 id, EVSEMeta calldata meta) external {
@@ -113,11 +115,40 @@ contract EVSE is IEVSE, Initializable {
     function setStatus(bytes32 _token, uint256 id, DataTypesLocation.EVSEStatus status) external {
         _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         
-        // TODO: Add check for add connectors before set status avaliable 
+
+        if(evse_connectors[id].length == 0 && status == DataTypesLocation.EVSEStatus.Available)
+            revert("add_connectors_first");
+
         evses_status[id] = status;
     }
 
-    // TODO: add output connectors
+    function addConnector(bytes32 _token, uint256 evse_id,  uint256 connector_id ) external {
+
+
+        _UserAccess().checkAccess( "EVSE",bytes32(evse_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+        
+        if(IHub(hubContract).getModule("Connector", partner_id) != msg.sender)
+            if(!_Connector().exist(connector_id))
+                revert("connector_does_not_exist");
+
+        evse_connectors[evse_id].push(connector_id);
+        _updated(evse_id);
+    }
+
+
+    function removeConnector(bytes32 _token, uint256 evse_id, uint connector_id) external {
+        _UserAccess().checkAccess( "EVSE",bytes32(evse_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+        
+        for (uint i = connector_id; i < evse_connectors[evse_id].length - 1; i++) {
+            evse_connectors[evse_id][i] = evse_connectors[evse_id][i + 1];
+        }
+
+        evse_connectors[evse_id].pop();
+        _updated(evse_id);
+    }
+
+
+
 
     function get(uint256 id) external view returns(outEVSE memory){
         outEVSE memory ret;
@@ -128,6 +159,16 @@ contract EVSE is IEVSE, Initializable {
         ret.last_updated = evses_last_updated[id];
         ret.location_id = evses_related_location[id];
         ret.images = evse_images[id];
+
+        if(evse_connectors[id].length > 0){
+            IConnector.output[] memory connectors = new IConnector.output[](evse_connectors[id].length);
+
+            for (uint i = 0; i < evse_connectors[id].length; i++) {
+                connectors[i] = _Connector().get(evse_connectors[id][i]);
+            }
+            ret.connectors = connectors;
+        }
+
 
         return ret;
     }

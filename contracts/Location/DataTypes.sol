@@ -282,18 +282,13 @@ interface DataTypesLocation {
     }
 
     struct Connector {
-        //uint256 id;
         ConnectorTypes standard;
         ConnectorFormat format;
         PowerType power_type;
         int16 max_voltage;
         int16 max_amperage;
         int16 max_electric_power;
-        uint256[] tariff_ids;
         string terms_and_conditions_url;
-        
-        //uint256 last_updated;
-        ConnectorStatus status;
     }
 }
 

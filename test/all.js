@@ -5,6 +5,7 @@ const UserGroupsModule = require("../ignition/modules/UserGroups");
 const LocationsModule = require("../ignition/modules/Locations");
 const LocationSearchModule = require("../ignition/modules/LocationSearch");
 const EVSEModule = require("../ignition/modules/EVSE");
+const ConnectorModule = require("../ignition/modules/Connector");
 const UserAccessModule = require("../ignition/modules/UserAccess");
 const MessageOracleModule = require("../ignition/modules/MessageOracle");
 
@@ -105,7 +106,7 @@ before(async function() {
     console.log("LocationSearch deployed to:", this.LocationSearch.target);
 
     
-
+    // EVSE
     const EVSEDeploy = await ignition.deploy(EVSEModule);
     this.EVSE = await EVSEDeploy.EVSE;
     
@@ -114,6 +115,16 @@ before(async function() {
     this.Hub.addModule("EVSE", this.EVSE.target);
     console.log("EVSE deployed to:", this.EVSE.target);
 
+
+    //Connector
+
+    const ConnectorDeploy = await ignition.deploy(ConnectorModule);
+    this.Connector = await ConnectorDeploy.Connector;
+    
+    this.Connector.initialize(this.partner.id,this.Hub.target)
+
+    this.Hub.addModule("Connector", this.Connector.target);
+    console.log("Connector deployed to:", this.Connector.target);
 
 
     const UserAccessDeploy = await ignition.deploy(UserAccessModule);
@@ -163,7 +174,8 @@ describe("Hub", function(){
         expect(modules[2]).to.equal("Location")
         expect(modules[3]).to.equal("LocationSearch")
         expect(modules[4]).to.equal("EVSE")
-        expect(modules[5]).to.equal("UserAccess")
+        expect(modules[5]).to.equal("Connector")
+        expect(modules[6]).to.equal("UserAccess")
         //
     })
 
@@ -641,7 +653,7 @@ describe("EVSE", function(){
     })
 
     it("addImage", async function(){
-        await this.EVSE.addImage(1, this.testUser.token, image);
+        await this.EVSE.addImage(this.testUser.token, 1, image);
     })
 
     it("get", async function(){
@@ -681,7 +693,19 @@ describe("EVSE", function(){
     })
 })
 
+describe("Connector", function(){
+    const {connector} = getEVSEData();
 
+    it("add", async function(){
+        await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Connector", 4);
+
+        const tx =  await this.Connector.add(this.testUser.token, connector, 1);
+
+        let result = await GetEventArgumentsByNameAsync(tx, "AddConnector")
+        expect(result.uid).to.equal(1)
+        expect(result.partner_id).to.equal(1)
+    })
+})
 
 
 describe("LocationSearch", function(){
@@ -729,11 +753,11 @@ describe("LocationSearch", function(){
 })
 
 
-describe("Location: Pairing", function(){
+describe("Location: check after all", function(){
 
-    it("addEVSE", async function(){
-        const {EVSE, EVSEmeta, image} = getEVSEData();
-        await this.Location.addEVSE(1, this.testUser.token, 1);
+    it("getlocation", async function(){
+        const {EVSE, EVSEmeta, image, connector} = getEVSEData();
+        //await this.Location.addEVSE(this.testUser.token, 1, 1);
         const loc = await this.Location.getLocation(1);
 
         expect(loc.evses[0].evse.evse_id).to.equal(EVSE.evse_id)
@@ -751,13 +775,23 @@ describe("Location: Pairing", function(){
         expect(loc.evses[0].meta.parking_restrictions[0]).to.equal(EVSEmeta.parking_restrictions[0])
         expect(loc.evses[0].meta.floor_level).to.equal(EVSEmeta.floor_level)
 
+
+        expect(loc.evses[0].connectors[0].connector.standard).to.equal(connector.standard)
+        expect(loc.evses[0].connectors[0].connector.format).to.equal(connector.format)
+        expect(loc.evses[0].connectors[0].connector.power_type).to.equal(connector.power_type)
+        expect(loc.evses[0].connectors[0].connector.max_voltage).to.equal(connector.max_voltage)
+        expect(loc.evses[0].connectors[0].connector.max_amperage).to.equal(connector.max_amperage)
+        expect(loc.evses[0].connectors[0].connector.max_electric_power).to.equal(connector.max_electric_power)
+        expect(loc.evses[0].connectors[0].connector.terms_and_conditions_url).to.equal(connector.terms_and_conditions_url)
+        expect(loc.evses[0].connectors[0].status).to.equal(0)
+
     })
 
     it("removeEVSE", async function(){
-        await this.Location.removeEVSE(1, this.testUser.token, 1); 
-        // TODO create return EVSE object in get location
-        //const newLocation = await this.Location.getLocation(1);
-        //expect(newLocation[4].length).to.equal(0)
+        await this.Location.removeEVSE(this.testUser.token, 1, 1); 
+        
+        const newLocation = await this.Location.getLocation(1);
+        expect(newLocation[4].length).to.equal(0)
     })
 
 })
@@ -802,5 +836,14 @@ function getEVSEData(){
         width: 100,
         height: 100
     };
-    return {EVSE,EVSEmeta,image}
+    const connector = {
+        standard: 1,
+        format:2,
+        power_type: 1,
+        max_voltage: 220,
+        max_amperage: 32,
+        max_electric_power: 7,
+        terms_and_conditions_url: "https://portalenergy.tech"
+    }
+    return {EVSE,EVSEmeta,image,connector}
 }

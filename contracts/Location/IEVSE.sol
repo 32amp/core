@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 
 import "./DataTypes.sol";
-
+import "./IConnector.sol";
 
 interface IEVSE {
 
@@ -22,6 +22,8 @@ interface IEVSE {
         uint256 location_id;
         uint256 last_updated;
         DataTypesLocation.Image[] images;
+        IConnector.output[] connectors;
+
     }
 
     event AddEVSE(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
@@ -31,6 +33,8 @@ interface IEVSE {
     function addImage(bytes32 _token, uint256 id, DataTypesLocation.Image calldata image ) external;
     function removeImage(bytes32 _token, uint256 id, uint image_id) external;
     function setStatus(bytes32 _token, uint256 id, DataTypesLocation.EVSEStatus status) external;
+    function addConnector(bytes32 _token, uint256 evse_id,  uint256 connector_id ) external;
+    function removeConnector(bytes32 _token, uint256 evse_id, uint connector_id) external;
     function get(uint256 id) external view returns(outEVSE memory);
 
 }
