@@ -54,7 +54,7 @@ contract EVSE is IEVSE, Initializable {
     }
 
 
-    function exist(uint256 id) public view returns(bool){
+    function exist(uint256 id) external view returns(bool){
         if(evses_last_updated[id] != 0)
             return true;
         
@@ -74,6 +74,8 @@ contract EVSE is IEVSE, Initializable {
         if(!_Location().exist(location_id))
             revert("location_does_not_exist");
 
+        
+
         evsecounter++;
 
         evses[evsecounter] = evse;
@@ -84,7 +86,7 @@ contract EVSE is IEVSE, Initializable {
 
         _UserAccess().setAccessLevelToModuleObject(_token,bytes32(evsecounter),user_id,"EVSE",IUserAccess.AccessLevel.FOURTH);
 
-        emit AddEVSE(evsecounter, partner_id, user_id);
+        emit AddEVSE(evsecounter, partner_id, user_id);        
     }
 
     function setMeta(bytes32 _token, uint256 id, EVSEMeta calldata meta) external {
@@ -109,7 +111,7 @@ contract EVSE is IEVSE, Initializable {
         _updated(id);
     }
 
-    function setStatus(bytes32 _token, uint256 id, DataTypesLocation.EVSEStatus status) external{
+    function setStatus(bytes32 _token, uint256 id, DataTypesLocation.EVSEStatus status) external {
         _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         
         // TODO: Add check for add connectors before set status avaliable 
@@ -118,7 +120,7 @@ contract EVSE is IEVSE, Initializable {
 
     // TODO: addConnector
 
-    function get(uint256 id) public view returns(outEVSE memory){
+    function get(uint256 id) external view returns(outEVSE memory){
         outEVSE memory ret;
 
         ret.evse = evses[id];

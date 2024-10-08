@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../Hub/IHub.sol";
 import "./DataTypes.sol";
 import "./ILocation.sol";
+import "./IEVSE.sol";
 import "../User/IUser.sol";
 import "../User/IUserAccess.sol";
 import "../Utils.sol";
@@ -49,7 +50,9 @@ contract Location is ILocation, Initializable {
         return IUser(IHub(hubContract).getModule("User", partner_id));
     }
 
-
+    function _EVSE() private view returns(IEVSE) {
+        return IEVSE(IHub(hubContract).getModule("EVSE", partner_id));
+    }
 
     function addRelatedLocation(uint256 location_id, bytes32 _token, DataTypesLocation.AdditionalGeoLocation calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
@@ -100,7 +103,10 @@ contract Location is ILocation, Initializable {
 
     function addEVSE(uint256 location_id, bytes32 _token, uint256 add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
-        // TODO add check evse exist and permission
+        
+        if(!_EVSE().exist(add))
+            revert("EVSE_does_not_exist");
+
         evses_location[location_id].push(add);
         _updated(location_id);
     }
