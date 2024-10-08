@@ -513,21 +513,21 @@ describe("Locations", function(){
 
     it("addRelatedLocation", async function(){
 
-        await this.Location.addRelatedLocation(1, this.testUser.token, relatedLocation);
+        await this.Location.addRelatedLocation(this.testUser.token, 1, relatedLocation);
 
     })
 
     it("addImage", async function(){
-        await this.Location.addImage(1, this.testUser.token, image);
+        await this.Location.addImage(this.testUser.token, 1, image);
     })
 
     it("addDirection", async function(){
-        await this.Location.addDirection(1, this.testUser.token, direction);
+        await this.Location.addDirection(this.testUser.token, 1, direction);
     })
 
 
     it("setOpeningTimes", async function(){
-        await this.Location.setOpeningTimes(1, this.testUser.token, openingTimes);
+        await this.Location.setOpeningTimes(this.testUser.token, 1, openingTimes);
     })
 
     it("getLocation", async function(){
@@ -578,19 +578,19 @@ describe("Locations", function(){
 
 
     it("removeRelatedLocation", async function(){
-        await this.Location.removeRelatedLocation(1, this.testUser.token, 1); 
+        await this.Location.removeRelatedLocation(this.testUser.token, 1, 1); 
         const newLocation = await this.Location.getLocation(1);
         expect(newLocation.related_locations.length).to.equal(0)
     })
 
     it("removeImage", async function(){
-        await this.Location.removeImage(1, this.testUser.token, 1); 
+        await this.Location.removeImage(this.testUser.token, 1, 1); 
         const newLocation = await this.Location.getLocation(1);
         expect(newLocation.images.length).to.equal(0)
     })
 
     it("removeDirection", async function(){
-        await this.Location.removeDirection(1, this.testUser.token, 1); 
+        await this.Location.removeDirection(this.testUser.token, 1, 1); 
         const newLocation = await this.Location.getLocation(1);
         expect(newLocation.directions.length).to.equal(0)
     })
@@ -675,7 +675,7 @@ describe("EVSE", function(){
 
 
     it("removeImage", async function(){
-        await this.EVSE.removeImage(1, this.testUser.token, 1); 
+        await this.EVSE.removeImage(this.testUser.token, 1, 1); 
         const evse = await this.EVSE.get(1);
         expect(evse.images.length).to.equal(0)
     })

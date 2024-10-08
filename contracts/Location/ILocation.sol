@@ -47,14 +47,14 @@ interface ILocation {
     function getLocation(uint256 id) external view returns (outLocation memory);
 
     function exist(uint256 location_id) external returns(bool);
-    function addRelatedLocation(uint256 location_id, bytes32 _token, DataTypesLocation.AdditionalGeoLocation calldata add ) external;
-    function removeRelatedLocation(uint256 location_id, bytes32 _token, uint loc_id) external;
-    function addImage(uint256 location_id, bytes32 _token, DataTypesLocation.Image calldata add ) external;
-    function removeImage(uint256 location_id, bytes32 _token, uint image_id) external;
-    function addDirection(uint256 location_id, bytes32 _token, DataTypesLocation.DisplayText calldata add ) external;
-    function removeDirection(uint256 location_id, bytes32 _token, uint direction_id) external;
-    function setOpeningTimes(uint256 location_id, bytes32 _token, DataTypesLocation.Hours calldata add ) external;
-    function addEVSE(uint256 location_id, bytes32 _token, uint256 add ) external;
-    function removeEVSE(uint256 location_id, bytes32 _token, uint evse) external;
+    function addRelatedLocation(bytes32 _token, uint256 location_id, DataTypesLocation.AdditionalGeoLocation calldata add ) external;
+    function removeRelatedLocation(bytes32 _token, uint256 location_id, uint loc_id) external;
+    function addImage(bytes32 _token, uint256 location_id, DataTypesLocation.Image calldata add ) external;
+    function removeImage(bytes32 _token, uint256 location_id, uint image_id) external;
+    function addDirection( bytes32 _token, uint256 location_id, DataTypesLocation.DisplayText calldata add ) external;
+    function removeDirection( bytes32 _token, uint256 location_id, uint direction_id) external;
+    function setOpeningTimes( bytes32 _token, uint256 location_id, DataTypesLocation.Hours calldata add ) external;
+    function addEVSE( bytes32 _token, uint256 location_id, uint256 add ) external;
+    function removeEVSE(bytes32 _token, uint256 location_id, uint evse) external;
 
 }

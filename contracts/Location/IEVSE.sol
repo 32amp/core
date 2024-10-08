@@ -28,8 +28,8 @@ interface IEVSE {
     function exist(uint256 id) external view returns(bool);
     function add(bytes32 _token, DataTypesLocation.EVSE calldata evse, uint256 location_id) external;
     function setMeta(bytes32 _token, uint256 id, EVSEMeta calldata meta) external;
-    function addImage(uint256 id, bytes32 _token, DataTypesLocation.Image calldata image ) external;
-    function removeImage(uint256 id, bytes32 _token, uint image_id) external;
+    function addImage(bytes32 _token, uint256 id, DataTypesLocation.Image calldata image ) external;
+    function removeImage(bytes32 _token, uint256 id, uint image_id) external;
     function setStatus(bytes32 _token, uint256 id, DataTypesLocation.EVSEStatus status) external;
     function get(uint256 id) external view returns(outEVSE memory);
 

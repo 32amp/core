@@ -74,8 +74,6 @@ contract EVSE is IEVSE, Initializable {
         if(!_Location().exist(location_id))
             revert("location_does_not_exist");
 
-        
-
         evsecounter++;
 
         evses[evsecounter] = evse;
@@ -97,13 +95,13 @@ contract EVSE is IEVSE, Initializable {
     }
 
 
-    function addImage(uint256 id, bytes32 _token, DataTypesLocation.Image calldata image ) external {
+    function addImage(bytes32 _token, uint256 id, DataTypesLocation.Image calldata image ) external {
         _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         evse_images[id].push(image);
         _updated(id);
     }
 
-    function removeImage(uint256 id, bytes32 _token, uint image_id) external {
+    function removeImage(bytes32 _token, uint256 id, uint image_id) external {
         _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         for (uint i = image_id; i < evse_images[id].length - 1; i++) {
             evse_images[id][i] = evse_images[id][i + 1];
@@ -119,7 +117,7 @@ contract EVSE is IEVSE, Initializable {
         evses_status[id] = status;
     }
 
-    // TODO: addConnector
+    // TODO: add output connectors
 
     function get(uint256 id) external view returns(outEVSE memory){
         outEVSE memory ret;
