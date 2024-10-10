@@ -7,7 +7,6 @@ import "./IEVSE.sol";
 import "./IConnector.sol";
 import "../User/IUser.sol";
 import "../User/IUserAccess.sol";
-import "./DataTypes.sol";
 
 
 contract Connector is IConnector, Initializable {
@@ -15,9 +14,9 @@ contract Connector is IConnector, Initializable {
     string version;
     uint256 partner_id;
     uint256 connector_counter;
-    mapping (uint256 => DataTypesLocation.Connector)  connectors;
+    mapping (uint256 => Connector)  connectors;
     mapping (uint256 => uint256) last_updated;
-    mapping (uint256 => DataTypesLocation.ConnectorStatus) connector_status;
+    mapping (uint256 => ConnectorStatus) connector_status;
     mapping (uint256 => uint256[]) connector_tariff;
 
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
@@ -43,7 +42,7 @@ contract Connector is IConnector, Initializable {
         return IEVSE(IHub(hubContract).getModule("EVSE", partner_id));
     }
 
-    function add(bytes32 _token, DataTypesLocation.Connector memory connector, uint256 evse_id) external {
+    function add(bytes32 _token, Connector memory connector, uint256 evse_id) external {
         
         uint256 user_id = _User().isLogin(_token);
 

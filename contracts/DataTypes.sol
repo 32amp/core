@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPLV3
 pragma solidity ^0.8.12;
 
-interface DataTypesLocation {
+interface DataTypes {
 
     enum ConnectorTypes {
         None, 
@@ -181,6 +181,48 @@ interface DataTypesLocation {
         PNG,
         GIF,
         SVG
+    }
+
+
+    enum EnergySourceCategory {
+        None,
+        NUCLEAR,
+        GENERAL_FOSSIL,
+        COAL,
+        GAS,
+        GENERAL_GREEN,
+        SOLAR,
+        WIND,
+        WATER
+    }
+
+    enum EnvironmentalImpactCategory {
+        None,
+        NUCLEAR_WASTE,
+        CARBON_DIOXIDE
+    }
+
+    struct EnergySource {
+        EnergySourceCategory source;
+        uint8 percentage;
+    }
+
+    struct EnvironmentalImpact {
+        EnvironmentalImpactCategory category;
+        uint256 amount; 
+    }
+
+    struct EnergyMix {
+        bool is_green_energy;
+        EnergySource[] energy_sources;
+        EnvironmentalImpact[] environ_impact;
+        string supplier_name;
+        string energy_product_name;
+    }
+
+    struct Price {
+        uint256 excl_vat;
+        uint256 incl_vat;
     }
 
     struct AdditionalGeoLocation {

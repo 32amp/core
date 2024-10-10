@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPLV3
 pragma solidity ^0.8.12;
 
-import "./DataTypes.sol";
+import "../DataTypes.sol";
 
 
-interface ILocationSearch {
+interface ILocationSearch is DataTypes {
 
     struct inAreaInput {
         string topRightLat;
@@ -20,7 +20,7 @@ interface ILocationSearch {
 
     struct inAreaOutput {
         uint256 id;
-        DataTypesLocation.GeoLocation coordinates;
+        GeoLocation coordinates;
     }
 
     event AddLocation(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );

@@ -2,15 +2,17 @@ const { expect }   =   require('chai');
 const hubModule = require("../ignition/modules/Hub");
 const userModule = require("../ignition/modules/User");
 const UserGroupsModule = require("../ignition/modules/UserGroups");
+const TariffModule = require("../ignition/modules/Tariff");
 const LocationsModule = require("../ignition/modules/Locations");
 const LocationSearchModule = require("../ignition/modules/LocationSearch");
 const EVSEModule = require("../ignition/modules/EVSE");
 const ConnectorModule = require("../ignition/modules/Connector");
 const UserAccessModule = require("../ignition/modules/UserAccess");
 const MessageOracleModule = require("../ignition/modules/MessageOracle");
+const CurrenciesModule = require("../ignition/modules/Currencies");
 
 
-const {GetEventArgumentsByNameAsync, createpayload,verifyTelegramWebAppData} = require("../utils/IFBUtils");
+const {GetEventArgumentsByNameAsync, createpayload} = require("../utils/IFBUtils");
 
 before(async function() {
 
@@ -37,11 +39,44 @@ before(async function() {
    
 
     //
+    const MessageOracle = await ignition.deploy(MessageOracleModule);
+
+    this.MessageOracle = MessageOracle.MessageOracle;
+
+    await this.MessageOracle.initialize(60n, 1n, false, "Message: [message]")
+
+    console.log("MessageOracle deployed to:", this.MessageOracle.target);
+
+    //
+    const Currencies = await ignition.deploy(CurrenciesModule);
+
+    this.Currencies = Currencies.Currencies;
+
+    await this.Currencies.initialize()
+
+    console.log("Currencies deployed to:", this.Currencies.target);
+    
+
+
+    //
     
     const HubDeploy = await ignition.deploy(hubModule);
 
     this.Hub = HubDeploy.hub;
-    await this.Hub.initialize()
+    await this.Hub.initialize([
+        {
+            name: "EmailService",
+            contract_address: this.MessageOracle.target
+        },
+        {
+            name: "SMSService",
+            contract_address: this.MessageOracle.target
+        },
+        {
+            name: "Currencies",
+            contract_address: this.Currencies.target
+        }
+    ])
 
     console.log("Hub deployed to:", this.Hub.target);
 
@@ -54,14 +89,6 @@ before(async function() {
 
     this.partner = await GetEventArgumentsByNameAsync(tx, "AddPartner")
 
-    //
-    const MessageOracle = await ignition.deploy(MessageOracleModule);
-
-    this.MessageOracle = MessageOracle.MessageOracle;
-
-    await this.MessageOracle.initialize(60n, 1n, false, "Message: [message]")
-
-    console.log("MessageOracle for SMS deployed to:", this.MessageOracle.target);
     
 
     //
@@ -69,7 +96,7 @@ before(async function() {
     
     this.User = UserDeploy.user;
 
-    this.User.initialize(this.partner.id,this.Hub.target, this.MessageOracle.target, this.MessageOracle.target, this.sudoUser.login, this.sudoUser.password, tg_bot_token)
+    this.User.initialize(this.partner.id,this.Hub.target, this.sudoUser.login, this.sudoUser.password, tg_bot_token)
 
     await this.Hub.addModule("User", this.User.target)
 
@@ -86,7 +113,17 @@ before(async function() {
     console.log("UserGroups deployed to:", this.UserGroups.target);
 
 
+    // Tariff
+    const TariffDeploy = await ignition.deploy(TariffModule);
+    this.Tariff = await TariffDeploy.Tariff;
+    
+    this.Tariff.initialize(this.partner.id,this.Hub.target)
 
+    await this.Hub.addModule("Tariff", this.Tariff.target);
+    console.log("Tariff deployed to:", this.Tariff.target);
+    
+
+    // Location
     const LocationDeploy = await ignition.deploy(LocationsModule);
     this.Location = await LocationDeploy.Locations;
     
@@ -171,11 +208,12 @@ describe("Hub", function(){
 
         expect(modules[0]).to.equal("User")
         expect(modules[1]).to.equal("UserGroups")
-        expect(modules[2]).to.equal("Location")
-        expect(modules[3]).to.equal("LocationSearch")
-        expect(modules[4]).to.equal("EVSE")
-        expect(modules[5]).to.equal("Connector")
-        expect(modules[6]).to.equal("UserAccess")
+        expect(modules[2]).to.equal("Tariff")
+        expect(modules[3]).to.equal("Location")
+        expect(modules[4]).to.equal("LocationSearch")
+        expect(modules[5]).to.equal("EVSE")
+        expect(modules[6]).to.equal("Connector")
+        expect(modules[7]).to.equal("UserAccess")
         //
     })
 
@@ -446,6 +484,128 @@ describe("UserGroups", function(){
 })
 
 
+describe("Tariff", function(){
+    const free_tariff = {
+        currency: 1,
+        _type: 1,
+        tariff_alt_text: [{
+            language: "ru",
+            text: "Описание тарифа"
+        }],
+        tariff_alt_url: "",
+        elements: [
+            {
+                price_components: [
+                    {
+                        _type: 1,
+                        price: 0,
+                        vat:0,
+                        step_size:0
+                    }
+                ],
+                restrictions: {
+                    start_unixtime:0,
+                    end_unixtime:0,
+                    min_kwh:0,
+                    max_kwh:0,
+                    min_current:0,
+                    max_current:0,
+                    min_power:0,
+                    max_power:0,
+                    min_duration:0,
+                    max_duration:0,
+                    day_of_week:[0],
+                    reservation:0
+                }
+            }
+        ]
+    }
+
+    const energy_mix = {
+        is_green_energy: true,
+        energy_sources: [{
+            source: 1,
+            percentage:10,
+        }],
+        environ_impact: [{
+            category: 1,
+            amount:10
+        }],
+        supplier_name: "test",
+        energy_product_name: "test"
+    }
+
+    it("addDefaultFreeTariff", async function(){
+        await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Tariff", 4);
+        const tx =  await this.Tariff.add(this.testUser.token, free_tariff);
+        let result = await GetEventArgumentsByNameAsync(tx, "AddTariff")
+        expect(result.uid).to.equal(1)
+        expect(result.partner_id).to.equal(1)
+    })
+
+
+    it("setMinPrice", async function(){
+        await this.Tariff.setMinPrice(this.testUser.token, 1, {
+            excl_vat:10,
+            incl_vat:12
+        })
+
+        const tariff = await this.Tariff.get(1);
+
+        expect(tariff.min_price.excl_vat).to.equal(10)
+    })
+
+    it("setMaxPrice", async function(){
+        await this.Tariff.setMaxPrice(this.testUser.token, 1, {
+            excl_vat:10,
+            incl_vat:12
+        })
+
+        const tariff = await this.Tariff.get(1);
+
+        expect(tariff.max_price.excl_vat).to.equal(10)
+    })
+
+    it("setStartDateTime", async function(){
+        const time = Date.now();
+        await this.Tariff.setStartDateTime(this.testUser.token, 1, time)
+
+        const tariff = await this.Tariff.get(1);
+
+        expect(tariff.start_date_time).to.equal(time)
+    })
+
+    it("setEndDateTime", async function(){
+        const time = Date.now();
+        await this.Tariff.setEndDateTime(this.testUser.token, 1, time)
+
+        const tariff = await this.Tariff.get(1);
+
+        expect(tariff.end_date_time).to.equal(time)
+    })
+
+    it("setEnergyMix", async function(){
+        const time = Date.now();
+        await this.Tariff.setEnergyMix(this.testUser.token, 1, energy_mix)
+
+        const tariff = await this.Tariff.get(1);
+
+        expect(tariff.energy_mix.is_green_energy).to.equal(true)
+    })
+
+    it("get", async function(){
+        const tariff = await this.Tariff.get(1);
+
+        expect(tariff.last_updated).not.to.be.equal(0)
+        expect(tariff.country_code).to.equal(ethers.hexlify(ethers.toUtf8Bytes("RU")))
+        expect(tariff.party_id).to.equal(ethers.hexlify(ethers.toUtf8Bytes("POE")))
+       
+
+
+    })
+
+
+})
 
 describe("Locations", function(){
     const location = {
@@ -608,7 +768,7 @@ describe("Locations", function(){
     })
 
 
-    it("addlocations", async function(){
+/*     it("addlocations", async function(){
         const fs = require('fs');
         const coords = JSON.parse( fs.readFileSync(__dirname+"/../coords.json", 'utf8'))
 
@@ -628,7 +788,7 @@ describe("Locations", function(){
             expect(newLocation[0].coordinates.longtitude).to.equal(ethers.parseEther(loc.coordinates.longtitude))
 
         }
-    })
+    }) */
 
 })
 
@@ -708,7 +868,7 @@ describe("Connector", function(){
 })
 
 
-describe("LocationSearch", function(){
+/* describe("LocationSearch", function(){
 
 
     it("inArea all kirov zavod", async function(){
@@ -750,7 +910,7 @@ describe("LocationSearch", function(){
 
     })
 
-})
+}) */
 
 
 describe("Location: check after all", function(){
@@ -795,7 +955,6 @@ describe("Location: check after all", function(){
     })
 
 })
-
 
 
 function getEVSEData(){

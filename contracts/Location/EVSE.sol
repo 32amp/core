@@ -9,16 +9,15 @@ import "./IConnector.sol";
 import "./IEVSE.sol";
 import "../User/IUser.sol";
 import "../User/IUserAccess.sol";
-import "./DataTypes.sol";
 
 
 contract EVSE is IEVSE, Initializable {
-    mapping (uint256 => DataTypesLocation.EVSE)  evses;
+    mapping (uint256 => EVSE)  evses;
     mapping (uint256 => EVSEMeta)  evses_meta;
-    mapping (uint256 => DataTypesLocation.EVSEStatus)  evses_status;
+    mapping (uint256 => EVSEStatus)  evses_status;
     mapping (uint256 => uint256)  evses_related_location;
     mapping (uint256 => uint256) evses_last_updated;
-    mapping (uint256 => DataTypesLocation.Image[]) evse_images;
+    mapping (uint256 => Image[]) evse_images;
     mapping (uint256 => uint256[]) evse_connectors;
 
 
@@ -61,7 +60,7 @@ contract EVSE is IEVSE, Initializable {
         return false;
     }
 
-    function add(bytes32 _token, DataTypesLocation.EVSE calldata evse, uint256 location_id) external {
+    function add(bytes32 _token, EVSE calldata evse, uint256 location_id) external {
         
         uint256 user_id = _User().isLogin(_token);
 
@@ -80,7 +79,7 @@ contract EVSE is IEVSE, Initializable {
 
 
         
-        evses_status[evsecounter] = DataTypesLocation.EVSEStatus.Planned;
+        evses_status[evsecounter] = EVSEStatus.Planned;
         evses_related_location[evsecounter] = location_id;
 
         _UserAccess().setAccessLevelToModuleObject(_token,bytes32(evsecounter),user_id,"EVSE",IUserAccess.AccessLevel.FOURTH);
@@ -97,7 +96,7 @@ contract EVSE is IEVSE, Initializable {
     }
 
 
-    function addImage(bytes32 _token, uint256 id, DataTypesLocation.Image calldata image ) external {
+    function addImage(bytes32 _token, uint256 id, Image calldata image ) external {
         _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         evse_images[id].push(image);
         _updated(id);
@@ -112,11 +111,11 @@ contract EVSE is IEVSE, Initializable {
         _updated(id);
     }
 
-    function setStatus(bytes32 _token, uint256 id, DataTypesLocation.EVSEStatus status) external {
+    function setStatus(bytes32 _token, uint256 id, EVSEStatus status) external {
         _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         
 
-        if(evse_connectors[id].length == 0 && status == DataTypesLocation.EVSEStatus.Available)
+        if(evse_connectors[id].length == 0 && status == EVSEStatus.Available)
             revert("add_connectors_first");
 
         evses_status[id] = status;

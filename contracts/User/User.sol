@@ -40,10 +40,10 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         return IUserAccess(IHub(hubAddress).getModule("UserAccess", partner_id));
     }
 
-    function initialize(uint256 _partner_id, address _hubAddress, address _smsServiceAddress, address _emailServiceAddress, bytes32 sudoUsername, bytes memory sudopassword, bytes memory  _tg_bot_token ) external initializer {
+    function initialize(uint256 _partner_id, address _hubAddress, bytes32 sudoUsername, bytes memory sudopassword, bytes memory  _tg_bot_token ) external initializer {
         hubAddress = _hubAddress;
-        smsServiceAddress = _smsServiceAddress;
-        emailServiceAddress = _emailServiceAddress;
+        smsServiceAddress = IHub(_hubAddress).getService("SMSService");
+        emailServiceAddress = IHub(_hubAddress).getService("EmailService");
         partner_id = _partner_id;
         version = "1.0";
         tg_bot_token = _tg_bot_token;

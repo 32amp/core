@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
-import "./DataTypes.sol";
 import "./ILocation.sol";
 import "./ILocationSearch.sol";
 import "./IEVSE.sol";
@@ -17,12 +16,12 @@ contract Location is ILocation, Initializable {
 
     using Utils for string;
 
-    mapping(uint256 => DataTypesLocation.Location) locations;
+    mapping(uint256 => Location) locations;
 
-    mapping(uint256 => DataTypesLocation.AdditionalGeoLocation[]) related_locations;
-    mapping(uint256 => DataTypesLocation.Image[]) images_location;
-    mapping(uint256 => DataTypesLocation.Hours) opening_times_location; 
-    mapping(uint256 => DataTypesLocation.DisplayText[]) directions_location;
+    mapping(uint256 => AdditionalGeoLocation[]) related_locations;
+    mapping(uint256 => Image[]) images_location;
+    mapping(uint256 => Hours) opening_times_location; 
+    mapping(uint256 => DisplayText[]) directions_location;
     mapping(uint256 => uint256[]) evses_location;
 
  
@@ -58,7 +57,7 @@ contract Location is ILocation, Initializable {
         return ILocationSearch(IHub(hubContract).getModule("LocationSearch", partner_id));
     }
 
-    function addRelatedLocation(bytes32 _token, uint256 location_id, DataTypesLocation.AdditionalGeoLocation calldata add ) external {
+    function addRelatedLocation(bytes32 _token, uint256 location_id, AdditionalGeoLocation calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         related_locations[location_id].push(add);
         _updated(location_id);
@@ -73,7 +72,7 @@ contract Location is ILocation, Initializable {
         _updated(location_id);
     }
 
-    function addImage(bytes32 _token, uint256 location_id, DataTypesLocation.Image calldata add ) external {
+    function addImage(bytes32 _token, uint256 location_id, Image calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         images_location[location_id].push(add);
         _updated(location_id);
@@ -88,7 +87,7 @@ contract Location is ILocation, Initializable {
         _updated(location_id);
     }
 
-    function addDirection(bytes32 _token, uint256 location_id, DataTypesLocation.DisplayText calldata add ) external {
+    function addDirection(bytes32 _token, uint256 location_id, DisplayText calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         directions_location[location_id].push(add);
         _updated(location_id);
@@ -126,7 +125,7 @@ contract Location is ILocation, Initializable {
         _updated(location_id);
     }
 
-    function setOpeningTimes( bytes32 _token, uint256 location_id, DataTypesLocation.Hours calldata add ) external {
+    function setOpeningTimes( bytes32 _token, uint256 location_id, Hours calldata add ) external {
         _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
         opening_times_location[location_id] = add;
         _updated(location_id); 
@@ -144,7 +143,7 @@ contract Location is ILocation, Initializable {
         }
         
         locationCounter++;
-        DataTypesLocation.Location memory newLocation;
+        Location memory newLocation;
         newLocation.name = add.name;
 
         newLocation._address = add._address;

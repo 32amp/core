@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPLV3
 pragma solidity ^0.8.12;
 
-import "./DataTypes.sol";
+import "../DataTypes.sol";
 import "./IEVSE.sol";
 
-interface ILocation {
+interface ILocation is DataTypes {
 
-    struct GeoLocation {
+    struct GeoLocationString {
         string latitude;
         string longtitude;
     }
@@ -19,9 +19,9 @@ interface ILocation {
         bytes32 postal_code;
         bytes32 state;
         bytes32 country;
-        GeoLocation coordinates;
-        DataTypesLocation.ParkingType parking_type;
-        DataTypesLocation.Facility[] facilities;
+        GeoLocationString coordinates;
+        ParkingType parking_type;
+        Facility[] facilities;
         string time_zone;
         bool charging_when_closed;
         bool publish;
@@ -29,11 +29,11 @@ interface ILocation {
 
 
     struct outLocation {
-        DataTypesLocation.Location location;
-        DataTypesLocation.AdditionalGeoLocation[] related_locations;
-        DataTypesLocation.Image[] images;
-        DataTypesLocation.Hours opening_times;
-        DataTypesLocation.DisplayText[] directions;
+        Location location;
+        AdditionalGeoLocation[] related_locations;
+        Image[] images;
+        Hours opening_times;
+        DisplayText[] directions;
         IEVSE.outEVSE[] evses;
     }
     
@@ -47,13 +47,13 @@ interface ILocation {
     function getLocation(uint256 id) external view returns (outLocation memory);
 
     function exist(uint256 location_id) external returns(bool);
-    function addRelatedLocation(bytes32 _token, uint256 location_id, DataTypesLocation.AdditionalGeoLocation calldata add ) external;
+    function addRelatedLocation(bytes32 _token, uint256 location_id, AdditionalGeoLocation calldata add ) external;
     function removeRelatedLocation(bytes32 _token, uint256 location_id, uint loc_id) external;
-    function addImage(bytes32 _token, uint256 location_id, DataTypesLocation.Image calldata add ) external;
+    function addImage(bytes32 _token, uint256 location_id, Image calldata add ) external;
     function removeImage(bytes32 _token, uint256 location_id, uint image_id) external;
-    function addDirection( bytes32 _token, uint256 location_id, DataTypesLocation.DisplayText calldata add ) external;
+    function addDirection( bytes32 _token, uint256 location_id, DisplayText calldata add ) external;
     function removeDirection( bytes32 _token, uint256 location_id, uint direction_id) external;
-    function setOpeningTimes( bytes32 _token, uint256 location_id, DataTypesLocation.Hours calldata add ) external;
+    function setOpeningTimes( bytes32 _token, uint256 location_id, Hours calldata add ) external;
     function addEVSE( bytes32 _token, uint256 location_id, uint256 add ) external;
     function removeEVSE(bytes32 _token, uint256 location_id, uint evse) external;
 

@@ -14,20 +14,33 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     mapping (uint256 => mapping(string => address)) modules;
     mapping (uint256 => string[]) modules_list;
     mapping (string => bool) avaliable_modules;
+    mapping (string => address) services;
+
     uint256 counter;
 
     string version;
 
-    function initialize() public initializer {
+    function initialize(addService[] memory _services) public initializer {
         version = "1.0";
         avaliable_modules["User"] = true;
         avaliable_modules["UserGroups"] = true;
         avaliable_modules["UserAccess"] = true;
+        avaliable_modules["Tariff"] = true;
         avaliable_modules["Location"] = true;
         avaliable_modules["LocationSearch"] = true;
         avaliable_modules["EVSE"] = true;
         avaliable_modules["Connector"] = true;
+
+        for (uint i = 0; i < _services.length; i++) {
+            services[_services[i].name] = _services[i].contract_address;
+        }
+
         __Ownable_init(msg.sender);
+    }
+
+
+    function getService(string memory name) external view returns(address){
+        return services[name];
     }
 
 
