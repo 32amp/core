@@ -600,8 +600,6 @@ describe("Tariff", function(){
         expect(tariff.country_code).to.equal(ethers.hexlify(ethers.toUtf8Bytes("RU")))
         expect(tariff.party_id).to.equal(ethers.hexlify(ethers.toUtf8Bytes("POE")))
        
-
-
     })
 
 

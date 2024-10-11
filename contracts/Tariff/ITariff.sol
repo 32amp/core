@@ -52,6 +52,11 @@ interface ITariff is DataTypes {
         EnergyMix energy_mix;             
     }
 
+    struct OutputLight {
+        uint256 id;
+        Tariff tariff;
+    }
+
     struct Tariff {
         uint256 currency; // TODO, ADD currency
         TariffType _type;
@@ -100,4 +105,5 @@ interface ITariff is DataTypes {
     function setEndDateTime(bytes32 _token, uint256 id, uint256 _end_date_time) external;
     function setEnergyMix(bytes32 _token, uint256 id, EnergyMix calldata _energy_mix ) external;
     function get(uint256 id) external view returns(Output memory);
+    function getLight(uint256 id) external view returns(OutputLight memory);
 }

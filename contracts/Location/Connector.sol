@@ -6,6 +6,7 @@ import "../Hub/IHub.sol";
 import "./IEVSE.sol";
 import "./IConnector.sol";
 import "../User/IUser.sol";
+import "../Tariff/ITariff.sol";
 import "../User/IUserAccess.sol";
 
 
@@ -29,6 +30,11 @@ contract Connector is IConnector, Initializable {
         return version;
     }
 
+    modifier access(bytes32 _token, uint256 id) {
+        _UserAccess().checkAccess( "Connector",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+        _;
+    }
+
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
@@ -40,6 +46,11 @@ contract Connector is IConnector, Initializable {
 
     function _EVSE() private view returns(IEVSE) {
         return IEVSE(IHub(hubContract).getModule("EVSE", partner_id));
+    }
+
+
+    function _Tariff() private view returns(ITariff) {
+        return ITariff(IHub(hubContract).getModule("Tariff", partner_id));
     }
 
     function add(bytes32 _token, Connector memory connector, uint256 evse_id) external {
@@ -68,7 +79,15 @@ contract Connector is IConnector, Initializable {
         _updated(connector_counter);
     }
 
-    // TODO: ADD set tariff
+
+    function setTariffs(bytes32 _token, uint256 id, uint256[] calldata _tariffs) access(_token, id) external {
+        for (uint i = 0; i < _tariffs.length; i++) {
+            if(!_Tariff().exist(_tariffs[i]))
+                revert("tarif_not_exist ");
+        }
+        connector_tariff[id] = _tariffs;
+    }
+
 
     function get(uint256 id) external view returns (output memory) {
         output memory ret;
@@ -77,7 +96,16 @@ contract Connector is IConnector, Initializable {
         ret.connector = connectors[id];
         ret.last_updated = last_updated[id];
         ret.status = connector_status[id];
-        ret.tariffs = connector_tariff[id];
+
+
+        if(connector_tariff[id].length > 0){
+            ITariff.OutputLight[] memory tariffs = new ITariff.OutputLight[](connector_tariff[id].length);
+            for (uint i = 0; i < connector_tariff[id].length; i++) {
+                tariffs[i] = _Tariff().getLight(connector_tariff[id][i]);
+            }
+            ret.tariffs = tariffs;
+        }
+        
 
         return ret;
     }

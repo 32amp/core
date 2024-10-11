@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 
 import "../DataTypes.sol";
-
+import "../Tariff/ITariff.sol";
 
 interface IConnector is DataTypes {
 
@@ -12,7 +12,7 @@ interface IConnector is DataTypes {
         uint256 last_updated;
         Connector connector;
         ConnectorStatus status;
-        uint256[] tariffs;
+        ITariff.OutputLight[] tariffs;
     }
     
     event AddConnector(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );

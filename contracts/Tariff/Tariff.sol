@@ -128,4 +128,14 @@ contract Tariff is ITariff, Initializable {
 
         return ret;
     }
+
+    function getLight(uint256 id) external view returns(OutputLight memory) {
+        OutputLight memory ret;
+
+        ret.id = id;
+        ret.tariff = tariffs[id];
+
+
+        return ret;
+    }
 }
