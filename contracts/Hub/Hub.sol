@@ -30,6 +30,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         avaliable_modules["LocationSearch"] = true;
         avaliable_modules["EVSE"] = true;
         avaliable_modules["Connector"] = true;
+        avaliable_modules["UserSupportChat"] = true;
 
         for (uint i = 0; i < _services.length; i++) {
             services[_services[i].name] = _services[i].contract_address;
