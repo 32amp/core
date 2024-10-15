@@ -23,6 +23,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
 
     function initialize(addService[] memory _services) public initializer {
         version = "1.0";
+
         avaliable_modules["User"] = true;
         avaliable_modules["UserGroups"] = true;
         avaliable_modules["UserAccess"] = true;
@@ -48,7 +49,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     }
 
 
-    function addPartner(bytes32 name, bytes2 country_code, bytes3 party_id) external payable onlyOwner returns(uint256) {
+    function registerPartner(bytes32 name, bytes2 country_code, bytes3 party_id) external payable onlyOwner returns(uint256) {
 
         if(name.length < 3)
             revert("name_length_more_than_3");

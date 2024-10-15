@@ -81,11 +81,10 @@ before(async function() {
 
     console.log("Hub deployed to:", this.Hub.target);
 
-    let tx = await this.Hub.addPartner(
+    let tx = await this.Hub.registerPartner(
         ethers.encodeBytes32String("PortalEnergy"),
         ethers.toUtf8Bytes("RU"),
-        ethers.toUtf8Bytes("POE"),
-        this.owner
+        ethers.toUtf8Bytes("POE")
     );
 
     this.partner = await GetEventArgumentsByNameAsync(tx, "AddPartner")
@@ -621,7 +620,7 @@ describe("UserSupportChat", function (){
 
 
         const topic = await this.UserSupportChat.getTopic(this.testUser.token, 0);
-        
+
         expect(topic.closed).to.equal(true);
     })
 })
