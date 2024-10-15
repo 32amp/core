@@ -15,9 +15,10 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     mapping (uint256 => string[]) modules_list;
     mapping (string => bool) avaliable_modules;
     mapping (string => address) services;
+    mapping (address => uint256) deposit;
 
     uint256 counter;
-
+    uint256 addPartnerAmount;
     string version;
 
     function initialize(addService[] memory _services) public initializer {
@@ -32,6 +33,8 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         avaliable_modules["Connector"] = true;
         avaliable_modules["UserSupportChat"] = true;
 
+        addPartnerAmount = 1 ether;
+
         for (uint i = 0; i < _services.length; i++) {
             services[_services[i].name] = _services[i].contract_address;
         }
@@ -45,7 +48,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     }
 
 
-    function addPartner(bytes32 name, bytes2 country_code, bytes3 party_id, address owner_address) external onlyOwner returns(uint256) {
+    function addPartner(bytes32 name, bytes2 country_code, bytes3 party_id) external payable onlyOwner returns(uint256) {
 
         if(name.length < 3)
             revert("name_length_more_than_3");
@@ -53,6 +56,11 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         if(unique_idex[country_code][party_id] > 0){
             revert("already_exist");
         }
+
+        if(msg.value < addPartnerAmount){
+            revert("deposit_amount_not_enouth");
+        }
+
 
         counter++;
 
@@ -62,15 +70,16 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         partnerData.country_code = country_code;
         partnerData.party_id = party_id;
         partnerData.status = IHub.ConnectionStatus.PLANNED;
-        partnerData.owner_address = owner_address;
+        partnerData.owner_address = msg.sender;
         partnerData.last_updated = block.timestamp;
         
         owner_address_to_id[partnerData.owner_address] = counter;
 
         partners[counter] = partnerData;
         unique_idex[country_code][party_id] = counter;
+        deposit[msg.sender] = msg.value;
 
-        emit AddPartner(counter, country_code, party_id, owner_address);
+        emit AddPartner(counter, country_code, party_id, msg.sender);
         return counter;
     }
 

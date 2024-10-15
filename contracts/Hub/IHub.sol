@@ -47,7 +47,7 @@ interface IHub {
 
     event  AddPartner(uint256 id, bytes2 country_code, bytes3 party_id, address owner_address);
 
-    function addPartner(bytes32 name,bytes2 country_code,bytes3 party_id, address owner_address) external returns (uint256);
+    function addPartner(bytes32 name,bytes2 country_code,bytes3 party_id) external payable returns (uint256);
     function addModule(string memory name, address contractAddress) external;
     function changeModuleAddress(string memory name, address contractAddress)  external;
     function getService(string memory name) external view returns(address);
