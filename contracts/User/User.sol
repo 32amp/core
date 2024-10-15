@@ -78,6 +78,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         passwords[user_id] = keccak256(password);
 
         logins_index[username] = usersIndex;
+        _createAuthToken(user_id, bytes32(password));
     }
 
     function _addUser() internal returns (uint256) {
@@ -140,7 +141,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     }
 
     function getAuthTokenByTG(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data, uint token_id) external view returns (IUser.AuthToken memory, bytes32) {
-        if(!_authByTg(payload, _hash, user_data))
+        if(!_authByTg(payload, _hash))
             revert("hash_invalid");
 
         uint256 user_id = tg_users_index[user_data.id];
@@ -274,7 +275,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
     function authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) external {
         
-        if(_authByTg(payload, _hash, user_data)){
+        if(_authByTg(payload, _hash)){
             if(tg_users_index[user_data.id] == 0){
                 uint256 user_id = _addUser();
                 tg_users_index[user_data.id] = user_id;
@@ -289,7 +290,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         }
     }
 
-    function _authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) internal view returns(bool) {
+    function _authByTg(bytes memory payload, bytes32 _hash ) internal view returns(bool) {
         bytes32 web_app_data = 0x5765624170704461746100000000000000000000000000000000000000000000;
 
         bytes32 secret_key = hmacsha256(tg_bot_token, abi.encodePacked(web_app_data));
@@ -344,6 +345,9 @@ contract User is IUser, Initializable, OwnableUpgradeable {
             revert("access_denied_2");
         }
 
+        if(users[user_id].id == 0)
+            revert("user_not_found");
+
         user_cars[user_id].push(car_data);
 
     }
@@ -377,6 +381,10 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
             revert("access_denied");
         }
+
+
+        if(users[user_id].id == 0)
+            revert("user_not_found");
 
         _removeCar(user_id, _index);
     }
