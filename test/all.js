@@ -84,7 +84,9 @@ before(async function() {
     let tx = await this.Hub.registerPartner(
         ethers.encodeBytes32String("PortalEnergy"),
         ethers.toUtf8Bytes("RU"),
-        ethers.toUtf8Bytes("POE")
+        ethers.toUtf8Bytes("POE"),{
+            value:ethers.parseEther("2") 
+        }
     );
 
     this.partner = await GetEventArgumentsByNameAsync(tx, "AddPartner")
@@ -291,7 +293,7 @@ describe("User", function(){
         let auth = await this.User.authByPassword(this.sudoUser.login,this.sudoUser.password)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthToken(this.sudoUser.login,this.sudoUser.password, authSuccess.token_id)
+        let token = await this.User.getAuthTokenByPassword(this.sudoUser.login,this.sudoUser.password, authSuccess.token_id)
 
         this.sudoUser.token = token[1];        
 
@@ -306,7 +308,7 @@ describe("User", function(){
         let auth = await this.User.authByPassword(this.testUser.login,this.testUser.password)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthToken(this.testUser.login,this.testUser.password, authSuccess.token_id)
+        let token = await this.User.getAuthTokenByPassword(this.testUser.login,this.testUser.password, authSuccess.token_id)
 
         this.testUser.token = token[1];        
 
@@ -343,9 +345,9 @@ describe("User", function(){
         let auth = await this.User.authBySmsCode(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"))
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthToken(this.testUser.login,this.testUser.password, authSuccess.token_id)
+        let token = await this.User.getAuthTokenBySMS(ethers.encodeBytes32String("+79999999998"),ethers.encodeBytes32String("8888"), authSuccess.token_id)
 
-        this.testUser.token = token[1];        
+        this.testUser.tokensms = token[1];        
 
         expect(token[1].length).to.equal(66)
     })
@@ -363,9 +365,9 @@ describe("User", function(){
         let auth = await this.User.authByEmailCode(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"))
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthToken(this.testUser.login,this.testUser.password, authSuccess.token_id)
+        let token = await this.User.getAuthTokenByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"), authSuccess.token_id)
 
-        this.testUser.token = token[1];        
+        this.testUser.tokenemail = token[1];        
 
         expect(token[1].length).to.equal(66)
     })
@@ -390,9 +392,9 @@ describe("User", function(){
         let auth = await this.User.authByTg(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthToken(this.testUser.login,this.testUser.password, authSuccess.token_id)
+        let token = await this.User.getAuthTokenByTG(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data, authSuccess.token_id)
 
-        this.testUser.token = token[1];        
+        this.testUser.tokentg = token[1];    
 
         expect(token[1].length).to.equal(66)
     })
@@ -417,13 +419,13 @@ describe("User", function(){
     })
 
     it("updateBaseData", async function(){
-        await this.User.updateBaseData(this.testUser.token, 0, ethers.encodeBytes32String("Pavel"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
-        let whoami =  await this.User.whoami(this.testUser.token);
+        await this.User.updateBaseData(this.testUser.tokensms, 0, ethers.encodeBytes32String("Pavel"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
+        let whoami =  await this.User.whoami(this.testUser.tokensms);
         expect(whoami.first_name.toString()).to.equal( ethers.encodeBytes32String("Pavel").toString())
 
         await this.User.updateBaseData(this.sudoUser.token, whoami.id, ethers.encodeBytes32String("Nikolay"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
 
-        whoami = await this.User.whoami(this.testUser.token);
+        whoami = await this.User.whoami(this.testUser.tokensms);
         expect(whoami.first_name.toString()).to.equal( ethers.encodeBytes32String("Nikolay").toString())
     })
 

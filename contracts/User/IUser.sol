@@ -28,6 +28,13 @@ interface IUser {
         RFID
     }
 
+    enum AuthType {
+        PASSWORD,
+        SMS,
+        EMAIL,
+        TG
+    }
+
     struct AuthToken {
         uint256 user_id;
         bytes32 uid;
@@ -72,18 +79,20 @@ interface IUser {
         uint256 min_balance;
     }
 
+
+    
+
     event CreateAuthToken(uint256 user_id, uint token_id);
 
     function setTestUserByPhone(bytes32 phone_number, bytes32 code)  external;
-    function setTestUserByEmail(bytes32 phone_number, bytes32 code) external;
+    function setTestUserByEmail(bytes32 email, bytes32 code) external;
     function registerByPassword(bytes32 username, bytes memory password) external;
-
     function authByPassword(bytes32 username, bytes memory pass) external;
-
-    function getAuthToken(bytes32 username, bytes memory pass, uint token_id) external view returns(AuthToken memory, bytes32);
-
+    function getAuthTokenByPassword(bytes32 username, bytes memory pass, uint token_id) external view returns(AuthToken memory, bytes32);
+    function getAuthTokenBySMS(bytes32 phone_number, bytes32 code,uint token_id) external view returns (IUser.AuthToken memory, bytes32);
+    function getAuthTokenByEmail(bytes32 email, bytes32 code,uint token_id) external view returns (IUser.AuthToken memory, bytes32);
+    function getAuthTokenByTG(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data, uint token_id) external view returns (IUser.AuthToken memory, bytes32);
     function isLogin(bytes32 _token) external view returns (uint256);
-
     function whoami(bytes32 _token) external view returns (User memory);
     function getUser(bytes32 _token, uint256 _user_id) external view returns (IUser.User memory);
     function sendSmsForAuth(bytes32 recipient) external;

@@ -64,8 +64,8 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         test_email_codes[email] = code;
     }
 
-    function setTestUserByEmail(bytes32 phone_number, bytes32 code) onlyOwner external {
-        _setTestUserByEmail(phone_number, code);
+    function setTestUserByEmail(bytes32 email, bytes32 code) onlyOwner external {
+        _setTestUserByEmail(email, code);
     }
 
     function registerByPassword( bytes32 username, bytes memory password ) public {
@@ -107,8 +107,47 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         _createAuthToken(user_id, bytes32(pass));
     }
 
-    function getAuthToken(bytes32 username,bytes memory pass,uint token_id) external view returns (IUser.AuthToken memory, bytes32) {
+    function getAuthTokenByPassword(bytes32 username,bytes memory pass,uint token_id) external view returns (IUser.AuthToken memory, bytes32) {
         uint256 user_id = _authByPassword(username, pass);
+        bytes32 token = user_tokens[user_id][token_id];
+        return (auth_tokens[token], token);
+    }
+
+    function getAuthTokenBySMS(bytes32 phone_number, bytes32 code,uint token_id) external view returns (IUser.AuthToken memory, bytes32) {
+        if(sms_codes[phone_number] != code)
+            revert("code_not_match");
+
+        uint256 user_id = phone_logins_index[phone_number];
+
+        if(user_id == 0)
+            revert("user_not_found");
+
+        bytes32 token = user_tokens[user_id][token_id];
+        return (auth_tokens[token], token);
+    }
+
+    function getAuthTokenByEmail(bytes32 email, bytes32 code,uint token_id) external view returns (IUser.AuthToken memory, bytes32) {
+        if(email_codes[email] != code)
+            revert("code_not_match");
+
+        uint256 user_id = email_logins_index[email];
+
+        if(user_id == 0)
+            revert("user_not_found");
+
+        bytes32 token = user_tokens[user_id][token_id];
+        return (auth_tokens[token], token);
+    }
+
+    function getAuthTokenByTG(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data, uint token_id) external view returns (IUser.AuthToken memory, bytes32) {
+        if(!_authByTg(payload, _hash, user_data))
+            revert("hash_invalid");
+
+        uint256 user_id = tg_users_index[user_data.id];
+
+        if(user_id == 0)
+            revert("user_not_found");
+
         bytes32 token = user_tokens[user_id][token_id];
         return (auth_tokens[token], token);
     }
@@ -193,6 +232,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
             _createAuthToken(exist_id, code);
         }else{
             uint256 user_id = _addUser();
+            phone_logins_index[phone_number] = user_id;
             _createAuthToken(user_id, code);
         }
     }
@@ -220,6 +260,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
             _createAuthToken(exist_id, code);
         }else{
             uint256 user_id = _addUser();
+            email_logins_index[email] = user_id;
             _createAuthToken(user_id, code);
         }
     }
@@ -232,26 +273,32 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
 
     function authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) external {
-
-        bytes32 web_app_data = 0x5765624170704461746100000000000000000000000000000000000000000000;
-
-        bytes32 secret_key = hmacsha256(tg_bot_token, abi.encodePacked(web_app_data));
-
-        bytes32 calculated_hash = hmacsha256(payload, abi.encodePacked(secret_key));
         
-        if(calculated_hash == _hash){
+        if(_authByTg(payload, _hash, user_data)){
             if(tg_users_index[user_data.id] == 0){
                 uint256 user_id = _addUser();
                 tg_users_index[user_data.id] = user_id;
                 users[user_id].tg_id = user_data.id;
                 _updateData(user_id,user_data.first_name, user_data.last_name, user_data.language_code);
-                _createAuthToken(user_id, calculated_hash);
+                _createAuthToken(user_id, _hash);
             }else{
-                _createAuthToken(tg_users_index[user_data.id], calculated_hash);
+                _createAuthToken(tg_users_index[user_data.id], _hash);
             }
         }else{
             revert("access_denied");
         }
+    }
+
+    function _authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) internal view returns(bool) {
+        bytes32 web_app_data = 0x5765624170704461746100000000000000000000000000000000000000000000;
+
+        bytes32 secret_key = hmacsha256(tg_bot_token, abi.encodePacked(web_app_data));
+
+        bytes32 calculated_hash = hmacsha256(payload, abi.encodePacked(secret_key));
+        if(calculated_hash == _hash)
+            return true;
+        else
+            return false;
     }
 
     function _updateData(uint256 user_id, bytes32 first_name, bytes32 last_name, bytes32 language_code) internal {
