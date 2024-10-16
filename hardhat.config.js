@@ -1,8 +1,22 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("./utils/taskloader");
+
+const mnemonic = require('fs').readFileSync('.mnemonic', 'utf8');
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  //solidity: "0.8.24",
+  defaultNetwork: "hardhat",
+  networks: {
+    testnet: {
+      url: "https://node1.portalcharge.tech",
+      gasPrice: 20,
+      skipDryRun: true,
+      timeout:10000000,
+      networkid:544566,
+      gas: 9000000,
+      accounts: {mnemonic: mnemonic}
+    },
+  },
   solidity: {
     version: "0.8.24",
     settings: {

@@ -25,3 +25,10 @@
 
 1) [Hub](./Hub.md)
 2) [User](./User.md)
+
+# Testnet
+
+Для подключения к тестнету использовать следующие настройки:
+
+URL: https://node1.portalcharge.tech
+CHAINID: 544566
