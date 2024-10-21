@@ -1,16 +1,5 @@
 var CryptoJS = require("crypto-js");
 
-module.exports.ConvertContractResponseStructToNormalObject = function(schemeObjRef, contractResponseStruct) {
-    const target = Object.assign({}, schemeObjRef);
-    let i = 0;
-    for(let key in schemeObjRef) {
-        target[key] = contractResponseStruct[i];
-        i++;
-    }
-
-    return target;
-};
-
 module.exports.GenerateRandomAddress = function() {
     const ethers = require("ethers");  
     const crypto = require("crypto");
@@ -63,4 +52,18 @@ module.exports.verifyTelegramWebAppData = function(TELEGRAM_BOT_TOKEN,telegramIn
     const secret_key = CryptoJS.HmacSHA256(TELEGRAM_BOT_TOKEN, "WebAppData");
     const calculated_hash = CryptoJS.HmacSHA256(payload, secret_key).toString();
     return calculated_hash === hash;
+}
+
+
+module.exports.hex2string = function(hexx) {
+    var hex = hexx.toString().replace("0x","");//force conversion
+    var str = '';
+    for (var i = 0; i < hex.length; i += 2){
+        let char = hex.substr(i, 2);
+        if(char == "00")
+            continue;
+
+        str += String.fromCharCode(parseInt(char, 16));
+    }
+    return str;
 }

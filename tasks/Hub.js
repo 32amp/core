@@ -1,4 +1,5 @@
 const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+const {formatPartner, formatPartners} = require("../helpers/Hub");
 const hubScope = scope("hub", "Tasks for HUB");
 
 hubScope.task("getService", "get address of service")
@@ -21,7 +22,7 @@ hubScope.task("getPartnerModules", "Get list of modules for specific partner")
 
     const list = await hub.getPartnerModules(args.partnerid)
 
-    console.log("list:", list)
+    console.log("Result:", list)
 })
 
 
@@ -32,7 +33,7 @@ hubScope.task("getPartners", "Get list of partners")
 
     const list = await hub.getPartners()
 
-    console.log("list:", list)
+    console.log("Result:", formatPartners(list))
 })
 
 
@@ -43,7 +44,7 @@ hubScope.task("me", "Get my profile in hub")
 
     const me = await hub.me()
 
-    console.log("Me:", me)
+    console.log("Me:", formatPartner(me))
 })
 
 

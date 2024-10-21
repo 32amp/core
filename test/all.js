@@ -9,9 +9,6 @@ const EVSEModule = require("../ignition/modules/EVSE");
 const ConnectorModule = require("../ignition/modules/Connector");
 const UserAccessModule = require("../ignition/modules/UserAccess");
 const UserSupportChatModule = require("../ignition/modules/UserSupportChat");
-const SMSMessageOracleModule = require("../ignition/modules/SMSMessageOracle");
-const CurrenciesModule = require("../ignition/modules/Currencies");
-
 
 const {GetEventArgumentsByNameAsync, createpayload} = require("../utils/IFBUtils");
 
