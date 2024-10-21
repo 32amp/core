@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../Hub/IHub.sol";
 import "../User/IUser.sol";
 import "../User/IUserAccess.sol";
-import "hardhat/console.sol";
 
 contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
 

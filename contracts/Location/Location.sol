@@ -10,7 +10,6 @@ import "./IEVSE.sol";
 import "../User/IUser.sol";
 import "../User/IUserAccess.sol";
 import "../Utils.sol";
-//import "hardhat/console.sol";
 
 contract Location is ILocation, Initializable {
 

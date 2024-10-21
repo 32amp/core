@@ -9,7 +9,7 @@ const EVSEModule = require("../ignition/modules/EVSE");
 const ConnectorModule = require("../ignition/modules/Connector");
 const UserAccessModule = require("../ignition/modules/UserAccess");
 const UserSupportChatModule = require("../ignition/modules/UserSupportChat");
-const MessageOracleModule = require("../ignition/modules/MessageOracle");
+const SMSMessageOracleModule = require("../ignition/modules/SMSMessageOracle");
 const CurrenciesModule = require("../ignition/modules/Currencies");
 
 
@@ -38,46 +38,11 @@ before(async function() {
 
     console.log("Deploying Contracts...");
    
-
-    //
-    const MessageOracle = await ignition.deploy(MessageOracleModule);
-
-    this.MessageOracle = MessageOracle.MessageOracle;
-
-    await this.MessageOracle.initialize(60n, 1n, false, "Message: [message]")
-
-    console.log("MessageOracle deployed to:", this.MessageOracle.target);
-
-    //
-    const Currencies = await ignition.deploy(CurrenciesModule);
-
-    this.Currencies = Currencies.Currencies;
-
-    await this.Currencies.initialize()
-
-    console.log("Currencies deployed to:", this.Currencies.target);
-    
-
-
     //
     
     const HubDeploy = await ignition.deploy(hubModule);
 
     this.Hub = HubDeploy.hub;
-    await this.Hub.initialize([
-        {
-            name: "EmailService",
-            contract_address: this.MessageOracle.target
-        },
-        {
-            name: "SMSService",
-            contract_address: this.MessageOracle.target
-        },
-        {
-            name: "Currencies",
-            contract_address: this.Currencies.target
-        }
-    ])
 
     console.log("Hub deployed to:", this.Hub.target);
 
@@ -103,7 +68,8 @@ before(async function() {
     await this.Hub.addModule("User", this.User.target)
 
     console.log("User deployed to:", this.User.target);
-    await this.MessageOracle.refill(this.User.target,{value:10n});
+    await HubDeploy.SMSMessageOracle.refill(this.User.target,{value:10n});
+    await HubDeploy.EmailMessageOracle.refill(this.User.target,{value:10n});
 
 
 

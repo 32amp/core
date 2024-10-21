@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IMessageOracle.sol";
-import "hardhat/console.sol";
 
 
 contract MessageOracle is IMessageOracle, Initializable, OwnableUpgradeable {

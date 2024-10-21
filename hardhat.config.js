@@ -9,12 +9,15 @@ module.exports = {
   networks: {
     testnet: {
       url: "https://node1.portalcharge.tech",
-      gasPrice: 20,
-      skipDryRun: true,
-      timeout:10000000,
+     // gasPrice: 21000,
+      //skipDryRun: true,
+      //timeout:10000000,
       networkid:544566,
-      gas: 9000000,
-      accounts: {mnemonic: mnemonic}
+      //gas: 1,
+      accounts: {mnemonic: mnemonic},
+      ignition: {
+        requiredConfirmations: 1,
+      },
     },
   },
   solidity: {
@@ -29,5 +32,8 @@ module.exports = {
   },
   mocha: {
     timeout: 300000
-  }
+  },
+  ignition: {
+    requiredConfirmations: 1,
+  },
 };

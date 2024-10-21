@@ -7,8 +7,6 @@ import "../Utils.sol";
 import "./ILocation.sol";
 import "./ILocationSearch.sol";
 import "../Hub/IHub.sol";
-import "hardhat/console.sol";
-
 
 contract LocationSearch is ILocationSearch, Initializable {
     

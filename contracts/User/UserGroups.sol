@@ -7,8 +7,6 @@ import "../Hub/IHub.sol";
 import "./IUser.sol";
 import "./IUserAccess.sol";
 
-import "hardhat/console.sol";
-
 
 contract UserGroups is Initializable, OwnableUpgradeable {
 

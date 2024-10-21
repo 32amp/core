@@ -7,7 +7,6 @@ import "./IUser.sol";
 import "./IUserAccess.sol";
 import "../Hub/IHub.sol";
 import "../Services/IMessageOracle.sol";
-import "hardhat/console.sol";
 
 contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(uint256 => IUser.User) users;

@@ -8,7 +8,6 @@ import "../User/IUser.sol";
 import "../User/IUserAccess.sol";
 import "../Services/ICurrencies.sol";
 
-
 contract Tariff is ITariff, Initializable {
     address hubContract;
     string version;

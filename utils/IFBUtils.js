@@ -28,8 +28,8 @@ module.exports.GenerateRandomAddress = function() {
     }
 }
 
-module.exports.GetEventArgumentsByNameAsync = async function(transaction, eventName) {
-    const result = await transaction.wait();
+module.exports.GetEventArgumentsByNameAsync = async function(transaction, eventName, wait ) {
+    const result = await transaction.wait(wait);
     
     for (let index = 0; index < result.logs.length; index++) {
         const event = result.logs[index];
