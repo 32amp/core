@@ -27,6 +27,8 @@ interface IEVSE is DataTypes {
     }
 
     event AddEVSE(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
+
+    function getVersion() external pure returns(string memory);
     function exist(uint256 id) external view returns(bool);
     function add(bytes32 _token, EVSE calldata evse, uint256 location_id) external;
     function setMeta(bytes32 _token, uint256 id, EVSEMeta calldata meta) external;

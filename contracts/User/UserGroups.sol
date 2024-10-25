@@ -22,18 +22,21 @@ contract UserGroups is Initializable, OwnableUpgradeable {
     mapping (uint256 => uint256[]) user_group_list;
 
     uint256 groupIndex;
-    string version;
     address hubContract;
     uint256 partner_id;
 
 
     function initialize(uint256 _partner_id, address _hubContract) external initializer {
-        version = "1.0";
+
         hubContract = _hubContract;
         partner_id = _partner_id;
         _addGroup("sudo", 1);
         __Ownable_init(msg.sender);
 
+    }
+
+    function getVersion() external pure returns(string memory){
+        return "1.0";
     }
 
     function _UserAccess() private view returns(IUserAccess) {

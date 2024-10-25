@@ -96,7 +96,7 @@ interface ITariff is DataTypes {
 
     event AddTariff(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
 
-    function getVersion() external view returns(string memory);
+    function getVersion() external pure returns(string memory);
     function exist(uint256 id) external returns(bool);
     function add(bytes32 _token, Tariff calldata tariff) external;
     function setMinPrice(bytes32 _token, uint256 id, Price calldata _min_price) external;

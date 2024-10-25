@@ -9,14 +9,13 @@ contract Currencies is ICurrencies, Initializable, OwnableUpgradeable {
 
 
     uint256 counter;
-    string version;
 
 
     mapping (uint256 => Currency) currencies;
     mapping (string => uint256) isexist;
 
     function initialize() public initializer {
-        version = "1.0";
+        
         Currency memory first =  Currency({
             country: "UNITED STATES OF AMERICA",
             currency: "US Dollar",
@@ -28,8 +27,8 @@ contract Currencies is ICurrencies, Initializable, OwnableUpgradeable {
         __Ownable_init(msg.sender);
     }
 
-    function getVersion() external view returns(string memory){
-        return version;
+    function getVersion() external pure returns(string memory){
+        return "1.0";
     }
 
     function _add(Currency memory currency) private {

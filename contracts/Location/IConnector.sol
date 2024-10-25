@@ -16,7 +16,8 @@ interface IConnector is DataTypes {
     }
     
     event AddConnector(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
-
+    
+    function getVersion() external pure returns(string memory);
     function add(bytes32 _token, Connector memory connector, uint256 evse_id) external;
     function get(uint256 id) external view returns (output memory);
     function exist(uint256 id) external view returns(bool);

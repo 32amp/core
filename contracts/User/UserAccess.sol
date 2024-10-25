@@ -22,14 +22,11 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
     mapping( uint256 => string[] ) private group_modules_access_list;
 
 
-
-    string version;
     uint256 partner_id;
     address hubContract;
 
 
     function initialize(uint256 _partner_id, address _hubContract) external initializer {
-        version = "1.0";
         partner_id = _partner_id;
         hubContract = _hubContract;
 
@@ -41,6 +38,10 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
         }
 
         __Ownable_init(msg.sender);
+    }
+
+    function getVersion() external pure returns(string memory){
+        return "1.0";
     }
 
     function _isLogin(bytes32 _token) internal view returns(uint256) {

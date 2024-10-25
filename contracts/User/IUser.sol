@@ -84,6 +84,7 @@ interface IUser {
 
     event CreateAuthToken(uint256 user_id, uint token_id);
 
+    function getVersion() external pure returns(string memory);
     function setTestUserByPhone(bytes32 phone_number, bytes32 code)  external;
     function setTestUserByEmail(bytes32 email, bytes32 code) external;
     function registerByPassword(bytes32 username, bytes memory password) external;

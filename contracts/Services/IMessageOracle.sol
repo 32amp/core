@@ -12,6 +12,7 @@ interface IMessageOracle {
     event Send(bytes32 indexed recipient);
     event ConfirmSend(bytes32 indexed recipient);
 
+    function getVersion() external pure returns(string memory);
     function getBalance(address account) external view returns(uint256);
     function getSendTimeout() external view returns(uint256);
     function getPriceForMessage() external view returns(uint256);

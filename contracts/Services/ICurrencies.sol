@@ -12,7 +12,7 @@ interface ICurrencies {
         uint8 minor_unit;
     }
 
-    function getVersion() external view returns(string memory);
+    function getVersion() external pure returns(string memory);
     function add(Currency memory currency) external;
     function get(uint256 id) external view returns(Currency memory);
     function exist(uint256 id) external view returns(bool);

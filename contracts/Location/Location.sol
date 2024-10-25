@@ -27,17 +27,15 @@ contract Location is ILocation, Initializable {
 
     uint256 locationCounter;
     address hubContract;
-    string version;
     uint256 partner_id;
 
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
-        version = "1.0";
     }
 
-    function getVersion() external view returns (string memory) {
-        return version;
+    function getVersion() external pure returns(string memory){
+        return "1.0";
     }
 
     function _UserAccess() private view returns(IUserAccess) {

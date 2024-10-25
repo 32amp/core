@@ -12,7 +12,8 @@ interface IUserAccess {
     // GOD - GODMODE
 
     enum  AccessLevel{ZERO, FIRST, SECOND, THIRD, FOURTH, FIFTH, GOD} 
-
+    
+    function getVersion() external pure returns(string memory);
     function setAccessLevelToModule(bytes32 _token, uint256 user_id, string memory module, AccessLevel access_level) external;
     function getModuleAccessLevel(string memory module, uint256 user_id) external view returns(uint);
     function getObjectAccessLevel(string memory module, bytes32 object_id, uint256 user_id) external view returns(uint);

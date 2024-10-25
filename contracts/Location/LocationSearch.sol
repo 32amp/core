@@ -13,7 +13,6 @@ contract LocationSearch is ILocationSearch, Initializable {
     mapping(int16 => mapping(int16 => uint256[])) locations_index;
 
     address hubContract;
-    string version;
     uint256 partner_id;
     using Utils for string;
 
@@ -21,15 +20,14 @@ contract LocationSearch is ILocationSearch, Initializable {
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
-        version = "1.0";
     }
 
     function _Location() private view returns(ILocation) {
         return ILocation(IHub(hubContract).getModule("Location", partner_id));
     }
     
-    function getVersion() external view returns (string memory) {
-        return version;
+    function getVersion() external pure returns(string memory){
+        return "1.0";
     }
     
     function addLocationToIndex(int16 lat, int16 lon, uint256 location_id) external {

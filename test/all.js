@@ -1,14 +1,5 @@
 const { expect }   =   require('chai');
-const hubModule = require("../ignition/modules/Hub");
-const userModule = require("../ignition/modules/User");
-const UserGroupsModule = require("../ignition/modules/UserGroups");
-const TariffModule = require("../ignition/modules/Tariff");
-const LocationsModule = require("../ignition/modules/Locations");
-const LocationSearchModule = require("../ignition/modules/LocationSearch");
-const EVSEModule = require("../ignition/modules/EVSE");
-const ConnectorModule = require("../ignition/modules/Connector");
-const UserAccessModule = require("../ignition/modules/UserAccess");
-const UserSupportChatModule = require("../ignition/modules/UserSupportChat");
+const {deployProxy} = require("../utils/deploy")
 
 const {GetEventArgumentsByNameAsync, createpayload} = require("../utils/IFBUtils");
 
@@ -36,10 +27,23 @@ before(async function() {
     console.log("Deploying Contracts...");
    
     //
-    
-    const HubDeploy = await ignition.deploy(hubModule);
-
-    this.Hub = HubDeploy.hub;
+    const EmailServiceAddess =  await deployProxy("MessageOracle",[60n, 1n, false, "Message: [message]"],"Email", false);
+    const SMSServiceAddress = await deployProxy("MessageOracle",[60n, 1n, false, "Message: [message]"],"SMS", false);
+    const Currencies = await deployProxy("Currencies",[],"",false);
+    this.Hub = await deployProxy("Hub",[[
+        {
+          name: "EmailService",
+          contract_address:EmailServiceAddess.target
+        },
+        {
+          name: "SMSService",
+          contract_address: SMSServiceAddress.target
+        },
+        {
+          name: "Currencies",
+          contract_address: Currencies.target
+        },
+    ]],"",false);
 
     console.log("Hub deployed to:", this.Hub.target);
 
@@ -56,63 +60,49 @@ before(async function() {
     
 
     //
-    const UserDeploy = await ignition.deploy(userModule);
     
-    this.User = UserDeploy.user;
-
-    this.User.initialize(this.partner.id,this.Hub.target, this.sudoUser.login, this.sudoUser.password, tg_bot_token)
+    this.User = await deployProxy("User",[this.partner.id,this.Hub.target, this.sudoUser.login, this.sudoUser.password, tg_bot_token],"",false);
 
     await this.Hub.addModule("User", this.User.target)
 
     console.log("User deployed to:", this.User.target);
-    await HubDeploy.SMSMessageOracle.refill(this.User.target,{value:10n});
-    await HubDeploy.EmailMessageOracle.refill(this.User.target,{value:10n});
+    await SMSServiceAddress.refill(this.User.target,{value:10n});
+    await EmailServiceAddess.refill(this.User.target,{value:10n});
 
 
 
-    const UserGroupsDeploy = await ignition.deploy(UserGroupsModule);
-    this.UserGroups = UserGroupsDeploy.UserGroups;
-    this.UserGroups.initialize(this.partner.id,this.Hub.target)
-
+    this.UserGroups =  await deployProxy("UserGroups",[this.partner.id,this.Hub.target],"",false);
     await this.Hub.addModule("UserGroups", this.UserGroups.target);
     console.log("UserGroups deployed to:", this.UserGroups.target);
 
 
     // Tariff
-    const TariffDeploy = await ignition.deploy(TariffModule);
-    this.Tariff = await TariffDeploy.Tariff;
     
-    this.Tariff.initialize(this.partner.id,this.Hub.target)
-
+    this.Tariff = await deployProxy("Tariff",[this.partner.id,this.Hub.target],"",false);
+    
     await this.Hub.addModule("Tariff", this.Tariff.target);
     console.log("Tariff deployed to:", this.Tariff.target);
     
 
     // Location
-    const LocationDeploy = await ignition.deploy(LocationsModule);
-    this.Location = await LocationDeploy.Locations;
     
-    this.Location.initialize(this.partner.id,this.Hub.target)
+    this.Location = await deployProxy("Location",[this.partner.id,this.Hub.target],"",false);
 
     await this.Hub.addModule("Location", this.Location.target);
     console.log("Location deployed to:", this.Location.target);
 
 
     // LocationSearch
-    const LocationSearchDeploy = await ignition.deploy(LocationSearchModule);
-    this.LocationSearch = await LocationSearchDeploy.LocationSearch;
-    
-    this.LocationSearch.initialize(this.partner.id,this.Hub.target)
+
+    this.LocationSearch = await deployProxy("LocationSearch",[this.partner.id,this.Hub.target],"",false);
 
     await this.Hub.addModule("LocationSearch", this.LocationSearch.target);
     console.log("LocationSearch deployed to:", this.LocationSearch.target);
 
     
     // EVSE
-    const EVSEDeploy = await ignition.deploy(EVSEModule);
-    this.EVSE = await EVSEDeploy.EVSE;
-    
-    this.EVSE.initialize(this.partner.id,this.Hub.target)
+
+    this.EVSE = await deployProxy("EVSE",[this.partner.id,this.Hub.target],"",false);
 
     await this.Hub.addModule("EVSE", this.EVSE.target);
     console.log("EVSE deployed to:", this.EVSE.target);
@@ -120,28 +110,23 @@ before(async function() {
 
     //Connector
 
-    const ConnectorDeploy = await ignition.deploy(ConnectorModule);
-    this.Connector = await ConnectorDeploy.Connector;
     
-    this.Connector.initialize(this.partner.id,this.Hub.target)
+    this.Connector = await deployProxy("Connector",[this.partner.id,this.Hub.target],"",false);
 
     await this.Hub.addModule("Connector", this.Connector.target);
     console.log("Connector deployed to:", this.Connector.target);
 
     //Connector
 
-    const UserSupportChatDeploy = await ignition.deploy(UserSupportChatModule);
-    this.UserSupportChat = await UserSupportChatDeploy.UserSupportChat;
     
-    this.UserSupportChat.initialize(this.partner.id,this.Hub.target)
-
+    this.UserSupportChat = await deployProxy("UserSupportChat",[this.partner.id,this.Hub.target],"",false);
+    
     await this.Hub.addModule("UserSupportChat", this.UserSupportChat.target);
     console.log("UserSupportChat deployed to:", this.UserSupportChat.target);
 
 
-    const UserAccessDeploy = await ignition.deploy(UserAccessModule);
-    this.UserAccess = UserAccessDeploy.UserAccess;
-    this.UserAccess.initialize(this.partner.id,this.Hub.target)
+
+    this.UserAccess = await deployProxy("UserAccess",[this.partner.id,this.Hub.target],"",false);
 
     this.Hub.addModule("UserAccess", this.UserAccess.target);
     console.log("UserAccess deployed to:", this.UserAccess.target);

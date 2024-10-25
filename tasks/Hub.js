@@ -1,6 +1,40 @@
 const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
 const {formatPartner, formatPartners} = require("../helpers/Hub");
+const {deployProxy} = require("../utils/deploy")
 const hubScope = scope("hub", "Tasks for HUB");
+
+hubScope.task("hubdeploy", "Deploy hub contract")
+.setAction(async function(){
+    
+    try {
+        var {config} = require(__dirname+"/../hub.config");
+    
+    } catch (error) {
+        console.log("Error open config hub.config.json", error)
+        return;
+    }
+
+    const EmailServiceAddess =  await deployProxy("MessageOracle",[config.EmailService.sendTimeout, config.EmailService.priceForMessage, config.EmailService.whitelistEnable, config.EmailService.bodyTemplate],"Email");
+    const SMSServiceAddress = await deployProxy("MessageOracle",[config.SMSService.sendTimeout, config.SMSService.priceForMessage, config.SMSService.whitelistEnable, config.SMSService.bodyTemplate],"SMS");
+    const Currencies = await deployProxy("Currencies",[],"");
+    this.Hub = await deployProxy("Hub",[[
+        {
+            name: "EmailService",
+            contract_address:EmailServiceAddess.target
+        },
+        {
+            name: "SMSService",
+            contract_address: SMSServiceAddress.target
+        },
+        {
+            name: "Currencies",
+            contract_address: Currencies.target
+        },
+    ]],"");
+    
+
+
+})
 
 hubScope.task("getService", "get address of service")
 .addParam("name")
@@ -47,7 +81,7 @@ hubScope.task("me", "Get my profile in hub")
     console.log("Me:", formatPartner(me))
 })
 
-
+// TODO: deploymentId:"update" for add each partner where update is name of deploy
 hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 .addParam("name")
 .addParam("countrycode")
@@ -57,7 +91,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 .addParam("tgtoken")
 .setAction(async (args) => {
     
-    const {hub,hubAddress, SMSMessageOracle, EmailMessageOracle,config} = await loadContract();
+    const {hub,hubAddress, SMSMessageOracle, EmailMessageOracle} = await loadContract();
 
     var partnerid = 0;
 
@@ -80,123 +114,90 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 
     if(partnerid){
         
-
-        const userModule = require("../ignition/modules/User");
-        const UserGroupsModule = require("../ignition/modules/UserGroups");
-        const TariffModule = require("../ignition/modules/Tariff");
-        const LocationsModule = require("../ignition/modules/Locations");
-        const LocationSearchModule = require("../ignition/modules/LocationSearch");
-        const EVSEModule = require("../ignition/modules/EVSE");
-        const ConnectorModule = require("../ignition/modules/Connector");
-        const UserAccessModule = require("../ignition/modules/UserAccess");
-        const UserSupportChatModule = require("../ignition/modules/UserSupportChat");
-
-
-
-        const UserDeploy = await ignition.deploy(userModule,{config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-    
-        const User = UserDeploy.user;
-    
-        await User.initialize(partnerid,hubAddress, ethers.encodeBytes32String(args.sudouserlogin), ethers.encodeBytes32String(args.sudouserpassword), ethers.toUtf8Bytes(args.tgtoken))
+        const User = await deployProxy("User",[
+            partnerid,
+            hubAddress, 
+            ethers.encodeBytes32String(args.sudouserlogin), 
+            ethers.encodeBytes32String(args.sudouserpassword), 
+            ethers.toUtf8Bytes(args.tgtoken)
+        ],"",false);
     
         await hub.addModule("User", User.target)
     
         console.log("User deployed to:", User.target);
+        
         let refillsms = await SMSMessageOracle.refill(User.target,{value:10n});
-        await refillsms.wait(config.ignition.requiredConfirmations)
+        await refillsms.wait()
+
         let refillemeil = await EmailMessageOracle.refill(User.target,{value:10n});
-        await refillemeil.wait(config.ignition.requiredConfirmations)
+        await refillemeil.wait()
 
 
-
-        const UserGroupsDeploy = await ignition.deploy(UserGroupsModule, {config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-        const UserGroups = UserGroupsDeploy.UserGroups;
-        await UserGroups.initialize(partnerid,hubAddress)
-
+        const UserGroups = await deployProxy("UserGroups",[partnerid,hubAddress],"",false);
         await hub.addModule("UserGroups", UserGroups.target);
         console.log("UserGroups deployed to:", UserGroups.target);
 
 
         // Tariff
-        const TariffDeploy = await ignition.deploy(TariffModule, {config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-        const Tariff = await TariffDeploy.Tariff;
         
-        await Tariff.initialize(partnerid,hubAddress)
-
+        const Tariff = await deployProxy("Tariff",[partnerid,hubAddress],"",false);
+        
         let addTariff = await hub.addModule("Tariff", Tariff.target);
-        await addTariff.wait(config.ignition.requiredConfirmations);
+        await addTariff.wait();
         console.log("Tariff deployed to:", Tariff.target);
         
 
-        // Location
-        const LocationDeploy = await ignition.deploy(LocationsModule, {config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-        const Location = await LocationDeploy.Locations;
+        const Location = await deployProxy("Location",[partnerid,hubAddress],"",false);
         
-        await Location.initialize(partnerid,hubAddress)
-
         let addLocation = await hub.addModule("Location", Location.target);
-        await addLocation.wait(config.ignition.requiredConfirmations)
+        await addLocation.wait()
 
         console.log("Location deployed to:", Location.target);
 
 
         // LocationSearch
-        const LocationSearchDeploy = await ignition.deploy(LocationSearchModule, {config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-        const LocationSearch = await LocationSearchDeploy.LocationSearch;
         
-        await LocationSearch.initialize(partnerid,hubAddress)
-
+        const LocationSearch = await deployProxy("LocationSearch",[partnerid,hubAddress],"",false);
+    
         let addLocationSearch = await hub.addModule("LocationSearch", LocationSearch.target);
-        await addLocationSearch.wait(config.ignition.requiredConfirmations)
+        await addLocationSearch.wait()
         
         console.log("LocationSearch deployed to:", LocationSearch.target);
 
         
         // EVSE
-        const EVSEDeploy = await ignition.deploy(EVSEModule, {config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-        const EVSE = await EVSEDeploy.EVSE;
         
-        await EVSE.initialize(partnerid,hubAddress)
-
+        const EVSE = await deployProxy("EVSE",[partnerid,hubAddress],"",false);
+        
         let addEVSE = await hub.addModule("EVSE", EVSE.target);
-        await addEVSE.wait(config.ignition.requiredConfirmations)
+        await addEVSE.wait()
         
         console.log("EVSE deployed to:", EVSE.target);
 
 
         //Connector
 
-        const ConnectorDeploy = await ignition.deploy(ConnectorModule, {config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-        const Connector = await ConnectorDeploy.Connector;
+        const Connector = await deployProxy("Connector",[partnerid,hubAddress],"",false);
         
-        await Connector.initialize(partnerid,hubAddress)
-
         let addConnector = await hub.addModule("Connector", Connector.target);
-        await addConnector.wait(config.ignition.requiredConfirmations)
+        await addConnector.wait()
 
         console.log("Connector deployed to:", Connector.target);
 
         //SupportChat
 
-        const UserSupportChatDeploy = await ignition.deploy(UserSupportChatModule, {config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-        
-        const UserSupportChat = await UserSupportChatDeploy.UserSupportChat;
-        
-        await UserSupportChat.initialize(partnerid,hubAddress)
+        const UserSupportChat = await deployProxy("UserSupportChat",[partnerid,hubAddress],"",false);
 
         let addUserSupportChat = await hub.addModule("UserSupportChat", UserSupportChat.target);
-        await addUserSupportChat.wait(config.ignition.requiredConfirmations)
+        await addUserSupportChat.wait()
 
         console.log("UserSupportChat deployed to:", UserSupportChat.target);
 
-
-        const UserAccessDeploy = await ignition.deploy(UserAccessModule, {config:{requiredConfirmations:config.ignition.requiredConfirmations}});
-        const UserAccess = UserAccessDeploy.UserAccess;
+        // UserAccess
+        const UserAccess = await deployProxy("UserAccess",[partnerid,hubAddress],"",false);
         
-        await UserAccess.initialize(partnerid,hubAddress)
-
         let addUserAccess = await hub.addModule("UserAccess", UserAccess.target);
-        await addUserAccess.wait(config.ignition.requiredConfirmations)
+        await addUserAccess.wait()
 
         console.log("UserAccess deployed to:", UserAccess.target);
 
@@ -211,22 +212,20 @@ async function loadContract(){
     if(typeof network.config.networkid == "undefined")
             throw("Please select network")
     
-    const config = require("../hardhat.config");
-    
     const accounts = await ethers.getSigners();
 
     const balance = await ethers.provider.getBalance(accounts[0].address)
 
     console.log("Balance:", hre.ethers.formatEther(balance), "ETH")
 
-    const deployed_addresses = require(`../ignition/deployments/chain-${network.config.networkid}/deployed_addresses.json`)
+    const deployed_addresses = require(`../${network.name}_proxy_addresses.json`)
 
     const hubartifacts = require("../artifacts/contracts/Hub/IHub.sol/IHub.json");
     const MessageOracleArtifacts = require("../artifacts/contracts/Services/IMessageOracle.sol/IMessageOracle.json");
 
 
-    const hub = await new ethers.Contract(deployed_addresses["Hub#Hub"],hubartifacts.abi,accounts[0])
-    const SMSMessageOracle = await new ethers.Contract(deployed_addresses["SMSMessageOracle#MessageOracle"],MessageOracleArtifacts.abi,accounts[0])
-    const EmailMessageOracle = await new ethers.Contract(deployed_addresses["EmailMessageOracle#MessageOracle"],MessageOracleArtifacts.abi,accounts[0])
-    return {hub, hubAddress:deployed_addresses["Hub#Hub"],SMSMessageOracle, EmailMessageOracle, config: config.networks[network.name]};
+    const hub = await new ethers.Contract(deployed_addresses["Hub"],hubartifacts.abi,accounts[0])
+    const SMSMessageOracle = await new ethers.Contract(deployed_addresses["MessageOracle#SMS"],MessageOracleArtifacts.abi,accounts[0])
+    const EmailMessageOracle = await new ethers.Contract(deployed_addresses["MessageOracle#Email"],MessageOracleArtifacts.abi,accounts[0])
+    return {hub, hubAddress:deployed_addresses["Hub"],SMSMessageOracle, EmailMessageOracle};
 }

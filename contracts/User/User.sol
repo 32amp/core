@@ -28,12 +28,16 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     
 
     uint256 usersIndex;
-    string version;
     address hubAddress;
     address smsServiceAddress;
     address emailServiceAddress;
     uint256 partner_id;
     bytes tg_bot_token;
+
+
+    function getVersion() external pure returns(string memory){
+        return "1.0";
+    }
 
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubAddress).getModule("UserAccess", partner_id));
@@ -44,7 +48,6 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         smsServiceAddress = IHub(_hubAddress).getService("SMSService");
         emailServiceAddress = IHub(_hubAddress).getService("EmailService");
         partner_id = _partner_id;
-        version = "1.0";
         tg_bot_token = _tg_bot_token;
         registerByPassword(sudoUsername, sudopassword);
         

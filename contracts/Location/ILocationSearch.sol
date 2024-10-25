@@ -25,8 +25,7 @@ interface ILocationSearch is DataTypes {
 
     event AddLocation(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
 
-    function getVersion() external view returns(string memory);
-
+    function getVersion() external pure returns(string memory);
     function inArea(inAreaInput memory input) external view returns (inAreaOutput[] memory, uint256);
     function addLocationToIndex(int16 lat, int16 lon, uint256 location_id) external;
 

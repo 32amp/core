@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IHub.sol";
-
 contract Hub is IHub, Initializable, OwnableUpgradeable {
     
     mapping (uint256 => IHub.Member) partners;
@@ -18,10 +17,12 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
 
     uint256 counter;
     uint256 addPartnerAmount;
-    string version;
+    
+    function getVersion() external pure returns(string memory){
+        return "1.0";
+    }
 
     function initialize(addService[] memory _services) public initializer {
-        version = "1.0";
 
         avaliable_modules["User"] = true;
         avaliable_modules["UserGroups"] = true;

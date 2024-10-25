@@ -9,7 +9,6 @@ import "./IMessageOracle.sol";
 contract MessageOracle is IMessageOracle, Initializable, OwnableUpgradeable {
     uint256 counter;
     uint256 sendTimeout;
-    string version;
     uint256 priceForMessage;
     string bodyTemplate;
     bool whitelistEnable;
@@ -22,12 +21,15 @@ contract MessageOracle is IMessageOracle, Initializable, OwnableUpgradeable {
     // body template should have tag [message]
 
     function initialize(uint256 _sendTimeout, uint256 _priceForMessage, bool _whitelistEnable, string memory _bodyTemplate) public initializer {
-        version = "1.0";
         sendTimeout = _sendTimeout; //second
         priceForMessage = _priceForMessage;
         whitelistEnable = _whitelistEnable;
         bodyTemplate = _bodyTemplate;
         __Ownable_init(msg.sender);
+    }
+
+    function getVersion() external pure returns(string memory){
+        return "1.0";
     }
 
     function getBalance(address account) external view returns(uint256){
@@ -94,7 +96,7 @@ contract MessageOracle is IMessageOracle, Initializable, OwnableUpgradeable {
         }
 
         if( balances[msg.sender] < priceForMessage )
-            revert("sms_insufficient_funds");
+            revert("messageoracle_insufficient_funds");
 
         _checkWhitelist(msg.sender);
 

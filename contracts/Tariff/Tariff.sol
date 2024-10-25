@@ -10,7 +10,6 @@ import "../Services/ICurrencies.sol";
 
 contract Tariff is ITariff, Initializable {
     address hubContract;
-    string version;
     uint256 partner_id;
     uint256 counter;
 
@@ -30,11 +29,10 @@ contract Tariff is ITariff, Initializable {
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
-        version = "1.0";
     }
 
-    function getVersion() public view returns(string memory){
-        return version;
+    function getVersion() external pure returns(string memory){
+        return "1.0";
     }
 
     function exist(uint256 id) external view returns(bool){

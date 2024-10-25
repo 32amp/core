@@ -10,7 +10,6 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
 
     address hubContract;
-    string version;
     uint256 partner_id;
     uint256 topic_counter;
 
@@ -22,9 +21,11 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     function initialize(uint256 _partner_id, address _hubContract) external initializer{
         hubContract = _hubContract;
         partner_id = _partner_id;
-        version = "1.0";
     }
 
+    function getVersion() external pure returns(string memory){
+        return "1.0";
+    }
 
     function _User() private view returns(IUser) {
         return IUser(IHub(hubContract).getModule("User", partner_id));

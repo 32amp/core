@@ -12,7 +12,6 @@ import "../User/IUserAccess.sol";
 
 contract Connector is IConnector, Initializable {
     address hubContract;
-    string version;
     uint256 partner_id;
     uint256 connector_counter;
     mapping (uint256 => Connector)  connectors;
@@ -23,11 +22,10 @@ contract Connector is IConnector, Initializable {
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
-        version = "1.0";
     }
 
-    function getVersion() public view returns(string memory){
-        return version;
+    function getVersion() external pure returns(string memory){
+        return "1.0";
     }
 
     modifier access(bytes32 _token, uint256 id) {

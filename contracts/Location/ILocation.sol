@@ -41,11 +41,9 @@ interface ILocation is DataTypes {
 
     event AddLocation(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
 
-    function getVersion() external view returns(string memory);
-
+    function getVersion() external pure returns(string memory);
     function addLocation(bytes32 _token, Add memory add) external;
     function getLocation(uint256 id) external view returns (outLocation memory);
-
     function exist(uint256 location_id) external returns(bool);
     function addRelatedLocation(bytes32 _token, uint256 location_id, AdditionalGeoLocation calldata add ) external;
     function removeRelatedLocation(bytes32 _token, uint256 location_id, uint loc_id) external;

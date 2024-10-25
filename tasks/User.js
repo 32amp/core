@@ -1,5 +1,5 @@
 const userScope = scope("User", "Tasks for User module");
-
+const {deployProxy, upgradeProxy} = require("../utils/deploy")
 userScope.task("setTestUserByEmail", "Add test email for testing auth")
 .addParam("email", "Email")
 .addParam("code", "Code verification")
@@ -26,6 +26,32 @@ userScope.task("setTestUserByPhone", "Add test phone for testing auth")
     }
 })
 
+
+
+userScope.task("version", "Version module")
+.setAction(async () => {
+    try {
+        const {User} = await loadContract()
+        console.log("User version:",await User.getVersion())
+    } catch (error) {
+        console.log(error)
+    }
+
+})
+
+
+
+
+userScope.task("upgrade", "Upgrade module")
+.setAction(async () => {
+    let v1 = await deployProxy("User", [1,"0xF862ECbf6d78cC5bc3b11Db1940df00fF6e4d6AA", ethers.encodeBytes32String("test"), ethers.encodeBytes32String("test"), ethers.toUtf8Bytes("test")], "prefix", false)
+
+    await upgradeProxy("User","prefix", v1.target)
+})
+
+
+
+
 async function loadContract(){
 
     const {network, ethers} = require("hardhat");
@@ -51,6 +77,7 @@ async function loadContract(){
     
     const userModuleAddress = await hub.getModule("User", partnerid);
 
+    console.log("Module address", userModuleAddress);
 
     const User = await new ethers.Contract(userModuleAddress,UserArtifacts.abi,accounts[0])
 
