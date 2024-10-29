@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IUserSupportChat.sol";
-import "../User/IUser.sol";
+import "../User/IAuth.sol";
 import "../Hub/IHub.sol";
 import "../User/IUserAccess.sol";
 
@@ -27,8 +27,8 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         return "1.0";
     }
 
-    function _User() private view returns(IUser) {
-        return IUser(IHub(hubContract).getModule("User", partner_id));
+    function _Auth() private view returns(IAuth) {
+        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
     function _UserAccess() private view returns(IUserAccess) {
@@ -37,7 +37,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
 
     function _access(bytes32 _token, uint256 topic_id) internal view {
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         if( user_id == 0)
             revert("access_denied");
@@ -58,7 +58,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     }
 
     function createTopic(bytes32 _token, string memory _text_message, TopicTheme theme) external {
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         if( user_id == 0)
             revert("access_denied");
@@ -83,7 +83,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
     function sendMessage(bytes32 _token, uint256 topic_id, InputMessage memory message) external {
 
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         _access(_token, topic_id);
         
@@ -105,7 +105,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
     function setRating(bytes32 _token, uint256 topic_id, TopicRating rating) external {
 
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         if( user_id == 0 || topics[topic_id].create_user_id != user_id)
             revert("access_denied");
@@ -116,7 +116,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     function closeTopic(bytes32 _token, uint256 topic_id) external {
         _access(_token, topic_id);
         
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         topics[topic_id].closed = true;
         
@@ -127,7 +127,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         
         _access(_token, topic_id);
 
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         for (uint i = 0; i < message_ids.length; i++) {
             if(messages[topic_id][i].user_id != user_id && messages[topic_id][i].user_id != 0){
@@ -137,7 +137,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     }
 
     function getMyTopics(bytes32 _token, uint256 offset) external view returns(Topic[] memory){
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         if( user_id == 0)
             revert("access_denied");

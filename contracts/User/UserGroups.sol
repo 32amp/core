@@ -4,7 +4,7 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../Hub/IHub.sol";
-import "./IUser.sol";
+import "./IAuth.sol";
 import "./IUserAccess.sol";
 
 
@@ -43,13 +43,13 @@ contract UserGroups is Initializable, OwnableUpgradeable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _User() private view returns(IUser) {
-        return IUser(IHub(hubContract).getModule("User", partner_id));
+    function _Auth() private view returns(IAuth) {
+        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
     function addGroup(bytes32 _token, string memory name) external {
 
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         uint access_level = _UserAccess().getModuleAccessLevel("UserGroups", user_id);
 
@@ -79,7 +79,7 @@ contract UserGroups is Initializable, OwnableUpgradeable {
 
     
     function getMyGroups(bytes32 _token) external view returns(Group[] memory) {
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         uint access_level = _UserAccess().getModuleAccessLevel("UserGroups", user_id);
 

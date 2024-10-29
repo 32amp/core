@@ -4,7 +4,7 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
 import "./ITariff.sol";
-import "../User/IUser.sol";
+import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 import "../Services/ICurrencies.sol";
 
@@ -55,8 +55,8 @@ contract Tariff is ITariff, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _User() private view returns(IUser) {
-        return IUser(IHub(hubContract).getModule("User", partner_id));
+    function _Auth() private view returns(IAuth) {
+        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
     function _Currencies() private view returns(ICurrencies) {
@@ -64,7 +64,7 @@ contract Tariff is ITariff, Initializable {
     }
 
     function add(bytes32 _token, Tariff calldata tariff) external {
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         uint access_level = _UserAccess().getModuleAccessLevel("Tariff", user_id);
 

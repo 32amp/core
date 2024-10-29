@@ -7,7 +7,7 @@ import "../Hub/IHub.sol";
 import "./ILocation.sol";
 import "./ILocationSearch.sol";
 import "./IEVSE.sol";
-import "../User/IUser.sol";
+import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 import "../Utils.sol";
 
@@ -42,8 +42,8 @@ contract Location is ILocation, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _User() private view returns(IUser) {
-        return IUser(IHub(hubContract).getModule("User", partner_id));
+    function _Auth() private view returns(IAuth) {
+        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
     function _EVSE() private view returns(IEVSE) {
@@ -131,7 +131,7 @@ contract Location is ILocation, Initializable {
 
     function addLocation(bytes32 _token, Add memory add ) external {
 
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         uint access_level = _UserAccess().getModuleAccessLevel("Location", user_id);
 

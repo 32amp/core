@@ -61,13 +61,21 @@ before(async function() {
 
     //
     
-    this.User = await deployProxy("User",[this.partner.id,this.Hub.target, this.sudoUser.login, this.sudoUser.password, tg_bot_token],"",false);
+    this.User = await deployProxy("User",[this.partner.id,this.Hub.target],"",false);
 
     await this.Hub.addModule("User", this.User.target)
-
     console.log("User deployed to:", this.User.target);
-    await SMSServiceAddress.refill(this.User.target,{value:10n});
-    await EmailServiceAddess.refill(this.User.target,{value:10n});
+
+
+
+    this.Auth = await deployProxy("Auth",[this.partner.id,this.Hub.target, tg_bot_token],"",false);
+
+    await this.Hub.addModule("Auth", this.Auth.target)
+    await this.Auth.registerByPassword(this.sudoUser.login, this.sudoUser.password);
+    
+    console.log("Auth deployed to:", this.Auth.target);
+    await SMSServiceAddress.refill(this.Auth.target,{value:10n});
+    await EmailServiceAddess.refill(this.Auth.target,{value:10n});
 
 
 
@@ -167,14 +175,15 @@ describe("Hub", function(){
         const modules = await this.Hub.getPartnerModules(1);
 
         expect(modules[0]).to.equal("User")
-        expect(modules[1]).to.equal("UserGroups")
-        expect(modules[2]).to.equal("Tariff")
-        expect(modules[3]).to.equal("Location")
-        expect(modules[4]).to.equal("LocationSearch")
-        expect(modules[5]).to.equal("EVSE")
-        expect(modules[6]).to.equal("Connector")
-        expect(modules[7]).to.equal("UserSupportChat")
-        expect(modules[8]).to.equal("UserAccess")
+        expect(modules[1]).to.equal("Auth")
+        expect(modules[2]).to.equal("UserGroups")
+        expect(modules[3]).to.equal("Tariff")
+        expect(modules[4]).to.equal("Location")
+        expect(modules[5]).to.equal("LocationSearch")
+        expect(modules[6]).to.equal("EVSE")
+        expect(modules[7]).to.equal("Connector")
+        expect(modules[8]).to.equal("UserSupportChat")
+        expect(modules[9]).to.equal("UserAccess")
         //
     })
 
@@ -234,14 +243,13 @@ describe("Hub", function(){
 })
 
 
-describe("User", function(){
-
+describe("Auth", function(){
 
     it("authSudoUser", async function(){
-        let auth = await this.User.authByPassword(this.sudoUser.login,this.sudoUser.password)
+        let auth = await this.Auth.authByPassword(this.sudoUser.login,this.sudoUser.password)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthTokenByPassword(this.sudoUser.login,this.sudoUser.password, authSuccess.token_id)
+        let token = await this.Auth.getAuthTokenByPassword(this.sudoUser.login,this.sudoUser.password, authSuccess.token_id)
 
         this.sudoUser.token = token[1];        
 
@@ -250,13 +258,13 @@ describe("User", function(){
 
 
     it("registerByPassword", async function(){
-        let register = await this.User.registerByPassword(this.testUser.login,this.testUser.password)
+        let register = await this.Auth.registerByPassword(this.testUser.login,this.testUser.password)
         await register.wait()
 
-        let auth = await this.User.authByPassword(this.testUser.login,this.testUser.password)
+        let auth = await this.Auth.authByPassword(this.testUser.login,this.testUser.password)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthTokenByPassword(this.testUser.login,this.testUser.password, authSuccess.token_id)
+        let token = await this.Auth.getAuthTokenByPassword(this.testUser.login,this.testUser.password, authSuccess.token_id)
 
         this.testUser.token = token[1];        
 
@@ -266,34 +274,23 @@ describe("User", function(){
 
 
     it("isLogin", async function(){
-        const isLogin =  await this.User.isLogin(this.testUser.token);
+        const isLogin =  await this.Auth.isLogin(this.testUser.token);
 
         expect(Number(isLogin)).to.equal(2)
     })
 
-
-    it("whoami", async function(){
-        const whoami =  await this.User.whoami(this.testUser.token);
-
-        expect(whoami.enable).to.equal(true);
-        expect(whoami.user_type).to.equal(0);
-        expect(whoami.last_updated).not.to.equal(0);
-
-        expect(whoami.username.toString() == this.testUser.login).to.equal(true)
-    })
-
     it("setTestUserByPhone", async function(){
-        await this.User.setTestUserByPhone(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"));
+        await this.Auth.setTestUserByPhone(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"));
     })
 
     it("sendSmsForAuth, authBySmsCode", async function(){
 
-        await this.User.sendSmsForAuth(ethers.encodeBytes32String("+79999999998"))
+        await this.Auth.sendSmsForAuth(ethers.encodeBytes32String("+79999999998"))
 
-        let auth = await this.User.authBySmsCode(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"))
+        let auth = await this.Auth.authBySmsCode(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"))
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthTokenBySMS(ethers.encodeBytes32String("+79999999998"),ethers.encodeBytes32String("8888"), authSuccess.token_id)
+        let token = await this.Auth.getAuthTokenBySMS(ethers.encodeBytes32String("+79999999998"),ethers.encodeBytes32String("8888"), authSuccess.token_id)
 
         this.testUser.tokensms = token[1];        
 
@@ -303,17 +300,17 @@ describe("User", function(){
 
 
     it("setTestEmailByPhone", async function(){
-        await this.User.setTestUserByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"));
+        await this.Auth.setTestUserByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"));
     })
 
     it("sendEmailForAuth, authByEmailCode", async function(){
 
-        await this.User.sendEmailForAuth(ethers.encodeBytes32String("test@example.com"))
+        await this.Auth.sendEmailForAuth(ethers.encodeBytes32String("test@example.com"))
 
-        let auth = await this.User.authByEmailCode(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"))
+        let auth = await this.Auth.authByEmailCode(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"))
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthTokenByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"), authSuccess.token_id)
+        let token = await this.Auth.getAuthTokenByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"), authSuccess.token_id)
 
         this.testUser.tokenemail = token[1];        
 
@@ -337,14 +334,30 @@ describe("User", function(){
             language_code:ethers.encodeBytes32String(user_data.language_code),
         }
         
-        let auth = await this.User.authByTg(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data)
+        let auth = await this.Auth.authByTg(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.User.getAuthTokenByTG(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data, authSuccess.token_id)
+        let token = await this.Auth.getAuthTokenByTG(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data, authSuccess.token_id)
 
         this.testUser.tokentg = token[1];    
 
         expect(token[1].length).to.equal(66)
+    })
+
+})
+
+describe("User", function(){
+
+
+
+    it("whoami", async function(){
+        const whoami =  await this.User.whoami(this.testUser.token);
+
+        expect(whoami.enable).to.equal(true);
+        expect(whoami.user_type).to.equal(0);
+        expect(whoami.last_updated).not.to.equal(0);
+
+        expect(whoami.username.toString() == this.testUser.login).to.equal(true)
     })
 
 

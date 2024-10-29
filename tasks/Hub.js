@@ -1,6 +1,6 @@
 const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
 const {formatPartner, formatPartners} = require("../helpers/Hub");
-const {deployProxy} = require("../utils/deploy")
+const {deployProxy, upgradeProxy} = require("../utils/deploy")
 const hubScope = scope("hub", "Tasks for HUB");
 
 hubScope.task("hubdeploy", "Deploy hub contract")
@@ -32,8 +32,21 @@ hubScope.task("hubdeploy", "Deploy hub contract")
         },
     ]],"");
     
+})
+
+hubScope.task("hubupgrade", "Upgrade hub contract")
+.setAction(async function(){
+    const Hub = await upgradeProxy("Hub")
+    await Hub.upgrade();
+})
 
 
+hubScope.task("changeModuleAddress", "Change module address if you recrate module")
+.addParam("name", "name of module")
+.addParam("address", "Address of contract")
+.setAction(async function(){
+    const {hub} = await loadContract();
+    await hub.changeModuleAddress(args.name,args.address)
 })
 
 hubScope.task("getService", "get address of service")
@@ -116,20 +129,29 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
         
         const User = await deployProxy("User",[
             partnerid,
-            hubAddress, 
-            ethers.encodeBytes32String(args.sudouserlogin), 
-            ethers.encodeBytes32String(args.sudouserpassword), 
-            ethers.toUtf8Bytes(args.tgtoken)
+            hubAddress
         ],"",false);
     
         await hub.addModule("User", User.target)
     
         console.log("User deployed to:", User.target);
+
+
+        const Auth = await deployProxy("Auth",[
+            partnerid,
+            hubAddress, 
+            ethers.toUtf8Bytes(args.tgtoken)
+        ],"",false);
+    
+        await hub.addModule("Auth", Auth.target)
+        console.log("Auth deployed to:", Auth.target);
+
+        await Auth.registerByPassword(ethers.encodeBytes32String(args.sudouserlogin), ethers.encodeBytes32String(args.sudouserpassword));
         
-        let refillsms = await SMSMessageOracle.refill(User.target,{value:10n});
+        let refillsms = await SMSMessageOracle.refill(Auth.target,{value:10n});
         await refillsms.wait()
 
-        let refillemeil = await EmailMessageOracle.refill(User.target,{value:10n});
+        let refillemeil = await EmailMessageOracle.refill(Auth.target,{value:10n});
         await refillemeil.wait()
 
 

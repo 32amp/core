@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
 import "./IEVSE.sol";
 import "./IConnector.sol";
-import "../User/IUser.sol";
+import "../User/IAuth.sol";
 import "../Tariff/ITariff.sol";
 import "../User/IUserAccess.sol";
 
@@ -37,8 +37,8 @@ contract Connector is IConnector, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _User() private view returns(IUser) {
-        return IUser(IHub(hubContract).getModule("User", partner_id));
+    function _Auth() private view returns(IAuth) {
+        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
 
@@ -53,7 +53,7 @@ contract Connector is IConnector, Initializable {
 
     function add(bytes32 _token, Connector memory connector, uint256 evse_id) external {
         
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         uint access_level = _UserAccess().getModuleAccessLevel("Connector", user_id);
 

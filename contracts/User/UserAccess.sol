@@ -4,7 +4,7 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../Hub/IHub.sol";
-import "../User/IUser.sol";
+import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 
 contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
@@ -45,7 +45,7 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
     }
 
     function _isLogin(bytes32 _token) internal view returns(uint256) {
-        uint256 isLogin = IUser(IHub(hubContract).getModule("User",partner_id)).isLogin(_token);
+        uint256 isLogin = IAuth(IHub(hubContract).getModule("Auth",partner_id)).isLogin(_token);
 
         if(isLogin == 0)
             revert("auth_failed");

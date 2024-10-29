@@ -19,12 +19,13 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     uint256 addPartnerAmount;
     
     function getVersion() external pure returns(string memory){
-        return "1.0";
+        return "1.1";
     }
 
     function initialize(addService[] memory _services) public initializer {
 
         avaliable_modules["User"] = true;
+        avaliable_modules["Auth"] = true;
         avaliable_modules["UserGroups"] = true;
         avaliable_modules["UserAccess"] = true;
         avaliable_modules["Tariff"] = true;
@@ -170,5 +171,9 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         return partners[partner_id].country_code;
     }
 
+    function upgrade() external onlyOwner {
+        // in v 1.1
+        avaliable_modules["Auth"] = true;
+    }
 
 }

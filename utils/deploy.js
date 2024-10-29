@@ -47,9 +47,12 @@ module.exports.upgradeProxy = async function(contract, prefix="", contract_addre
         prefix = "#"+prefix;
         contract_key = contract_key+prefix;
     }
-
-    if(contract_address.length == 0)
-        contract_address = await getDeployConfig()[contract_key];
+    
+    if(contract_address.length == 0){
+        let _contract_address = await getDeployConfig();
+        contract_address = _contract_address[contract_key]
+    }
+  
     
     if(contract_address.length == 0)
         throw("Contract address not found")
@@ -62,6 +65,7 @@ module.exports.upgradeProxy = async function(contract, prefix="", contract_addre
     return deployed;
 }
 
+module.exports.getDeployConfig = getDeployConfig;
 async function getDeployConfig(){
     const {network} = require("hardhat");
 

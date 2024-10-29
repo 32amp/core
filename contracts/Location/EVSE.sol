@@ -7,7 +7,7 @@ import "../Hub/IHub.sol";
 import "./ILocation.sol";
 import "./IConnector.sol";
 import "./IEVSE.sol";
-import "../User/IUser.sol";
+import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 
 
@@ -38,8 +38,8 @@ contract EVSE is IEVSE, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _User() private view returns(IUser) {
-        return IUser(IHub(hubContract).getModule("User", partner_id));
+    function _Auth() private view returns(IAuth) {
+        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
     function _Location() private view returns(ILocation) {
@@ -60,7 +60,7 @@ contract EVSE is IEVSE, Initializable {
 
     function add(bytes32 _token, EVSE calldata evse, uint256 location_id) external {
         
-        uint256 user_id = _User().isLogin(_token);
+        uint256 user_id = _Auth().isLogin(_token);
 
         uint access_level = _UserAccess().getModuleAccessLevel("EVSE", user_id);
 
