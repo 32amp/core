@@ -52,7 +52,6 @@ interface IUserSupportChat {
     event Message(uint256 indexed topic_id, uint256 indexed message_id );
     event CreateTopic(uint256 indexed topic_id, TopicTheme indexed theme);
     event UpdateTopic(uint256 indexed topic_id, TopicTheme indexed theme, uint256 indexed update_at);
-    event LikeMessage(uint256 indexed user_id, uint256 indexed topic_id, uint256 message_id);
     event CloseTopic(uint256 indexed topic_id, uint256 indexed user_id); 
     
     function getVersion() external pure returns(string memory);
