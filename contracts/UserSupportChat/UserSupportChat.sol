@@ -5,6 +5,7 @@ import "./IUserSupportChat.sol";
 import "../User/IAuth.sol";
 import "../Hub/IHub.sol";
 import "../User/IUserAccess.sol";
+import "../RevertCodes/IRevertCodes.sol";
 
 contract UserSupportChat is IUserSupportChat, Initializable {
 
@@ -23,6 +24,11 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         partner_id = _partner_id;
     }
 
+    function registerRevertCodes() external{
+        _RevertCodes().registerRevertCode("UserSupportChat", "access_denied", "Access denied");
+        _RevertCodes().registerRevertCode("UserSupportChat", "offest_to_big", "Offset to big");
+    }
+
     function getVersion() external pure returns(string memory){
         return "1.0";
     }
@@ -33,6 +39,10 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
+    }
+
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
     }
 
 

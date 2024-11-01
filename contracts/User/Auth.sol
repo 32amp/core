@@ -8,6 +8,7 @@ import "./IUser.sol";
 import "./IUserAccess.sol";
 import "../Hub/IHub.sol";
 import "../Services/IMessageOracle.sol";
+import "../RevertCodes/IRevertCodes.sol";
 
 contract Auth is IAuth, Initializable, OwnableUpgradeable {
 
@@ -25,7 +26,7 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
     mapping(bytes32 => bytes32) email_codes;
     mapping(bytes32 => bytes32) test_email_codes;
     
-    address hubAddress;
+    address hubContract;
     address smsServiceAddress;
     address emailServiceAddress;
     uint256 partner_id;
@@ -37,20 +38,35 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
     }
 
     function _UserAccess() private view returns(IUserAccess) {
-        return IUserAccess(IHub(hubAddress).getModule("UserAccess", partner_id));
+        return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
     function _User() private view returns(IUser) {
-        return IUser(IHub(hubAddress).getModule("User", partner_id));
+        return IUser(IHub(hubContract).getModule("User", partner_id));
     }
 
-    function initialize(uint256 _partner_id, address _hubAddress, bytes memory  _tg_bot_token ) external initializer {
-        hubAddress = _hubAddress;
-        smsServiceAddress = IHub(_hubAddress).getService("SMSService");
-        emailServiceAddress = IHub(_hubAddress).getService("EmailService");
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
+    }
+
+
+    function initialize(uint256 _partner_id, address _hubContract, bytes memory  _tg_bot_token ) external initializer {
+        hubContract = _hubContract;
+        smsServiceAddress = IHub(_hubContract).getService("SMSService");
+        emailServiceAddress = IHub(_hubContract).getService("EmailService");
         partner_id = _partner_id;
-        tg_bot_token = _tg_bot_token;        
+        tg_bot_token = _tg_bot_token;    
+
         __Ownable_init(msg.sender);
+    }
+
+    function registerRevertCodes() external {
+        _RevertCodes().registerRevertCode("Auth", "user_exist", "User does not exist");
+        _RevertCodes().registerRevertCode("Auth", "login_notfound", "Login not found");
+        _RevertCodes().registerRevertCode("Auth", "password_incorrect", "Password incorrect");
+        _RevertCodes().registerRevertCode("Auth", "code_not_match", "code not match");
+        _RevertCodes().registerRevertCode("Auth", "user_not_found", "User not found");
+        _RevertCodes().registerRevertCode("Auth", "hash_invalid", "Invalid Telegram hash");
     }
 
     function isLogin(bytes32 _token) external view returns (uint256) {
@@ -166,7 +182,7 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
             abi.encodePacked(block.prevrandao, block.timestamp, user_id, salt, token.date_start, token.date_expire, token.visual_number )
         );
 
-        token.issuer = IHub(hubAddress).getPartnerName(partner_id);
+        token.issuer = IHub(hubContract).getPartnerName(partner_id);
 
         bytes32 _token = keccak256(
             abi.encodePacked(block.prevrandao, block.timestamp, user_id, salt)

@@ -23,7 +23,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     }
 
     function initialize(addService[] memory _services) public initializer {
-
+        avaliable_modules["RevertCodes"] = true;
         avaliable_modules["User"] = true;
         avaliable_modules["Auth"] = true;
         avaliable_modules["UserGroups"] = true;

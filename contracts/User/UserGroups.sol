@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../Hub/IHub.sol";
 import "./IAuth.sol";
 import "./IUserAccess.sol";
+import "../RevertCodes/IRevertCodes.sol";
 
 
 contract UserGroups is Initializable, OwnableUpgradeable {
@@ -32,7 +33,10 @@ contract UserGroups is Initializable, OwnableUpgradeable {
         partner_id = _partner_id;
         _addGroup("sudo", 1);
         __Ownable_init(msg.sender);
+    }
 
+    function registerRevertCodes() external {
+        _RevertCodes().registerRevertCode("UserGroups", "access_denied", "Access denied to Group");
     }
 
     function getVersion() external pure returns(string memory){
@@ -45,6 +49,10 @@ contract UserGroups is Initializable, OwnableUpgradeable {
 
     function _Auth() private view returns(IAuth) {
         return IAuth(IHub(hubContract).getModule("Auth", partner_id));
+    }
+
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
     }
 
     function addGroup(bytes32 _token, string memory name) external {

@@ -8,6 +8,7 @@ import "./IUserAccess.sol";
 import "./IAuth.sol";
 import "../Hub/IHub.sol";
 import "../Services/IMessageOracle.sol";
+import "../RevertCodes/IRevertCodes.sol";
 
 contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(uint256 => IUser.User) users;
@@ -15,11 +16,11 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     mapping(uint256 => IUser.CarData[]) user_cars;
 
     uint256 usersIndex;
-    address hubAddress;
+    address hubContract;
     uint256 partner_id;
 
     modifier onlyAuthContract(){
-        if(IHub(hubAddress).getModule("Auth", partner_id) != msg.sender)
+        if(IHub(hubContract).getModule("Auth", partner_id) != msg.sender)
             revert("access_denied");
         _;
     } 
@@ -29,23 +30,33 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     }
 
     function _UserAccess() private view returns(IUserAccess) {
-        return IUserAccess(IHub(hubAddress).getModule("UserAccess", partner_id));
+        return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
     function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubAddress).getModule("Auth", partner_id));
+        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
-    function initialize(uint256 _partner_id, address _hubAddress) external initializer {
-        hubAddress = _hubAddress;
-        partner_id = _partner_id;
-        
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
+    }
+
+
+    function initialize(uint256 _partner_id, address _hubContract) external initializer {
+        hubContract = _hubContract;
+        partner_id = _partner_id;        
         __Ownable_init(msg.sender);
+    }
+
+    function registerRevertCodes() external {
+        _RevertCodes().registerRevertCode("User", "access_denied", "Access denied");
+        _RevertCodes().registerRevertCode("User", "user_not_found", "User not found");
+        _RevertCodes().registerRevertCode("User", "car_not_found", "Car not found");
     }
 
     function addUser() external returns (uint256) {
 
-        if(IHub(hubAddress).getModule("Auth", partner_id) != msg.sender)
+        if(IHub(hubContract).getModule("Auth", partner_id) != msg.sender)
             revert("access_denied");
 
         usersIndex++;
@@ -107,7 +118,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     function addCar(bytes32 _token, uint256 user_id, CarData memory car_data) external{
         uint256 my_user_id = _Auth().isLogin(_token);
 
-        if (my_user_id == 0) revert("access_denied_1");
+        if (my_user_id == 0) revert("access_denied");
 
         if(user_id == 0){
             user_cars[my_user_id].push(car_data);
@@ -118,7 +129,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied_2");
+            revert("access_denied");
         }
 
         if(users[user_id].id == 0)
@@ -243,7 +254,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
     function fromContractUpdateUsername(uint256 user_id, bytes32 username) external {
 
-        if(IHub(hubAddress).getModule("Auth", partner_id) != msg.sender)
+        if(IHub(hubContract).getModule("Auth", partner_id) != msg.sender)
             revert("access_denied");
 
         users[user_id].username = username;

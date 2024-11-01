@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../Hub/IHub.sol";
 import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
+import "../RevertCodes/IRevertCodes.sol";
 
 contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
 
@@ -36,8 +37,20 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
             _setAccessLevelToModule(1,modules[i],AccessLevel.GOD);
             _groupSetAccessLevelToModule(1,modules[i],AccessLevel.GOD);
         }
-
         __Ownable_init(msg.sender);
+    }
+
+    function registerRevertCodes() external {
+        _RevertCodes().registerRevertCode("UserAccess", "auth_failed", "Authorization failed");
+        _RevertCodes().registerRevertCode("UserAccess", "access_denied", "Access denied");
+        _RevertCodes().registerRevertCode("UserAccess", "cannot_set_level_more_than_you_have", "Cannot set level more than you have");
+        _RevertCodes().registerRevertCode("UserAccess", "module_access_denied", "Module access denied");
+        _RevertCodes().registerRevertCode("UserAccess", "obj_access_denied", "Object access denied");
+    }
+
+
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
     }
 
     function getVersion() external pure returns(string memory){

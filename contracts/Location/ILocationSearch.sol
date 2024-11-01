@@ -15,6 +15,9 @@ interface ILocationSearch is DataTypes {
         uint8[] connectors; // TODO add filter by connector
         bool onlyFreeConnectors; // TODO add filter by connector
         bool publish; //TODO add filter by publish flag
+        uint256 max_payment_by_kwt;
+        uint256 max_payment_buy_time;
+        uint256[] favorite_evse;
     }
 
 

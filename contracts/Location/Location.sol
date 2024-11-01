@@ -10,6 +10,7 @@ import "./IEVSE.sol";
 import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 import "../Utils.sol";
+import "../RevertCodes/IRevertCodes.sol";
 
 contract Location is ILocation, Initializable {
 
@@ -34,6 +35,11 @@ contract Location is ILocation, Initializable {
         partner_id = _partner_id;
     }
 
+    function registerRevertCodes() external {
+        _RevertCodes().registerRevertCode("Location", "EVSE_does_not_exist", "EVSE does not exist");
+        _RevertCodes().registerRevertCode("Location", "access_denied", "Access denied, you must have access to module Location not lower than four");
+    }
+
     function getVersion() external pure returns(string memory){
         return "1.0";
     }
@@ -52,6 +58,14 @@ contract Location is ILocation, Initializable {
 
     function _LocationSearch() private view returns(ILocationSearch) {
         return ILocationSearch(IHub(hubContract).getModule("LocationSearch", partner_id));
+    }
+
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
+    }
+
+    function _panic(string memory code) private {
+        _RevertCodes().panic("Location", code);
     }
 
     function addRelatedLocation(bytes32 _token, uint256 location_id, AdditionalGeoLocation calldata add ) external {

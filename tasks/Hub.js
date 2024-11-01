@@ -127,13 +127,22 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 
     if(partnerid){
         
+        const RevertCodes = await deployProxy("RevertCodes",[
+            partnerid,
+            hubAddress
+        ],"",false);
+        let addRevertCodes = await hub.addModule("RevertCodes", RevertCodes.target)
+        await addRevertCodes.wait()
+        console.log("RevertCodes deployed to:", RevertCodes.target);
+
         const User = await deployProxy("User",[
             partnerid,
             hubAddress
         ],"",false);
     
-        await hub.addModule("User", User.target)
-    
+        let addUser = await hub.addModule("User", User.target)
+        await addUser.wait()
+        await User.registerRevertCodes()
         console.log("User deployed to:", User.target);
 
 
@@ -143,7 +152,10 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
             ethers.toUtf8Bytes(args.tgtoken)
         ],"",false);
     
-        await hub.addModule("Auth", Auth.target)
+        let addAuth = await hub.addModule("Auth", Auth.target)
+        await addAuth.wait()
+        await Auth.registerRevertCodes()
+
         console.log("Auth deployed to:", Auth.target);
 
         await Auth.registerByPassword(ethers.encodeBytes32String(args.sudouserlogin), ethers.encodeBytes32String(args.sudouserpassword));
@@ -156,7 +168,9 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 
 
         const UserGroups = await deployProxy("UserGroups",[partnerid,hubAddress],"",false);
-        await hub.addModule("UserGroups", UserGroups.target);
+        let addUserGroups = await hub.addModule("UserGroups", UserGroups.target);
+        await addUserGroups.wait()
+        await UserGroups.registerRevertCodes()
         console.log("UserGroups deployed to:", UserGroups.target);
 
 
@@ -166,6 +180,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
         
         let addTariff = await hub.addModule("Tariff", Tariff.target);
         await addTariff.wait();
+        await Tariff.registerRevertCodes()
         console.log("Tariff deployed to:", Tariff.target);
         
 
@@ -173,6 +188,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
         
         let addLocation = await hub.addModule("Location", Location.target);
         await addLocation.wait()
+        await Location.registerRevertCodes()
 
         console.log("Location deployed to:", Location.target);
 
@@ -183,6 +199,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
     
         let addLocationSearch = await hub.addModule("LocationSearch", LocationSearch.target);
         await addLocationSearch.wait()
+        await LocationSearch.registerRevertCodes()
         
         console.log("LocationSearch deployed to:", LocationSearch.target);
 
@@ -193,6 +210,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
         
         let addEVSE = await hub.addModule("EVSE", EVSE.target);
         await addEVSE.wait()
+        await EVSE.registerRevertCodes()
         
         console.log("EVSE deployed to:", EVSE.target);
 
@@ -203,6 +221,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
         
         let addConnector = await hub.addModule("Connector", Connector.target);
         await addConnector.wait()
+        await Connector.registerRevertCodes()
 
         console.log("Connector deployed to:", Connector.target);
 
@@ -212,6 +231,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 
         let addUserSupportChat = await hub.addModule("UserSupportChat", UserSupportChat.target);
         await addUserSupportChat.wait()
+        await UserSupportChat.registerRevertCodes()
 
         console.log("UserSupportChat deployed to:", UserSupportChat.target);
 
@@ -220,6 +240,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
         
         let addUserAccess = await hub.addModule("UserAccess", UserAccess.target);
         await addUserAccess.wait()
+        await UserAccess.registerRevertCodes()
 
         console.log("UserAccess deployed to:", UserAccess.target);
 

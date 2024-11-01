@@ -7,6 +7,7 @@ import "../Utils.sol";
 import "./ILocation.sol";
 import "./ILocationSearch.sol";
 import "../Hub/IHub.sol";
+import "../RevertCodes/IRevertCodes.sol";
 
 contract LocationSearch is ILocationSearch, Initializable {
     
@@ -20,6 +21,11 @@ contract LocationSearch is ILocationSearch, Initializable {
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
+    }
+
+    function registerRevertCodes() external {
+        _RevertCodes().registerRevertCode("LocationSearch", "access_denied_to_add_location_index", "Only Location module have access to add index");
+        _RevertCodes().registerRevertCode("LocationSearch", "big_offset", "Big offset");
     }
 
     function _Location() private view returns(ILocation) {
@@ -36,6 +42,14 @@ contract LocationSearch is ILocationSearch, Initializable {
             revert("access_denied_to_add_location_index");
 
         locations_index[lat][lon].push(location_id);
+    }
+
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
+    }
+
+    function _panic(string memory code) private {
+        _RevertCodes().panic("LocationSearch", code);
     }
 
 

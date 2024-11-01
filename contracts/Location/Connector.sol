@@ -8,12 +8,14 @@ import "./IConnector.sol";
 import "../User/IAuth.sol";
 import "../Tariff/ITariff.sol";
 import "../User/IUserAccess.sol";
-
+import "../RevertCodes/IRevertCodes.sol";
 
 contract Connector is IConnector, Initializable {
+
     address hubContract;
     uint256 partner_id;
     uint256 connector_counter;
+
     mapping (uint256 => Connector)  connectors;
     mapping (uint256 => uint256) last_updated;
     mapping (uint256 => ConnectorStatus) connector_status;
@@ -22,6 +24,12 @@ contract Connector is IConnector, Initializable {
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
+    }
+
+    function registerRevertCodes() external {
+        _RevertCodes().registerRevertCode("Connector", "access_denied_level_four", "Access denied, you must have access to module Connector not lower than four");
+        _RevertCodes().registerRevertCode("Connector", "evse_does_not_exist", "EVSE does not exist");
+        _RevertCodes().registerRevertCode("Connector", "tariff_does_not_exist", "EVSE does not exist");
     }
 
     function getVersion() external pure returns(string memory){
@@ -51,6 +59,14 @@ contract Connector is IConnector, Initializable {
         return ITariff(IHub(hubContract).getModule("Tariff", partner_id));
     }
 
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
+    }
+
+    function _panic(string memory code) private {
+        _RevertCodes().panic("Connector", code);
+    }
+
     function add(bytes32 _token, Connector memory connector, uint256 evse_id) external {
         
         uint256 user_id = _Auth().isLogin(_token);
@@ -58,11 +74,11 @@ contract Connector is IConnector, Initializable {
         uint access_level = _UserAccess().getModuleAccessLevel("Connector", user_id);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
-            revert("access_denied");
+            _panic("access_denied_level_four");
         }
 
         if(!_EVSE().exist(evse_id))
-            revert("evse_does_not_exist");
+            _panic("evse_does_not_exist");
 
         connector_counter++;
 
@@ -81,7 +97,7 @@ contract Connector is IConnector, Initializable {
     function setTariffs(bytes32 _token, uint256 id, uint256[] calldata _tariffs) access(_token, id) external {
         for (uint i = 0; i < _tariffs.length; i++) {
             if(!_Tariff().exist(_tariffs[i]))
-                revert("tarif_not_exist ");
+                revert("tariff_does_not_exist");
         }
         connector_tariff[id] = _tariffs;
     }

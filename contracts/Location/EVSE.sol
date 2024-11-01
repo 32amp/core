@@ -9,7 +9,7 @@ import "./IConnector.sol";
 import "./IEVSE.sol";
 import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
-
+import "../RevertCodes/IRevertCodes.sol";
 
 contract EVSE is IEVSE, Initializable {
     mapping (uint256 => EVSE)  evses;
@@ -29,6 +29,14 @@ contract EVSE is IEVSE, Initializable {
         hubContract = _hubContract;
         partner_id = _partner_id;
     }
+
+    function registerRevertCodes() external{
+        _RevertCodes().registerRevertCode("EVSE", "access_denied", "Access denied, you must have access to module EVSE not lower than four");
+        _RevertCodes().registerRevertCode("EVSE", "location_does_not_exist", "Location does not exist");
+        _RevertCodes().registerRevertCode("EVSE", "add_connectors_first", "You cannot set status Available because you dont have connectors");
+        _RevertCodes().registerRevertCode("EVSE", "connector_does_not_exist", "Connector does not eist");
+    }
+    
 
     function getVersion() external pure returns(string memory){
         return "1.0";
@@ -51,6 +59,16 @@ contract EVSE is IEVSE, Initializable {
     }
 
 
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
+    }
+
+    function _panic(string memory code) private {
+        _RevertCodes().panic("EVSE", code);
+    }
+
+
+
     function exist(uint256 id) external view returns(bool){
         if(evses_last_updated[id] != 0)
             return true;
@@ -65,11 +83,11 @@ contract EVSE is IEVSE, Initializable {
         uint access_level = _UserAccess().getModuleAccessLevel("EVSE", user_id);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
-            revert("access_denied");
+            _panic("access_denied");
         }
 
         if(!_Location().exist(location_id))
-            revert("location_does_not_exist");
+            _panic("location_does_not_exist");
 
         evsecounter++;
 
@@ -114,7 +132,7 @@ contract EVSE is IEVSE, Initializable {
         
 
         if(evse_connectors[id].length == 0 && status == EVSEStatus.Available)
-            revert("add_connectors_first");
+            _panic("add_connectors_first");
 
         evses_status[id] = status;
     }
@@ -126,7 +144,7 @@ contract EVSE is IEVSE, Initializable {
         
         if(IHub(hubContract).getModule("Connector", partner_id) != msg.sender)
             if(!_Connector().exist(connector_id))
-                revert("connector_does_not_exist");
+                _panic("connector_does_not_exist");
 
         evse_connectors[evse_id].push(connector_id);
         _updated(evse_id);

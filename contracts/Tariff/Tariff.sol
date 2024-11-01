@@ -7,6 +7,7 @@ import "./ITariff.sol";
 import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 import "../Services/ICurrencies.sol";
+import "../RevertCodes/IRevertCodes.sol";
 
 contract Tariff is ITariff, Initializable {
     address hubContract;
@@ -29,6 +30,11 @@ contract Tariff is ITariff, Initializable {
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
+    }
+
+    function registerRevertCodes() external {
+        _RevertCodes().registerRevertCode("Tariff", "access_denied", "Access denied, you must have access to module Location not lower than four");
+        _RevertCodes().registerRevertCode("Tariff", "currency_does_not_exist", "Currency does not exist");
     }
 
     function getVersion() external pure returns(string memory){
@@ -63,17 +69,26 @@ contract Tariff is ITariff, Initializable {
         return ICurrencies(IHub(hubContract).getService("Currencies"));
     }
 
+    function _RevertCodes() private view returns(IRevertCodes) {
+        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
+    }
+
+    function _panic(string memory code) private {
+        _RevertCodes().panic("Tariff", code);
+    }
+
+
     function add(bytes32 _token, Tariff calldata tariff) external {
         uint256 user_id = _Auth().isLogin(_token);
 
         uint access_level = _UserAccess().getModuleAccessLevel("Tariff", user_id);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
-            revert("access_denied");
+            _panic("access_denied");
         }
 
         if(!_Currencies().exist(tariff.currency))
-            revert("currency_not_exist");
+            _panic("currency_does_not_exist");
 
         counter++;
         tariffs[counter] = tariff;

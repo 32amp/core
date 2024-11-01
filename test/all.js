@@ -58,19 +58,29 @@ before(async function() {
     this.partner = await GetEventArgumentsByNameAsync(tx, "AddPartner")
 
     
+    this.RevertCodes = await deployProxy("RevertCodes",[this.partner.id,this.Hub.target],"",false);
+
+    await this.Hub.addModule("RevertCodes", this.RevertCodes.target)
+
+    console.log("RevertCodes deployed to:", this.RevertCodes.target);
 
     //
     
     this.User = await deployProxy("User",[this.partner.id,this.Hub.target],"",false);
 
-    await this.Hub.addModule("User", this.User.target)
+    let tx2 = await this.Hub.addModule("User", this.User.target)
+    await tx2.wait()
+
+    await this.User.registerRevertCodes()
     console.log("User deployed to:", this.User.target);
 
 
 
     this.Auth = await deployProxy("Auth",[this.partner.id,this.Hub.target, tg_bot_token],"",false);
 
-    await this.Hub.addModule("Auth", this.Auth.target)
+    let tx3 = await this.Hub.addModule("Auth", this.Auth.target)
+    await tx3.wait()
+    await this.Auth.registerRevertCodes()
     await this.Auth.registerByPassword(this.sudoUser.login, this.sudoUser.password);
     
     console.log("Auth deployed to:", this.Auth.target);
@@ -80,7 +90,9 @@ before(async function() {
 
 
     this.UserGroups =  await deployProxy("UserGroups",[this.partner.id,this.Hub.target],"",false);
-    await this.Hub.addModule("UserGroups", this.UserGroups.target);
+    let tx4 = await this.Hub.addModule("UserGroups", this.UserGroups.target);
+    await tx4.wait()
+    await this.UserGroups.registerRevertCodes()
     console.log("UserGroups deployed to:", this.UserGroups.target);
 
 
@@ -88,7 +100,9 @@ before(async function() {
     
     this.Tariff = await deployProxy("Tariff",[this.partner.id,this.Hub.target],"",false);
     
-    await this.Hub.addModule("Tariff", this.Tariff.target);
+    let tx5 = await this.Hub.addModule("Tariff", this.Tariff.target);
+    await tx5.wait()
+    await this.Tariff.registerRevertCodes()
     console.log("Tariff deployed to:", this.Tariff.target);
     
 
@@ -96,7 +110,9 @@ before(async function() {
     
     this.Location = await deployProxy("Location",[this.partner.id,this.Hub.target],"",false);
 
-    await this.Hub.addModule("Location", this.Location.target);
+    let tx6 = await this.Hub.addModule("Location", this.Location.target);
+    await tx6.wait()
+    await this.Location.registerRevertCodes()
     console.log("Location deployed to:", this.Location.target);
 
 
@@ -104,7 +120,9 @@ before(async function() {
 
     this.LocationSearch = await deployProxy("LocationSearch",[this.partner.id,this.Hub.target],"",false);
 
-    await this.Hub.addModule("LocationSearch", this.LocationSearch.target);
+    let tx7 = await this.Hub.addModule("LocationSearch", this.LocationSearch.target);
+    await tx7.wait()
+    await this.LocationSearch.registerRevertCodes()
     console.log("LocationSearch deployed to:", this.LocationSearch.target);
 
     
@@ -112,7 +130,9 @@ before(async function() {
 
     this.EVSE = await deployProxy("EVSE",[this.partner.id,this.Hub.target],"",false);
 
-    await this.Hub.addModule("EVSE", this.EVSE.target);
+    let tx8 = await this.Hub.addModule("EVSE", this.EVSE.target);
+    await tx8.wait()
+    await this.EVSE.registerRevertCodes()
     console.log("EVSE deployed to:", this.EVSE.target);
 
 
@@ -121,7 +141,9 @@ before(async function() {
     
     this.Connector = await deployProxy("Connector",[this.partner.id,this.Hub.target],"",false);
 
-    await this.Hub.addModule("Connector", this.Connector.target);
+    let tx9 = await this.Hub.addModule("Connector", this.Connector.target);
+    await tx9.wait();
+    await this.Connector.registerRevertCodes()
     console.log("Connector deployed to:", this.Connector.target);
 
     //Connector
@@ -129,14 +151,18 @@ before(async function() {
     
     this.UserSupportChat = await deployProxy("UserSupportChat",[this.partner.id,this.Hub.target],"",false);
     
-    await this.Hub.addModule("UserSupportChat", this.UserSupportChat.target);
+    let tx10 = await this.Hub.addModule("UserSupportChat", this.UserSupportChat.target);
+    await tx10.wait()
+    await this.UserSupportChat.registerRevertCodes()
     console.log("UserSupportChat deployed to:", this.UserSupportChat.target);
 
 
 
     this.UserAccess = await deployProxy("UserAccess",[this.partner.id,this.Hub.target],"",false);
 
-    this.Hub.addModule("UserAccess", this.UserAccess.target);
+    let tx11 = await this.Hub.addModule("UserAccess", this.UserAccess.target);
+    await tx11.wait();
+    await this.UserAccess.registerRevertCodes()
     console.log("UserAccess deployed to:", this.UserAccess.target);
 
 })
@@ -174,16 +200,17 @@ describe("Hub", function(){
     it("getPartnerModules", async function(){
         const modules = await this.Hub.getPartnerModules(1);
 
-        expect(modules[0]).to.equal("User")
-        expect(modules[1]).to.equal("Auth")
-        expect(modules[2]).to.equal("UserGroups")
-        expect(modules[3]).to.equal("Tariff")
-        expect(modules[4]).to.equal("Location")
-        expect(modules[5]).to.equal("LocationSearch")
-        expect(modules[6]).to.equal("EVSE")
-        expect(modules[7]).to.equal("Connector")
-        expect(modules[8]).to.equal("UserSupportChat")
-        expect(modules[9]).to.equal("UserAccess")
+        expect(modules[0]).to.equal("RevertCodes")
+        expect(modules[1]).to.equal("User")
+        expect(modules[2]).to.equal("Auth")
+        expect(modules[3]).to.equal("UserGroups")
+        expect(modules[4]).to.equal("Tariff")
+        expect(modules[5]).to.equal("Location")
+        expect(modules[6]).to.equal("LocationSearch")
+        expect(modules[7]).to.equal("EVSE")
+        expect(modules[8]).to.equal("Connector")
+        expect(modules[9]).to.equal("UserSupportChat")
+        expect(modules[10]).to.equal("UserAccess")
         //
     })
 
