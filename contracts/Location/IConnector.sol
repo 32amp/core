@@ -20,5 +20,6 @@ interface IConnector is DataTypes {
     function getVersion() external pure returns(string memory);
     function add(bytes32 _token, Connector memory connector, uint256 evse_id) external;
     function get(uint256 id) external view returns (output memory);
+    function setTariffs(bytes32 _token, uint256 id, uint256[] calldata _tariffs) external;
     function exist(uint256 id) external view returns(bool);
 }
