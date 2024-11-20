@@ -9,6 +9,7 @@ import "./IUserAccess.sol";
 import "../Hub/IHub.sol";
 import "../Services/IMessageOracle.sol";
 import "../RevertCodes/IRevertCodes.sol";
+import "hardhat/console.sol";
 
 contract Auth is IAuth, Initializable, OwnableUpgradeable {
 
@@ -170,6 +171,19 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
         return (auth_tokens[token], token);
     }
 
+    function getAuthTokenByTGV2(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data, uint token_id) external view returns (AuthToken memory, bytes32) {
+        if(!_authByTgV2(payload, _hash))
+            revert("hash_invalid");
+
+        uint256 user_id = tg_users_index[user_data.id];
+
+        if(user_id == 0)
+            revert("user_not_found");
+
+        bytes32 token = user_tokens[user_id][token_id];
+        return (auth_tokens[token], token);
+    }
+
     function _createAuthToken(uint256 user_id, bytes32 salt) internal {
         AuthToken memory token;
         token.date_start = block.timestamp;
@@ -257,7 +271,7 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
         uint amount = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender, block.number))) % (max_number-min_number);
         amount = amount + min_number;
         return bytes32(abi.encode(amount));
-   }
+    }
 
 
     function authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) external {
@@ -282,6 +296,35 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
         bytes32 secret_key = hmacsha256(tg_bot_token, abi.encodePacked(web_app_data));
 
         bytes32 calculated_hash = hmacsha256(payload, abi.encodePacked(secret_key));
+        if(calculated_hash == _hash)
+            return true;
+        else
+            return false;
+    }
+
+    function authByTgV2(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) external {
+        
+        if(_authByTgV2(payload, _hash)){
+            if(tg_users_index[user_data.id] == 0){
+                uint256 user_id = _User().addUser();
+                tg_users_index[user_data.id] = user_id;
+                _User().fromContractUpdateData(user_id,user_data.first_name, user_data.last_name, user_data.language_code, user_data.id);
+                _createAuthToken(user_id, _hash);
+            }else{
+                _createAuthToken(tg_users_index[user_data.id], _hash);
+            }
+        }else{
+            revert("access_denied_v2");
+        }
+    }
+
+    function _authByTgV2(bytes memory payload, bytes32 _hash ) internal view returns(bool) {
+        
+
+        bytes32 secret_key = sha256(tg_bot_token);
+
+        bytes32 calculated_hash = hmacsha256(payload, abi.encodePacked(secret_key));
+
         if(calculated_hash == _hash)
             return true;
         else

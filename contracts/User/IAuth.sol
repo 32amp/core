@@ -50,10 +50,12 @@ interface IAuth {
     function getAuthTokenBySMS(bytes32 phone_number, bytes32 code,uint token_id) external view returns (AuthToken memory, bytes32);
     function getAuthTokenByEmail(bytes32 email, bytes32 code,uint token_id) external view returns (AuthToken memory, bytes32);
     function getAuthTokenByTG(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data, uint token_id) external view returns (AuthToken memory, bytes32);
+    function getAuthTokenByTGV2(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data, uint token_id) external view returns (AuthToken memory, bytes32);
     function isLogin(bytes32 _token) external view returns (uint256);
     function sendSmsForAuth(bytes32 recipient) external;
     function authBySmsCode(bytes32 phone_number, bytes32 code) external;
     function sendEmailForAuth(bytes32 recipient) external;
     function authByEmailCode(bytes32 email, bytes32 code) external;
     function authByTg(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) external;
+    function authByTgV2(bytes memory payload, bytes32 _hash, WebAppUserData memory user_data ) external;
 }

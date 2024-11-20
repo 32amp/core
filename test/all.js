@@ -19,7 +19,7 @@ before(async function() {
         token:null
     }
 
-    const tg_bot_token = ethers.toUtf8Bytes("7137095373:AAFxe-tRpq3MqhhfZ4xKAsRQtMUWTsZ4CPo")
+    const tg_bot_token = ethers.toUtf8Bytes("6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno")
 
     this.owner = accounts[0].address;
     this.anotherUser = accounts[1]
@@ -350,8 +350,10 @@ describe("Auth", function(){
 
 
         const initData = new URLSearchParams(user_token);
+        
         const payload = createpayload(initData)
-
+        console.log("payload",payload)
+        
         const user_data = JSON.parse(initData.get("user")); 
 
         const web_app_data = {
@@ -365,6 +367,52 @@ describe("Auth", function(){
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
         let token = await this.Auth.getAuthTokenByTG(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data, authSuccess.token_id)
+
+        this.testUser.tokentg = token[1];    
+
+        expect(token[1].length).to.equal(66)
+    })
+
+    it("authByTgV2", async function (){
+        const user = {"id":555536511,"first_name":"Mihail","last_name":"Ivantsov","username":"progerlab","photo_url":"https://t.me/i/userpic/320/Ap2yHfkoR10a15E4BPijonJaREc9xWPs_wHn2siMEkM.jpg","auth_date":1732112828,"hash":"7bdc3db59949faeb42cfd8a0f212efca72ad18b639d33c98f85181999d6b7af9"};
+
+        const createpayloadv2 = function(initData){
+    
+            let array = []
+            
+            const ordered = Object.keys(initData).sort().reduce(
+                (obj, key) => { 
+                  obj[key] = initData[key]; 
+                  return obj;
+                }, 
+                {}
+            );
+
+            for (const key in ordered) {
+                if (Object.hasOwnProperty.call(ordered, key)) {
+                    const value = ordered[key];
+                    if(key != "hash")
+                        array.push(`${key}=${value}`)
+                }
+            }
+
+            return array.join("\n")
+        }
+        
+        const payload = createpayloadv2(user)
+        
+        console.log("payload",payload)
+        const web_app_data = {
+            id: user.id,
+            first_name: ethers.encodeBytes32String(user.first_name),
+            last_name:ethers.encodeBytes32String(user.last_name),
+            language_code:ethers.encodeBytes32String(""),
+        }
+        
+        let auth = await this.Auth.authByTgV2(ethers.toUtf8Bytes(payload), "0x"+user.hash, web_app_data)
+        let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
+
+        let token = await this.Auth.getAuthTokenByTGV2(ethers.toUtf8Bytes(payload), "0x"+user.hash, web_app_data, authSuccess.token_id)
 
         this.testUser.tokentg = token[1];    
 
