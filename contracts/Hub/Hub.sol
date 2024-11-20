@@ -63,6 +63,9 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
             revert("deposit_amount_not_enouth");
         }
 
+        if(owner_address_to_id[msg.sender] != 0)
+            revert("you_already_register_partner");
+
 
         counter++;
 
