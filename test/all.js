@@ -1,169 +1,36 @@
-const { expect }   =   require('chai');
-const {deployProxy} = require("../utils/deploy")
+const { expect } = require('chai');
+
 
 const {GetEventArgumentsByNameAsync, createpayload} = require("../utils/IFBUtils");
+const {deploy} = require("./lib/deploy");
 
 before(async function() {
-
-
-    accounts = await ethers.getSigners();
-
-    this.testUser = {
-        login: ethers.encodeBytes32String("darkrain"),
-        password: ethers.encodeBytes32String("159753"),
-    }
-
+    const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
+    
     this.sudoUser = {
         login: ethers.encodeBytes32String("sudo"),
         password: ethers.encodeBytes32String("433455"),
         token:null
     }
 
-    const tg_bot_token = ethers.toUtf8Bytes("6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno")
-
-    this.owner = accounts[0].address;
-    this.anotherUser = accounts[1]
-
-    console.log("Deploying Contracts...");
-   
-    //
-    const EmailServiceAddess =  await deployProxy("MessageOracle",[60n, 1n, false, "Message: [message]"],"Email", false);
-    const SMSServiceAddress = await deployProxy("MessageOracle",[60n, 1n, false, "Message: [message]"],"SMS", false);
-    const Currencies = await deployProxy("Currencies",[],"",false);
-    this.Hub = await deployProxy("Hub",[[
-        {
-          name: "EmailService",
-          contract_address:EmailServiceAddess.target
-        },
-        {
-          name: "SMSService",
-          contract_address: SMSServiceAddress.target
-        },
-        {
-          name: "Currencies",
-          contract_address: Currencies.target
-        },
-    ]],"",false);
-
-    console.log("Hub deployed to:", this.Hub.target);
-
-    let tx = await this.Hub.registerPartner(
-        ethers.encodeBytes32String("PortalEnergy"),
-        ethers.toUtf8Bytes("RU"),
-        ethers.toUtf8Bytes("POE"),{
-            value:ethers.parseEther("2") 
-        }
-    );
-
-    this.partner = await GetEventArgumentsByNameAsync(tx, "AddPartner")
-
-    
-    this.RevertCodes = await deployProxy("RevertCodes",[this.partner.id,this.Hub.target],"",false);
-
-    await this.Hub.addModule("RevertCodes", this.RevertCodes.target)
-
-    console.log("RevertCodes deployed to:", this.RevertCodes.target);
-
-    //
-    
-    this.User = await deployProxy("User",[this.partner.id,this.Hub.target],"",false);
-
-    let tx2 = await this.Hub.addModule("User", this.User.target)
-    await tx2.wait()
-
-    await this.User.registerRevertCodes()
-    console.log("User deployed to:", this.User.target);
+    this.contracts = await deploy(tgtoken,this.sudoUser,{
+        User: true,
+        MobileApp: true,
+        Auth: true,
+        UserGroups: true,
+        Tariff: true,
+        Location: true,
+        LocationSearch: true,
+        EVSE: true,
+        Connector: true,
+        UserSupportChat: true,
+    })
 
 
-
-    this.Auth = await deployProxy("Auth",[this.partner.id,this.Hub.target, tg_bot_token],"",false);
-
-    let tx3 = await this.Hub.addModule("Auth", this.Auth.target)
-    await tx3.wait()
-    await this.Auth.registerRevertCodes()
-    await this.Auth.registerByPassword(this.sudoUser.login, this.sudoUser.password);
-    
-    console.log("Auth deployed to:", this.Auth.target);
-    await SMSServiceAddress.refill(this.Auth.target,{value:10n});
-    await EmailServiceAddess.refill(this.Auth.target,{value:10n});
-
-
-
-    this.UserGroups =  await deployProxy("UserGroups",[this.partner.id,this.Hub.target],"",false);
-    let tx4 = await this.Hub.addModule("UserGroups", this.UserGroups.target);
-    await tx4.wait()
-    await this.UserGroups.registerRevertCodes()
-    console.log("UserGroups deployed to:", this.UserGroups.target);
-
-
-    // Tariff
-    
-    this.Tariff = await deployProxy("Tariff",[this.partner.id,this.Hub.target],"",false);
-    
-    let tx5 = await this.Hub.addModule("Tariff", this.Tariff.target);
-    await tx5.wait()
-    await this.Tariff.registerRevertCodes()
-    console.log("Tariff deployed to:", this.Tariff.target);
-    
-
-    // Location
-    
-    this.Location = await deployProxy("Location",[this.partner.id,this.Hub.target],"",false);
-
-    let tx6 = await this.Hub.addModule("Location", this.Location.target);
-    await tx6.wait()
-    await this.Location.registerRevertCodes()
-    console.log("Location deployed to:", this.Location.target);
-
-
-    // LocationSearch
-
-    this.LocationSearch = await deployProxy("LocationSearch",[this.partner.id,this.Hub.target],"",false);
-
-    let tx7 = await this.Hub.addModule("LocationSearch", this.LocationSearch.target);
-    await tx7.wait()
-    await this.LocationSearch.registerRevertCodes()
-    console.log("LocationSearch deployed to:", this.LocationSearch.target);
-
-    
-    // EVSE
-
-    this.EVSE = await deployProxy("EVSE",[this.partner.id,this.Hub.target],"",false);
-
-    let tx8 = await this.Hub.addModule("EVSE", this.EVSE.target);
-    await tx8.wait()
-    await this.EVSE.registerRevertCodes()
-    console.log("EVSE deployed to:", this.EVSE.target);
-
-
-    //Connector
-
-    
-    this.Connector = await deployProxy("Connector",[this.partner.id,this.Hub.target],"",false);
-
-    let tx9 = await this.Hub.addModule("Connector", this.Connector.target);
-    await tx9.wait();
-    await this.Connector.registerRevertCodes()
-    console.log("Connector deployed to:", this.Connector.target);
-
-    //Connector
-
-    
-    this.UserSupportChat = await deployProxy("UserSupportChat",[this.partner.id,this.Hub.target],"",false);
-    
-    let tx10 = await this.Hub.addModule("UserSupportChat", this.UserSupportChat.target);
-    await tx10.wait()
-    await this.UserSupportChat.registerRevertCodes()
-    console.log("UserSupportChat deployed to:", this.UserSupportChat.target);
-
-
-
-    this.UserAccess = await deployProxy("UserAccess",[this.partner.id,this.Hub.target],"",false);
-
-    let tx11 = await this.Hub.addModule("UserAccess", this.UserAccess.target);
-    await tx11.wait();
-    await this.UserAccess.registerRevertCodes()
-    console.log("UserAccess deployed to:", this.UserAccess.target);
+    this.testUser = {
+        login: ethers.encodeBytes32String("darkrain"),
+        password: ethers.encodeBytes32String("159753"),
+    }
 
 })
 
@@ -172,35 +39,36 @@ describe("Hub", function(){
 
 
     it("getMe", async function(){
-        const me = await this.Hub.me();
+        const me = await this.contracts.Hub.me();
 
         expect(me.owner_address).to.equal(this.owner)
     })
 
 
     it("getPartnerByAddress", async function(){
-        const me = await this.Hub.getPartnerByAddress(this.owner);
+        const me = await this.contracts.Hub.getPartnerByAddress(this.owner);
 
         expect(me.owner_address).to.equal(this.owner)
     })
 
     it("getPartnerIdByAddress", async function(){
-        const id = await this.Hub.getPartnerIdByAddress(this.owner);
+        const id = await this.contracts.Hub.getPartnerIdByAddress(this.owner);
 
         expect(1).to.equal(id)
     })
 
 
     it("getPartner", async function(){
-        const me = await this.Hub.getPartner(1);
+        const me = await this.contracts.Hub.getPartner(1);
 
         expect(me.owner_address).to.equal(this.owner)
     })
 
     it("getPartnerModules", async function(){
-        const modules = await this.Hub.getPartnerModules(1);
+        const modules = await this.contracts.Hub.getPartnerModules(1);
 
         expect(modules[0]).to.equal("RevertCodes")
+        expect(modules[1]).to.equal("MobileApp  ")
         expect(modules[1]).to.equal("User")
         expect(modules[2]).to.equal("Auth")
         expect(modules[3]).to.equal("UserGroups")
@@ -216,67 +84,69 @@ describe("Hub", function(){
 
 
     it("getPartners", async function(){
-        const partners = await this.Hub.getPartners()
+        const partners = await this.contracts.Hub.getPartners()
 
         expect(partners.length).to.equal(1)
     })
 
     it("changeModuleAddress", async function(){
-        await this.Hub.changeModuleAddress("User", this.Hub.target)
+        await this.contracts.Hub.changeModuleAddress("User", this.contracts.Hub.target)
 
-        let moduleAdress = await this.Hub.getModule("User", 1)
-        expect(moduleAdress).to.equal(this.Hub.target)
+        let moduleAdress = await this.contracts.Hub.getModule("User", 1)
 
-        await this.Hub.changeModuleAddress("User", this.User.target)
-        let moduleAdressBack = await this.Hub.getModule("User", 1)
-        expect(moduleAdressBack).to.equal(this.User.target)
+        expect(moduleAdress).to.equal(this.contracts.Hub.target)
+
+        let tx = await this.contracts.Hub.changeModuleAddress("User", this.contracts.User.target)
+
+        await tx.wait()
+        let moduleAdressBack = await this.contracts.Hub.getModule("User", 1)
+        expect(moduleAdressBack).to.equal(this.contracts.User.target)
     })
 
     it("checkModuleExist", async function(){
-        let checkOne = await this.Hub.checkModuleExist("User", 1)
+        let checkOne = await this.contracts.Hub.checkModuleExist("User", 1)
 
-        expect(checkOne).to.equal(this.User.target)
+        expect(checkOne).to.equal(this.contracts.User.target)
 
     })
 
     it("getPartnerByAddress", async function(){
-        let partner = await this.Hub.getPartnerByAddress(this.owner);
+        let partner = await this.contracts.Hub.getPartnerByAddress(this.owner);
 
         expect(partner.id).to.equal(1n)
     })
 
     it("getPartnerIdByAddress", async function(){
-        let partner = await this.Hub.getPartnerIdByAddress(this.owner)
+        let partner = await this.contracts.Hub.getPartnerIdByAddress(this.owner)
         expect(partner).to.equal(1n)
     })
 
     it("getPartnerName", async function(){
-        let name = await this.Hub.getPartnerName(1n)
+        let name = await this.contracts.Hub.getPartnerName(1n)
 
         expect(name).to.equal(ethers.encodeBytes32String("PortalEnergy"))
     })
 
     it("getPartnerPartyId", async function(){
-        let partyId = await this.Hub.getPartnerPartyId(1n)
+        let partyId = await this.contracts.Hub.getPartnerPartyId(1n)
 
         expect(partyId).to.equal(ethers.hexlify(ethers.toUtf8Bytes("POE")))
     })
 
     it("getPartnerCountryCode", async function(){
-        let code = await this.Hub.getPartnerCountryCode(1n)
+        let code = await this.contracts.Hub.getPartnerCountryCode(1n)
         
         expect(code).to.equal(ethers.hexlify(ethers.toUtf8Bytes("RU")))
     })
 })
 
-
 describe("Auth", function(){
 
     it("authSudoUser", async function(){
-        let auth = await this.Auth.authByPassword(this.sudoUser.login,this.sudoUser.password)
+        let auth = await this.contracts.Auth.authByPassword(this.sudoUser.login,this.sudoUser.password)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.Auth.getAuthTokenByPassword(this.sudoUser.login,this.sudoUser.password, authSuccess.token_id)
+        let token = await this.contracts.Auth.getAuthTokenByPassword(this.sudoUser.login,this.sudoUser.password, authSuccess.token_id)
 
         this.sudoUser.token = token[1];        
 
@@ -285,13 +155,13 @@ describe("Auth", function(){
 
 
     it("registerByPassword", async function(){
-        let register = await this.Auth.registerByPassword(this.testUser.login,this.testUser.password)
+        let register = await this.contracts.Auth.registerByPassword(this.testUser.login,this.testUser.password)
         await register.wait()
 
-        let auth = await this.Auth.authByPassword(this.testUser.login,this.testUser.password)
+        let auth = await this.contracts.Auth.authByPassword(this.testUser.login,this.testUser.password)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.Auth.getAuthTokenByPassword(this.testUser.login,this.testUser.password, authSuccess.token_id)
+        let token = await this.contracts.Auth.getAuthTokenByPassword(this.testUser.login,this.testUser.password, authSuccess.token_id)
 
         this.testUser.token = token[1];        
 
@@ -301,23 +171,23 @@ describe("Auth", function(){
 
 
     it("isLogin", async function(){
-        const isLogin =  await this.Auth.isLogin(this.testUser.token);
+        const isLogin =  await this.contracts.Auth.isLogin(this.testUser.token);
 
         expect(Number(isLogin)).to.equal(2)
     })
 
     it("setTestUserByPhone", async function(){
-        await this.Auth.setTestUserByPhone(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"));
+        await this.contracts.Auth.setTestUserByPhone(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"));
     })
 
     it("sendSmsForAuth, authBySmsCode", async function(){
 
-        await this.Auth.sendSmsForAuth(ethers.encodeBytes32String("+79999999998"))
+        await this.contracts.Auth.sendSmsForAuth(ethers.encodeBytes32String("+79999999998"))
 
-        let auth = await this.Auth.authBySmsCode(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"))
+        let auth = await this.contracts.Auth.authBySmsCode(ethers.encodeBytes32String("+79999999998"), ethers.encodeBytes32String("8888"))
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.Auth.getAuthTokenBySMS(ethers.encodeBytes32String("+79999999998"),ethers.encodeBytes32String("8888"), authSuccess.token_id)
+        let token = await this.contracts.Auth.getAuthTokenBySMS(ethers.encodeBytes32String("+79999999998"),ethers.encodeBytes32String("8888"), authSuccess.token_id)
 
         this.testUser.tokensms = token[1];        
 
@@ -327,17 +197,17 @@ describe("Auth", function(){
 
 
     it("setTestEmailByPhone", async function(){
-        await this.Auth.setTestUserByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"));
+        await this.contracts.Auth.setTestUserByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"));
     })
 
     it("sendEmailForAuth, authByEmailCode", async function(){
 
-        await this.Auth.sendEmailForAuth(ethers.encodeBytes32String("test@example.com"))
+        await this.contracts.Auth.sendEmailForAuth(ethers.encodeBytes32String("test@example.com"))
 
-        let auth = await this.Auth.authByEmailCode(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"))
+        let auth = await this.contracts.Auth.authByEmailCode(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"))
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.Auth.getAuthTokenByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"), authSuccess.token_id)
+        let token = await this.contracts.Auth.getAuthTokenByEmail(ethers.encodeBytes32String("test@example.com"), ethers.encodeBytes32String("8888"), authSuccess.token_id)
 
         this.testUser.tokenemail = token[1];        
 
@@ -363,10 +233,10 @@ describe("Auth", function(){
             language_code:ethers.encodeBytes32String(user_data.language_code),
         }
         
-        let auth = await this.Auth.authByTg(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data)
+        let auth = await this.contracts.Auth.authByTg(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.Auth.getAuthTokenByTG(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data, authSuccess.token_id)
+        let token = await this.contracts.Auth.getAuthTokenByTG(ethers.toUtf8Bytes(payload), "0x"+initData.get("hash"), web_app_data, authSuccess.token_id)
 
         this.testUser.tokentg = token[1];    
 
@@ -409,24 +279,35 @@ describe("Auth", function(){
             language_code:ethers.encodeBytes32String(""),
         }
         
-        let auth = await this.Auth.authByTgV2(ethers.toUtf8Bytes(payload), "0x"+user.hash, web_app_data)
+        let auth = await this.contracts.Auth.authByTgV2(ethers.toUtf8Bytes(payload), "0x"+user.hash, web_app_data)
         let authSuccess = await GetEventArgumentsByNameAsync(auth, "CreateAuthToken")
 
-        let token = await this.Auth.getAuthTokenByTGV2(ethers.toUtf8Bytes(payload), "0x"+user.hash, web_app_data, authSuccess.token_id)
+        let token = await this.contracts.Auth.getAuthTokenByTGV2(ethers.toUtf8Bytes(payload), "0x"+user.hash, web_app_data, authSuccess.token_id)
 
-        this.testUser.tokentg = token[1];    
+        this.testUser.tokentg2 = token[1];    
 
         expect(token[1].length).to.equal(66)
     })
 
 })
 
+
+
+
+/* describe("MobileApp", function(){
+    it("setLogo", async function(){
+        const logobase64 = `PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTgiIGhlaWdodD0iNDIiIHZpZXdCb3g9IjAgMCAyNTggNDIiIGZpbGw9Im5vbmUiPgogIDxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xNTI4XzMpIj4KICAgIDxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMzYuOTgzNCAyLjI5NTQxSDU4LjkxNDNDNjYuNTczOCA0LjQ1MTI0IDY0LjU4ODYgMTQuNDIzOSA1OC44Njc0IDE1LjA3NTNINDAuNjU2OFYyMi4wNzAySDM2Ljk2NzhWMi4yOTU0MUgzNi45ODM0WiIgZmlsbD0iIzEwMTQyNiIgc3Ryb2tlPSIjMTAxNDI2IiBzdHJva2Utd2lkdGg9IjAuMjE2IiBzdHJva2UtbWl0ZXJsaW1pdD0iMjIuOTI1NiI+PC9wYXRoPgogICAgPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MC44MTM1IDYuMDk1MjFINTcuOTkyNEM2MC41MDkxIDcuMTE4ODUgNjAuNzU5MiA5Ljg2NDA1IDU3Ljk5MjQgMTEuMjc1NEg0MC44MTM1VjYuMDk1MjFaIiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjMTAxNDI2IiBzdHJva2Utd2lkdGg9IjAuMjE2IiBzdHJva2UtbWl0ZXJsaW1pdD0iMjIuOTI1NiI+PC9wYXRoPgogICAgPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMDYuMzI1IDIuMjk1NDVIMTI5LjMzNUMxMzQuNzEyIDMuMDI0NCAxMzYuNzEzIDEyLjI5OTEgMTI5Ljc4OCAxNS4yMzA1TDEzNS4xNjUgMjIuMjI1M0gxMzAuMjU3TDEyNC44MDIgMTUuNjgwMkgxMTAuMTU1VjIyLjIyNTNIMTA2LjMyNVYyLjI5NTQ1WiIgZmlsbD0iIzEwMTQyNiIgc3Ryb2tlPSIjMTAxNDI2IiBzdHJva2Utd2lkdGg9IjAuMjE2IiBzdHJva2UtbWl0ZXJsaW1pdD0iMjIuOTI1NiI+PC9wYXRoPgogICAgPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMTAuMTU1IDYuMDk1MzNIMTI3Ljg4MUMxMjkuODA0IDYuNTQ1MTEgMTMxLjMyIDkuOTcyNzMgMTI3Ljg4MSAxMS40NDYxSDExMC4xNTVWNi4wOTUzM1oiIGZpbGw9IndoaXRlIiBzdHJva2U9IiMxMDE0MjYiIHN0cm9rZS13aWR0aD0iMC4yMTYiIHN0cm9rZS1taXRlcmxpbWl0PSIyMi45MjU2Ij48L3BhdGg+CiAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTEzOS40NDggMi40NTA0OUgxNjQuNzcxVjUuOTU1NjZIMTUzLjg3NlYyMi4wODU2SDE1MC4zNDRWNS45NTU2NkgxMzkuNDQ4VjIuNDUwNDlaIiBmaWxsPSIjMTAxNDI2IiBzdHJva2U9IiMxMDE0MjYiIHN0cm9rZS13aWR0aD0iMC4yMTYiIHN0cm9rZS1taXRlcmxpbWl0PSIyMi45MjU2Ij48L3BhdGg+CiAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTE2OS42NzkgMjIuMjQwN0gxNzMuNTA5VjE0LjYyNTRIMTkyLjUzM1YyMi4yNDA3SDE5Ni4zNjJWOS4xNTA1NUMxOTUuNTE4IDUuNjc2NCAxOTMuNzY4IDMuMTAxODEgMTg5IDIuMTU1NzJIMTc3LjE4M0MxNzMuNjE5IDIuMzcyODYgMTcwLjI3MyA1LjYyOTg3IDE2OS42NjQgOS4xNTA1NVYyMi4yNDA3SDE2OS42NzlaIiBmaWxsPSIjMTAxNDI2IiBzdHJva2U9IiMxMDE0MjYiIHN0cm9rZS13aWR0aD0iMC4yMTYiIHN0cm9rZS1taXRlcmxpbWl0PSIyMi45MjU2Ij48L3BhdGg+CiAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTE3My41MDkgMTAuODI1N0gxOTIuNTMzQzE5Mi40ODYgNi45NzkzNCAxODkuNTYzIDYuMTg4MzUgMTg4LjY1NiA2LjE4ODM1SDE3Ny40MTdDMTc2LjA3MyA2LjE4ODM1IDE3My42OTcgNy41NTMxOSAxNzMuNTA5IDEwLjgyNTdaIiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjMTAxNDI2IiBzdHJva2Utd2lkdGg9IjAuMjE2IiBzdHJva2UtbWl0ZXJsaW1pdD0iMjIuOTI1NiI+PC9wYXRoPgogICAgPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMjYuOTA2IDE4LjQ0MDlIMjA5LjU1NUMyMDcuMTMyIDE4LjM0NzkgMjA1LjY3OSAxNi45MzY1IDIwNS40MTMgMTQuMzYxOUwyMDUuMTE2IDIuMjk1NDVIMjAxLjEzVjE0LjkzNThDMjAxLjI1NSAxOS40ODAxIDIwNC4xOTQgMjEuNjgyNCAyMDcuNzI2IDIyLjI0MDhIMjI2LjkwNlYxOC40NDA5WiIgZmlsbD0iIzEwMTQyNiIgc3Ryb2tlPSIjMTAxNDI2IiBzdHJva2Utd2lkdGg9IjAuMjE2IiBzdHJva2UtbWl0ZXJsaW1pdD0iMjIuOTI1NiI+PC9wYXRoPgogICAgPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik02OS40NjU4IDQxLjg2MDRWMzMuNjg2OEg3NS41NjIxVjM1LjA2NzJINzEuMTIyOFYzNi44ODE4SDc1LjI0OTVWMzguMjYyMkg3MS4xMjI4VjQwLjQ4SDc1LjcxODRWNDEuODYwNEg2OS40NjU4Wk05MS4zMDMgNDEuODYwNFYzMy42ODY4SDkyLjkyODdMOTYuMzA1IDM5LjE0NjJWMzMuNjg2OEg5Ny44NTI2VjQxLjg2MDRIOTYuMThMOTIuODUwNSAzNi41MjUxVjQxLjg0NDlIOTEuMzAzVjQxLjg2MDRaTTExMy43NjUgNDEuODYwNFYzMy42ODY4SDExOS44NjJWMzUuMDY3MkgxMTUuNDIyVjM2Ljg4MThIMTE5LjU0OVYzOC4yNjIySDExNS40MjJWNDAuNDhIMTIwLjAxOFY0MS44NjA0SDExMy43NjVaTTEzNS41ODcgNDEuODYwNFYzMy42ODY4SDEzOS4wODhDMTM5Ljk2NCAzMy42ODY4IDE0MC42MDUgMzMuNzY0NCAxNDEuMDExIDMzLjkwNEMxNDEuNDE3IDM0LjA0MzUgMTQxLjczIDM0LjMwNzIgMTQxLjk2NSAzNC42Nzk0QzE0Mi4xOTkgMzUuMDUxNyAxNDIuMzI0IDM1LjQ4NTkgMTQyLjMyNCAzNS45NjY3QzE0Mi4zMjQgMzYuNTcxNiAxNDIuMTM3IDM3LjA4MzQgMTQxLjc3NyAzNy40ODY3QzE0MS40MTcgMzcuODg5OSAxNDAuODcgMzguMTM4MSAxNDAuMTUxIDM4LjI0NjZDMTQwLjUxMSAzOC40NDgzIDE0MC44MDggMzguNjgwOSAxNDEuMDQyIDM4LjkyOTFDMTQxLjI3NyAzOS4xNzcyIDE0MS41ODkgMzkuNjI3IDE0MS45OCA0MC4yNDc0TDE0Mi45ODEgNDEuODQ0OUgxNDAuOTk1TDEzOS43OTIgNDAuMDYxM0MxMzkuMzcgMzkuNDI1NCAxMzkuMDczIDM5LjAyMjEgMTM4LjkxNiAzOC44NjdDMTM4Ljc2IDM4LjY5NjQgMTM4LjU4OCAzOC41ODc5IDEzOC40MTYgMzguNTI1OEMxMzguMjQ0IDM4LjQ2MzggMTM3Ljk2MyAzOC40MzI4IDEzNy41NzIgMzguNDMyOEgxMzcuMjQ0VjQxLjg0NDlIMTM1LjU4N1Y0MS44NjA0Wk0xMzcuMjU5IDM3LjE0NTVIMTM4LjQ5NEMxMzkuMjkyIDM3LjE0NTUgMTM5Ljc5MiAzNy4xMTQ0IDEzOS45OTUgMzcuMDUyNEMxNDAuMTk4IDM2Ljk5MDQgMTQwLjM1NSAzNi44NjYzIDE0MC40NjQgMzYuNzExMkMxNDAuNTczIDM2LjU0MDYgMTQwLjYzNiAzNi4zMzkgMTQwLjYzNiAzNi4xMDYzQzE0MC42MzYgMzUuODI3MSAxNDAuNTU4IDM1LjYxIDE0MC40MTcgMzUuNDM5NEMxNDAuMjc2IDM1LjI2ODggMTQwLjA1OCAzNS4xNjAyIDEzOS43OTIgMzUuMTEzN0MxMzkuNjUxIDM1LjA5ODIgMTM5LjI2IDM1LjA4MjcgMTM4LjU3MyAzNS4wODI3SDEzNy4yNzVWMzcuMTQ1NUgxMzcuMjU5Wk0xNjEuODc5IDM4Ljg1MTVWMzcuNDcxMkgxNjUuNDU5VjQwLjcyODJDMTY1LjExNSA0MS4wNjk0IDE2NC41OTkgNDEuMzY0MSAxNjMuOTQyIDQxLjYxMjJDMTYzLjI4NiA0MS44NjA0IDE2Mi42MTQgNDIgMTYxLjk0MiA0MkMxNjEuMDgyIDQyIDE2MC4zMzIgNDEuODEzOSAxNTkuNjkxIDQxLjQ1NzFDMTU5LjA1IDQxLjEwMDQgMTU4LjU2NSA0MC41ODg2IDE1OC4yNTMgMzkuOTIxN0MxNTcuOTI0IDM5LjI1NDggMTU3Ljc2OCAzOC41MjU4IDE1Ny43NjggMzcuNzUwM0MxNTcuNzY4IDM2Ljg5NzMgMTU3Ljk1NiAzNi4xMzczIDE1OC4yOTkgMzUuNDg1OUMxNTguNjU5IDM0LjgxOSAxNTkuMTkgMzQuMzIyNyAxNTkuODc4IDMzLjk2NkMxNjAuNDEgMzMuNjg2OCAxNjEuMDY2IDMzLjU2MjcgMTYxLjg0OCAzMy41NjI3QzE2Mi44NjQgMzMuNTYyNyAxNjMuNjc3IDMzLjc3OTkgMTY0LjIzOSAzNC4xOTg2QzE2NC44MTggMzQuNjE3NCAxNjUuMTc3IDM1LjIwNjggMTY1LjM0OSAzNS45NjY3TDE2My42OTIgMzYuMjc2OUMxNjMuNTgzIDM1Ljg3MzcgMTYzLjM2NCAzNS41NjM1IDE2My4wMzYgMzUuMzMwOEMxNjIuNzIzIDM1LjA5ODIgMTYyLjMxNyAzNC45ODk2IDE2MS44MzIgMzQuOTg5NkMxNjEuMTEzIDM0Ljk4OTYgMTYwLjUzNSAzNS4yMjIzIDE2MC4wOTcgMzUuNjcyMUMxNTkuNjc1IDM2LjEzNzMgMTU5LjQ1NiAzNi44MDQzIDE1OS40NTYgMzcuNzAzOEMxNTkuNDU2IDM4LjY2NTQgMTU5LjY3NSAzOS4zOTQ0IDE2MC4xMTMgMzkuODkwN0MxNjAuNTUgNDAuMzcxNSAxNjEuMTEzIDQwLjYxOTYgMTYxLjgxNyA0MC42MTk2QzE2Mi4xNiA0MC42MTk2IDE2Mi41MiA0MC41NTc2IDE2Mi44NjQgNDAuNDE4QzE2My4yMDggNDAuMjc4NCAxNjMuNTIgNDAuMTIzMyAxNjMuNzcgMzkuOTIxN1YzOC44ODI1SDE2MS44NzlWMzguODUxNVpNMTgzLjMyNSA0MS44NjA0VjM4LjQxNzNMMTgwLjMwOSAzMy42ODY4SDE4Mi4yNjJMMTg0LjIwMSAzNi45MTI4TDE4Ni4wOTIgMzMuNjg2OEgxODguMDE1TDE4NC45ODIgMzguNDMyOFY0MS44NjA0SDE4My4zMjVaIiBmaWxsPSIjMTAxNDI2Ij48L3BhdGg+CiAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTk5LjEzNDggNi4wOTUzM0MxMDAuNzc2IDcuMTE4OTYgMTAxLjgyMyA4Ljk4MDExIDEwMi4wMTEgMTEuODAyOUwxMDIuMDQyIDE4LjI4NTlDMTAxLjY5OCAyMS45NjE3IDk5LjM2OTMgMjQuNjkxMyA5NS44MjA5IDI1LjI4MDdINzYuODZDNzMuNTE0OCAyNC41NTE4IDcwLjczMjQgMjEuNjk4IDcwLjczMjQgMTguNjczNkM3MC43MzI0IDE4LjY3MzYgNzEuOTM2IDE5LjgzNjggNzMuMzExNiAyMC4wODVMOTIuODgyMiAyMC4xMTZDOTUuMjQyNiAxOS44NTIzIDk4LjMzNzYgMTguNDU2NSA5OS4xMzQ4IDEzLjkyNzdDOTkuMjEzIDEzLjQ5MzQgOTkuMTE5MiA2LjA5NTMzIDk5LjEzNDggNi4wOTUzM1oiIGZpbGw9IiMwMEMyRkYiPjwvcGF0aD4KICAgIDxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNOTIuODgxOSAyMC4xMTU5Qzk2LjQ2MTUgMTkuOTQ1MyA5OC4xMzQxIDE2LjgxMjQgOTguMTM0MSAxNi44MTI0Qzk4LjAwOTEgMTkuMDYxMyA5Ny4xODA2IDIwLjc2NzMgOTQuMzUxMyAyMS4yMDE2SDc4LjIwNEM3Ny40NjkzIDIxLjA5MyA3Ni41MTU4IDIwLjY1ODggNzYuMDkzOCAyMC4xMzE0TDkyLjg4MTkgMjAuMTE1OVoiIGZpbGw9IndoaXRlIj48L3BhdGg+CiAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTczLjc0OTMgMC4wMTU0NDk1SDkyLjc4ODRDOTYuOTYyIDAuMjE3MDc0IDk4Ljg2OSAzLjY5MTIzIDk5LjE4MTcgNi42MjI1NEM5OS4xODE3IDYuNjIyNTQgOTkuMjEyOSAxMi42MDkyIDk5LjIxMjkgMTMuMTA1NkM5OS4xODE3IDE1LjgxOTcgOTcuMzA1OSAxOS42OTcxIDkyLjg5NzggMjAuMTAwNEg3My40MzY2QzcwLjM4ODUgMTkuNjE5NiA2Ny45NSAxNS40MTY1IDY3LjgyNSAxMy4xMzY2QzY3LjgyNSAxMy4xMDU2IDY3LjgyNSA2LjcxNTYgNjcuODI1IDYuNzE1NkM2Ny45ODEzIDQuMDAxNDIgNzAuODU3NSAwLjI2MzYwMyA3My43NDkzIDAuMDE1NDQ5NVoiIGZpbGw9IiMxMDE0MjYiIHN0cm9rZT0iIzEwMTQyNiIgc3Ryb2tlLXdpZHRoPSIwLjIxNiIgc3Ryb2tlLW1pdGVybGltaXQ9IjIyLjkyNTYiPjwvcGF0aD4KICAgIDxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNNzUuMzc0NyAzLjgzMDk0TDkyLjA1MzUgMy44MTU0M0M5My4yNTcxIDMuOTM5NTEgOTQuNjAxNCA1LjAyNTE4IDk1LjE2NDEgNi43OTMyN0M5NS4yNDIzIDcuMDI1OTIgOTUuMzA0OCAxMi4wNTEgOTUuMDA3OCAxMy4wMjgxQzk0LjYxNyAxNC4yODQ0IDkzLjgzNTUgMTUuNTQwNyA5Mi4wNjkxIDE1Ljk5MDVINzUuMzkwM0M3My42Mzk2IDE1Ljc0MjMgNzIuNDk4NSAxNC40ODYgNzIuMDI5NSAxMi42NDA0QzcxLjg3MzIgMTEuOTg5IDcxLjkwNDUgNy42NDYzIDcyLjA2MDggNy4wNDE0M0M3Mi40OTg1IDUuMjg4ODQgNzMuNzMzNCAzLjk4NjA0IDc1LjM3NDcgMy44MzA5NFoiIGZpbGw9IndoaXRlIj48L3BhdGg+CiAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTk0LjMyMDggNS4xOTU4SDc3LjcyMDJDNzQuOTA2NSA1LjQ1OTQ2IDcyLjU0NjEgNy40NzU3MSA3MS45MzY1IDguNzk0MDNMNzEuOTY3OCAxMi4xMTMxQzcyLjE1NTQgMTMuOTU4NyA3My4xNTU4IDE1LjE2ODUgNzQuNjg3NyAxNS44MzU0TDc0Ljc2NTggMTIuNjA5NEM3NC45MjIxIDEwLjE3NDQgNzYuNzY2NiA5LjA4ODcxIDc4Ljg0NTYgOS4wMTExNkw5NS4yMTE3IDkuMDczMkM5NS4yMTE3IDkuMDczMiA5NS4yMTE3IDcuNDYwMiA5NS4xNjQ4IDYuOTYzOUM5NS4xMTggNi4zOTAwNCA5NC42MzM0IDUuNDU5NDYgOTQuMzIwOCA1LjE5NThaIiBmaWxsPSIjMDBDMkZGIj48L3BhdGg+CiAgPC9nPgogIDxwYXRoIGQ9Ik0xMjguNTY5IDI5Ljk5NTVDMTk5LjU2NyAyOS45OTU1IDI1Ny4xMjIgMjkuMDQ0MiAyNTcuMTIyIDI3Ljg3MDdDMjU3LjEyMiAyNi42OTcyIDE5OS41NjcgMjUuNzQ1OSAxMjguNTY5IDI1Ljc0NTlDNTcuNTcwOCAyNS43NDU5IDAuMDE1NjI1IDI2LjY5NzIgMC4wMTU2MjUgMjcuODcwN0MwLjAxNTYyNSAyOS4wNDQyIDU3LjU3MDggMjkuOTk1NSAxMjguNTY5IDI5Ljk5NTVaIiBmaWxsPSIjMTAxNDI2Ij48L3BhdGg+CiAgPGRlZnM+CiAgICA8Y2xpcFBhdGggaWQ9ImNsaXAwXzE1MjhfMyI+CiAgICAgIDxyZWN0IHdpZHRoPSIyNTcuMTIyIiBoZWlnaHQ9IjQyIiBmaWxsPSJ3aGl0ZSI+PC9yZWN0PgogICAgPC9jbGlwUGF0aD4KICA8L2RlZnM+Cjwvc3ZnPgo=`
+        this.contracts.MobileApp.setLogo(this.sudoUser.token, logobase64)
+    })
+}) */
+
+
 describe("User", function(){
 
 
 
     it("whoami", async function(){
-        const whoami =  await this.User.whoami(this.testUser.token);
+        const whoami =  await this.contracts.User.whoami(this.testUser.token);
 
         expect(whoami.enable).to.equal(true);
         expect(whoami.user_type).to.equal(0);
@@ -437,36 +318,42 @@ describe("User", function(){
 
 
     it("addCar, getCars, removeCar", async function(){
-        await this.User.addCar(this.testUser.token,0,{
+        let tx = await this.contracts.User.addCar(this.testUser.token,0,{
             brand:"Tesla",
             model:"Model 3",
             connectors: [1,2]
         })
 
-        const cars = await this.User.getCars(this.testUser.token, 0)
+        await tx.wait()
+
+        const cars = await this.contracts.User.getCars(this.testUser.token, 0)
 
         expect(cars[0].brand).to.equal("Tesla")
 
-        await this.User.removeCar(this.testUser.token, 0,0)
+        let tx2 = await this.contracts.User.removeCar(this.testUser.token, 0,0)
 
-        const cars_zero = await this.User.getCars(this.testUser.token,0)
+        await tx2.wait()
+
+        const cars_zero = await this.contracts.User.getCars(this.testUser.token,0)
 
         expect(cars_zero.length).to.equal(0)
     })
 
     it("updateBaseData", async function(){
-        await this.User.updateBaseData(this.testUser.tokensms, 0, ethers.encodeBytes32String("Pavel"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
-        let whoami =  await this.User.whoami(this.testUser.tokensms);
+        let tx1 = await this.contracts.User.updateBaseData(this.testUser.tokensms, 0, ethers.encodeBytes32String("Pavel"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
+        await tx1.wait()
+        let whoami =  await this.contracts.User.whoami(this.testUser.tokensms);
         expect(whoami.first_name.toString()).to.equal( ethers.encodeBytes32String("Pavel").toString())
 
-        await this.User.updateBaseData(this.sudoUser.token, whoami.id, ethers.encodeBytes32String("Nikolay"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
+        let tx2 = await this.contracts.User.updateBaseData(this.sudoUser.token, whoami.id, ethers.encodeBytes32String("Nikolay"),ethers.encodeBytes32String("Durov"),ethers.encodeBytes32String("en"))
+        await tx2.wait()
 
-        whoami = await this.User.whoami(this.testUser.tokensms);
+        whoami = await this.contracts.User.whoami(this.testUser.tokensms);
         expect(whoami.first_name.toString()).to.equal( ethers.encodeBytes32String("Nikolay").toString())
     })
 
     it("updateCompanyInfo", async function(){
-        await this.User.updateCompanyInfo(this.testUser.token, 0, {
+        await this.contracts.User.updateCompanyInfo(this.testUser.token, 0, {
             name: "Portal",
             description: "Wow",
             inn:1212,
@@ -480,7 +367,7 @@ describe("User", function(){
             bank_kpp_account: 787878
         })
 
-        let info = await this.User.getCompanyInfo(this.testUser.token, 0)
+        let info = await this.contracts.User.getCompanyInfo(this.testUser.token, 0)
         
         expect(info.name).to.equal("Portal")
     })
@@ -544,7 +431,7 @@ describe("UserSupportChat", function (){
 
 
     it("createTopic", async function(){
-        const tx = await this.UserSupportChat.createTopic(this.testUser.token, messages[0].text, 1 )
+        const tx = await this.contracts.UserSupportChat.createTopic(this.testUser.token, messages[0].text, 1 )
 
         let createTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CreateTopic")
 
@@ -554,7 +441,7 @@ describe("UserSupportChat", function (){
 
 
     it("getTopic", async function(){
-        const topic = await this.UserSupportChat.getTopic(this.testUser.token, 0);
+        const topic = await this.contracts.UserSupportChat.getTopic(this.testUser.token, 0);
 
         expect(topic.create_user_id).to.equal(2)
         expect(topic.message_counter).to.equal(1)
@@ -563,7 +450,7 @@ describe("UserSupportChat", function (){
     })
 
     it("getMyTopics", async function(){
-        const topics = await this.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
 
         expect(topics[0].create_user_id).to.equal(2)
         expect(topics[0].message_counter).to.equal(1)
@@ -579,13 +466,16 @@ describe("UserSupportChat", function (){
             var tx;
             
             if(message.who == "user"){
-                tx = await this.UserSupportChat.sendMessage(this.testUser.token, 0, {text:message.text, reply_to:0,image:ethers.toUtf8Bytes("")})
+                tx = await this.contracts.UserSupportChat.sendMessage(this.testUser.token, 0, {text:message.text, reply_to:0,image:ethers.toUtf8Bytes("")})
 
             }else{
-                tx = await this.UserSupportChat.sendMessage(this.sudoUser.token, 0, {text:message.text, reply_to:0,image:ethers.toUtf8Bytes("")})
+                tx = await this.contracts.UserSupportChat.sendMessage(this.sudoUser.token, 0, {text:message.text, reply_to:0,image:ethers.toUtf8Bytes("")})
             }
 
             let sendMessageSuccess = await GetEventArgumentsByNameAsync(tx, "Message")
+
+            await new Promise(r => setTimeout(r, 2000));
+
             expect(sendMessageSuccess.topic_id).to.equal(0)
             expect(sendMessageSuccess.message_id).to.equal(index)
         }
@@ -593,7 +483,7 @@ describe("UserSupportChat", function (){
 
 
     it("getMessages", async function(){
-        const topicMessages = await this.UserSupportChat.getMessages(this.testUser.token, 0, 0);
+        const topicMessages = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 0);
 
         for (let index = 0; index < 10; index++) {
             const message = messages[index];
@@ -601,7 +491,7 @@ describe("UserSupportChat", function (){
             expect(message.text).to.equal(topicMessages[index].text)
         }
 
-        const topicMessagesOffset = await this.UserSupportChat.getMessages(this.testUser.token, 0, 10);
+        const topicMessagesOffset = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 10);
 
         for (let index = 10, i =0; index < 20; index++, i++) {
             const message = messages[index];
@@ -610,7 +500,7 @@ describe("UserSupportChat", function (){
         }
 
 
-        const topicMessagesOffset2 = await this.UserSupportChat.getMessages(this.testUser.token, 0, 40);
+        const topicMessagesOffset2 = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 40);
 
         for (let index = 40, i =0; index < 20; index++, i++) {
             const message = messages[index];
@@ -621,9 +511,9 @@ describe("UserSupportChat", function (){
     })
 
     it("setRating", async function(){
-        await this.UserSupportChat.setRating(this.testUser.token, 0,5)
+        await this.contracts.UserSupportChat.setRating(this.testUser.token, 0,5)
 
-        const topic = await this.UserSupportChat.getTopic(this.testUser.token,0);
+        const topic = await this.contracts.UserSupportChat.getTopic(this.testUser.token,0);
 
         expect(topic.user_rating).to.equal(5)
     })
@@ -640,24 +530,24 @@ describe("UserSupportChat", function (){
             
         }
 
-        await this.UserSupportChat.setReadedMessages(this.testUser.token,0, readed)
+        await this.contracts.UserSupportChat.setReadedMessages(this.testUser.token,0, readed)
 
 
-        const topicMessages = await this.UserSupportChat.getMessages(this.testUser.token, 0, 0);
+        const topicMessages = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 0);
 
         expect(topicMessages[readed[0]].readed).to.equal(true);
     })
 
 
     it("closeTopic", async function(){
-        let tx = await this.UserSupportChat.closeTopic(this.testUser.token, 0);
+        let tx = await this.contracts.UserSupportChat.closeTopic(this.testUser.token, 0);
         let closeTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CloseTopic")
 
         expect(closeTopicSuccess.topic_id).to.equal(0);
         expect(closeTopicSuccess.user_id).to.equal(2);
 
 
-        const topic = await this.UserSupportChat.getTopic(this.testUser.token, 0);
+        const topic = await this.contracts.UserSupportChat.getTopic(this.testUser.token, 0);
 
         expect(topic.closed).to.equal(true);
     })
@@ -670,7 +560,7 @@ describe("UserSupportChat", function (){
 describe("UserAccess", function(){
     it("sudo getMyModulesAccess", async function(){
 
-        const accesModules =  await this.UserAccess.getMyModulesAccess(this.sudoUser.token);
+        const accesModules =  await this.contracts.UserAccess.getMyModulesAccess(this.sudoUser.token);
     
         expect(accesModules[1][0]).to.equal(6)
         expect(accesModules[1][1]).to.equal(6)
@@ -678,15 +568,15 @@ describe("UserAccess", function(){
 
     it("sudo getModuleAccessLevel", async function(){
 
-        const accessToGroup =  await this.UserAccess.getModuleAccessLevel("UserGroups", 1);
+        const accessToGroup =  await this.contracts.UserAccess.getModuleAccessLevel("UserGroups", 1);
         expect(accessToGroup).to.equal(6)
     })
 
     it("setAccessLevelToModule", async function(){
-        const tx = await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"User", 6);
+        const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"User", 6);
         tx.wait()
 
-        const result = await this.UserAccess.getModuleAccessLevel("User",2)
+        const result = await this.contracts.UserAccess.getModuleAccessLevel("User",2)
 
         expect(result).to.equal(6);
     })
@@ -697,14 +587,14 @@ describe("UserAccess", function(){
 describe("UserGroups", function(){
     it("getMyGroups", async function(){
         
-        const myGroups =  await this.UserGroups.getMyGroups(this.sudoUser.token);
+        const myGroups =  await this.contracts.UserGroups.getMyGroups(this.sudoUser.token);
         expect(myGroups.length).to.equal(1)
         expect(myGroups[0].name).to.equal("sudo")
     })
 
     it("addGroup", async function(){
-        await this.UserGroups.addGroup(this.sudoUser.token, "test");
-        const myGroups =  await this.UserGroups.getMyGroups(this.sudoUser.token);
+        await this.contracts.UserGroups.addGroup(this.sudoUser.token, "test");
+        const myGroups =  await this.contracts.UserGroups.getMyGroups(this.sudoUser.token);
         expect(myGroups.length).to.equal(2)
         
     });
@@ -763,8 +653,8 @@ describe("Tariff", function(){
     }
 
     it("addDefaultFreeTariff", async function(){
-        await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Tariff", 4);
-        const tx =  await this.Tariff.add(this.testUser.token, free_tariff);
+        await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Tariff", 4);
+        const tx =  await this.contracts.Tariff.add(this.testUser.token, free_tariff);
         let result = await GetEventArgumentsByNameAsync(tx, "AddTariff")
         expect(result.uid).to.equal(1)
         expect(result.partner_id).to.equal(1)
@@ -772,56 +662,65 @@ describe("Tariff", function(){
 
 
     it("setMinPrice", async function(){
-        await this.Tariff.setMinPrice(this.testUser.token, 1, {
+        let tx = await this.contracts.Tariff.setMinPrice(this.testUser.token, 1, {
             excl_vat:10,
             incl_vat:12
         })
 
-        const tariff = await this.Tariff.get(1);
+        await tx.wait()
+
+        const tariff = await this.contracts.Tariff.get(1);
 
         expect(tariff.min_price.excl_vat).to.equal(10)
     })
 
     it("setMaxPrice", async function(){
-        await this.Tariff.setMaxPrice(this.testUser.token, 1, {
+        let tx = await this.contracts.Tariff.setMaxPrice(this.testUser.token, 1, {
             excl_vat:10,
             incl_vat:12
         })
 
-        const tariff = await this.Tariff.get(1);
+        await tx.wait()
+
+        const tariff = await this.contracts.Tariff.get(1);
 
         expect(tariff.max_price.excl_vat).to.equal(10)
     })
 
     it("setStartDateTime", async function(){
         const time = Date.now();
-        await this.Tariff.setStartDateTime(this.testUser.token, 1, time)
-
-        const tariff = await this.Tariff.get(1);
+        let tx = await this.contracts.Tariff.setStartDateTime(this.testUser.token, 1, time)
+        
+        await tx.wait()
+        
+        const tariff = await this.contracts.Tariff.get(1);
 
         expect(tariff.start_date_time).to.equal(time)
     })
 
     it("setEndDateTime", async function(){
         const time = Date.now();
-        await this.Tariff.setEndDateTime(this.testUser.token, 1, time)
+        let tx = await this.contracts.Tariff.setEndDateTime(this.testUser.token, 1, time)
 
-        const tariff = await this.Tariff.get(1);
+        await tx.wait()
+
+        const tariff = await this.contracts.Tariff.get(1);
 
         expect(tariff.end_date_time).to.equal(time)
     })
 
     it("setEnergyMix", async function(){
         const time = Date.now();
-        await this.Tariff.setEnergyMix(this.testUser.token, 1, energy_mix)
+        let tx = await this.contracts.Tariff.setEnergyMix(this.testUser.token, 1, energy_mix)
+        await tx.wait()
 
-        const tariff = await this.Tariff.get(1);
+        const tariff = await this.contracts.Tariff.get(1);
 
         expect(tariff.energy_mix.is_green_energy).to.equal(true)
     })
 
     it("get", async function(){
-        const tariff = await this.Tariff.get(1);
+        const tariff = await this.contracts.Tariff.get(1);
 
         expect(tariff.last_updated).not.to.be.equal(0)
         expect(tariff.country_code).to.equal(ethers.hexlify(ethers.toUtf8Bytes("RU")))
@@ -899,9 +798,9 @@ describe("Locations", function(){
 
     it("AddLocation", async function(){
 
-        await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Location", 4);
+        await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Location", 4);
 
-        const tx =  await this.Location.addLocation(this.testUser.token, location);
+        const tx =  await this.contracts.Location.addLocation(this.testUser.token, location);
 
         let result = await GetEventArgumentsByNameAsync(tx, "AddLocation")
         expect(result.uid).to.equal(1)
@@ -910,27 +809,27 @@ describe("Locations", function(){
 
     it("addRelatedLocation", async function(){
 
-        await this.Location.addRelatedLocation(this.testUser.token, 1, relatedLocation);
+        await this.contracts.Location.addRelatedLocation(this.testUser.token, 1, relatedLocation);
 
     })
 
     it("addImage", async function(){
-        await this.Location.addImage(this.testUser.token, 1, image);
+        await this.contracts.Location.addImage(this.testUser.token, 1, image);
     })
 
     it("addDirection", async function(){
-        await this.Location.addDirection(this.testUser.token, 1, direction);
+        await this.contracts.Location.addDirection(this.testUser.token, 1, direction);
     })
 
 
     it("setOpeningTimes", async function(){
-        await this.Location.setOpeningTimes(this.testUser.token, 1, openingTimes);
+        await this.contracts.Location.setOpeningTimes(this.testUser.token, 1, openingTimes);
     })
 
     it("getLocation", async function(){
 
         
-        const newLocation = await this.Location.getLocation(1);
+        const newLocation = await this.contracts.Location.getLocation(1);
         
         expect(newLocation.location.uid).to.equal(1)
         expect(newLocation.location.city).to.equal(location.city)
@@ -975,20 +874,20 @@ describe("Locations", function(){
 
 
     it("removeRelatedLocation", async function(){
-        await this.Location.removeRelatedLocation(this.testUser.token, 1, 1); 
-        const newLocation = await this.Location.getLocation(1);
+        await this.contracts.Location.removeRelatedLocation(this.testUser.token, 1, 1); 
+        const newLocation = await this.contracts.Location.getLocation(1);
         expect(newLocation.related_locations.length).to.equal(0)
     })
 
     it("removeImage", async function(){
-        await this.Location.removeImage(this.testUser.token, 1, 1); 
-        const newLocation = await this.Location.getLocation(1);
+        await this.contracts.Location.removeImage(this.testUser.token, 1, 1); 
+        const newLocation = await this.contracts.Location.getLocation(1);
         expect(newLocation.images.length).to.equal(0)
     })
 
     it("removeDirection", async function(){
-        await this.Location.removeDirection(this.testUser.token, 1, 1); 
-        const newLocation = await this.Location.getLocation(1);
+        await this.contracts.Location.removeDirection(this.testUser.token, 1, 1); 
+        const newLocation = await this.contracts.Location.getLocation(1);
         expect(newLocation.directions.length).to.equal(0)
     })
 
@@ -1003,12 +902,12 @@ describe("Locations", function(){
             loc.coordinates.latitude = coord.lat;
             loc.coordinates.longtitude =coord.lon;
 
-            let tx = await this.Location.addLocation(this.testUser.token, loc);
+            let tx = await this.contracts.Location.addLocation(this.testUser.token, loc);
 
             let result = await GetEventArgumentsByNameAsync(tx, "AddLocation")
 
 
-            let newLocation = await this.Location.getLocation(Number(result.uid));
+            let newLocation = await this.contracts.Location.getLocation(Number(result.uid));
             expect(newLocation[0].coordinates.latitude).to.equal(ethers.parseEther(loc.coordinates.latitude))
             expect(newLocation[0].coordinates.longtitude).to.equal(ethers.parseEther(loc.coordinates.longtitude))
 
@@ -1023,9 +922,9 @@ describe("EVSE", function(){
     const {EVSE, EVSEmeta, image} = getEVSEData();
 
     it("add", async function(){
-        await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"EVSE", 4);
+        await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"EVSE", 4);
         
-        const tx =  await this.EVSE.add(this.testUser.token, EVSE, 1);
+        const tx =  await this.contracts.EVSE.add(this.testUser.token, EVSE, 1);
 
         let result = await GetEventArgumentsByNameAsync(tx, "AddEVSE")
         expect(result.uid).to.equal(1)
@@ -1034,15 +933,15 @@ describe("EVSE", function(){
     })
 
     it("setMeta", async function(){
-        await this.EVSE.setMeta(this.testUser.token, 1, EVSEmeta)
+        await this.contracts.EVSE.setMeta(this.testUser.token, 1, EVSEmeta)
     })
 
     it("addImage", async function(){
-        await this.EVSE.addImage(this.testUser.token, 1, image);
+        await this.contracts.EVSE.addImage(this.testUser.token, 1, image);
     })
 
     it("get", async function(){
-        const evse = await this.EVSE.get(1)
+        const evse = await this.contracts.EVSE.get(1)
 
         expect(evse.evse.evse_id).to.equal(EVSE.evse_id)
         expect(evse.evse.evse_model).to.equal(EVSE.evse_model)
@@ -1072,8 +971,8 @@ describe("EVSE", function(){
 
 
     it("removeImage", async function(){
-        await this.EVSE.removeImage(this.testUser.token, 1, 1); 
-        const evse = await this.EVSE.get(1);
+        await this.contracts.EVSE.removeImage(this.testUser.token, 1, 1); 
+        const evse = await this.contracts.EVSE.get(1);
         expect(evse.images.length).to.equal(0)
     })
 })
@@ -1082,9 +981,9 @@ describe("Connector", function(){
     const {connector} = getEVSEData();
 
     it("add", async function(){
-        await this.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Connector", 4);
+        await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Connector", 4);
 
-        const tx =  await this.Connector.add(this.testUser.token, connector, 1);
+        const tx =  await this.contracts.Connector.add(this.testUser.token, connector, 1);
 
         let result = await GetEventArgumentsByNameAsync(tx, "AddConnector")
         expect(result.uid).to.equal(1)
@@ -1098,14 +997,14 @@ describe("Connector", function(){
 
     it("inArea all kirov zavod", async function(){
 
-        const locations = await this.LocationSearch.inArea({publish: true, topRightLat:"59.883143",topRightLong:"30.270558",bottomLeftLat:"59.870363",bottomLeftLong:"30.247867", offset:0, connectors:[1], onlyFreeConnectors:true})
+        const locations = await this.contracts.LocationSearch.inArea({publish: true, topRightLat:"59.883143",topRightLong:"30.270558",bottomLeftLat:"59.870363",bottomLeftLong:"30.247867", offset:0, connectors:[1], onlyFreeConnectors:true})
         expect(locations[0].length).to.equal(2)
     })
 
     it("inArea all saint petersburg", async function(){
 
         // all saint petersburg
-        const locations = await this.LocationSearch.inArea({publish: true, topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:0, connectors:[1], onlyFreeConnectors:true})
+        const locations = await this.contracts.LocationSearch.inArea({publish: true, topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:0, connectors:[1], onlyFreeConnectors:true})
 
         expect(locations[0].length).to.equal(50)
     })
@@ -1114,7 +1013,7 @@ describe("Connector", function(){
     it("inArea all saint petersburg with offset", async function(){
 
         // all saint petersburg
-        const locations = await this.LocationSearch.inArea({publish: true, topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:50, connectors:[1], onlyFreeConnectors:true})
+        const locations = await this.contracts.LocationSearch.inArea({publish: true, topRightLat:"60.133835",topRightLong:"30.933217",bottomLeftLat:"59.630048",bottomLeftLong:"29.649831", offset:50, connectors:[1], onlyFreeConnectors:true})
 
         expect(locations[0].length).to.equal(24)
     })
@@ -1123,14 +1022,14 @@ describe("Connector", function(){
 
     it("inAreaMany", async function(){
 
-        let locations_1 = await this.LocationSearch.inArea({publish: true, topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:0, connectors:[1], onlyFreeConnectors:true})
+        let locations_1 = await this.contracts.LocationSearch.inArea({publish: true, topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:0, connectors:[1], onlyFreeConnectors:true})
         expect(locations_1[1]).to.equal(1135n)
 
     })
 
     it("inAreaMany with offset", async function(){
 
-        let locations_1 = await this.LocationSearch.inArea({publish: true, topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:50, connectors:[1], onlyFreeConnectors:true})
+        let locations_1 = await this.contracts.LocationSearch.inArea({publish: true, topRightLat:"66.537305",topRightLong:"177.814396",bottomLeftLat:"43.146425",bottomLeftLong:"11.585331",offset:50, connectors:[1], onlyFreeConnectors:true})
         expect(locations_1[0].length).to.equal(50)
 
     })
@@ -1142,8 +1041,8 @@ describe("Location: check after all", function(){
 
     it("getlocation", async function(){
         const {EVSE, EVSEmeta, image, connector} = getEVSEData();
-        //await this.Location.addEVSE(this.testUser.token, 1, 1);
-        const loc = await this.Location.getLocation(1);
+        //await this.contracts.Location.addEVSE(this.testUser.token, 1, 1);
+        const loc = await this.contracts.Location.getLocation(1);
 
         expect(loc.evses[0].evse.evse_id).to.equal(EVSE.evse_id)
         expect(loc.evses[0].evse.evse_model).to.equal(EVSE.evse_model)
@@ -1173,9 +1072,9 @@ describe("Location: check after all", function(){
     })
 
     it("removeEVSE", async function(){
-        await this.Location.removeEVSE(this.testUser.token, 1, 1); 
+        await this.contracts.Location.removeEVSE(this.testUser.token, 1, 1); 
         
-        const newLocation = await this.Location.getLocation(1);
+        const newLocation = await this.contracts.Location.getLocation(1);
         expect(newLocation[4].length).to.equal(0)
     })
 

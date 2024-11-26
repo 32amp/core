@@ -22,4 +22,5 @@ interface IUserAccess {
     function getGroupObjectAccessLevel(string memory module, bytes32 object_id, uint256 group_id) external view returns(uint);
     function getMyModulesAccess(bytes32 _token) external view returns(string[] memory, uint[] memory);
     function checkAccess(string memory module, bytes32 object_id, bytes32 _token, uint level) external view;
+    function checkAccessModule(string memory module, bytes32 _token, uint level) external view;
 }

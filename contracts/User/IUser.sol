@@ -45,9 +45,6 @@ interface IUser {
         uint256 min_balance;
     }
 
-
-    
-
     event AddUser(uint256 user_id);
 
     function getVersion() external pure returns(string memory);
