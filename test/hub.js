@@ -1,0 +1,120 @@
+const { expect } = require('chai');
+
+
+const {GetEventArgumentsByNameAsync, createpayload} = require("../utils/IFBUtils");
+const {deploy} = require("./lib/deploy");
+
+before(async function() {
+    const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
+    const accounts = await ethers.getSigners();
+    this.owner = accounts[0].address
+
+    this.sudoUser = {
+        login: ethers.encodeBytes32String("sudo"),
+        password: ethers.encodeBytes32String("433455"),
+        token:null
+    }
+
+    this.contracts = await deploy(tgtoken,this.sudoUser,{User:true})
+
+
+    this.testUser = {
+        login: ethers.encodeBytes32String("darkrain"),
+        password: ethers.encodeBytes32String("159753"),
+    }
+
+})
+
+describe("Hub", function(){
+
+
+    it("getMe", async function(){
+        const me = await this.contracts.Hub.me();
+
+        expect(me.owner_address).to.equal(this.owner)
+    })
+
+
+    it("getPartnerByAddress", async function(){
+        const me = await this.contracts.Hub.getPartnerByAddress(this.owner);
+
+        expect(me.owner_address).to.equal(this.owner)
+    })
+
+    it("getPartnerIdByAddress", async function(){
+        const id = await this.contracts.Hub.getPartnerIdByAddress(this.owner);
+
+        expect(1).to.equal(id)
+    })
+
+
+    it("getPartner", async function(){
+        const me = await this.contracts.Hub.getPartner(1);
+
+        expect(me.owner_address).to.equal(this.owner)
+    })
+
+    it("getPartnerModules", async function(){
+        const modules = await this.contracts.Hub.getPartnerModules(1);
+
+        expect(modules[0]).to.equal("RevertCodes")
+
+    })
+
+
+    it("getPartners", async function(){
+        const partners = await this.contracts.Hub.getPartners()
+
+        expect(partners.length).to.equal(1)
+    })
+
+    it("changeModuleAddress", async function(){
+        await this.contracts.Hub.changeModuleAddress("User", this.contracts.Hub.target)
+
+        let moduleAdress = await this.contracts.Hub.getModule("User", 1)
+
+        expect(moduleAdress).to.equal(this.contracts.Hub.target)
+
+        let tx = await this.contracts.Hub.changeModuleAddress("User", this.contracts.User.target)
+
+        await tx.wait()
+        let moduleAdressBack = await this.contracts.Hub.getModule("User", 1)
+        expect(moduleAdressBack).to.equal(this.contracts.User.target)
+    })
+
+    it("checkModuleExist", async function(){
+        let checkOne = await this.contracts.Hub.checkModuleExist("User", 1)
+
+        expect(checkOne).to.equal(this.contracts.User.target)
+
+    })
+
+    it("getPartnerByAddress", async function(){
+        let partner = await this.contracts.Hub.getPartnerByAddress(this.owner);
+
+        expect(partner.id).to.equal(1n)
+    })
+
+    it("getPartnerIdByAddress", async function(){
+        let partner = await this.contracts.Hub.getPartnerIdByAddress(this.owner)
+        expect(partner).to.equal(1n)
+    })
+
+    it("getPartnerName", async function(){
+        let name = await this.contracts.Hub.getPartnerName(1n)
+
+        expect(name).to.equal(ethers.encodeBytes32String("PortalEnergy"))
+    })
+
+    it("getPartnerPartyId", async function(){
+        let partyId = await this.contracts.Hub.getPartnerPartyId(1n)
+
+        expect(partyId).to.equal(ethers.hexlify(ethers.toUtf8Bytes("POE")))
+    })
+
+    it("getPartnerCountryCode", async function(){
+        let code = await this.contracts.Hub.getPartnerCountryCode(1n)
+        
+        expect(code).to.equal(ethers.hexlify(ethers.toUtf8Bytes("RU")))
+    })
+})

@@ -98,7 +98,7 @@ contract LocationSearch is ILocationSearch, Initializable {
         }
         
         
-        if(input.offset >= count)
+        if(input.offset > count)
             revert("big_offset");
 
         // Создание идекса для вывода

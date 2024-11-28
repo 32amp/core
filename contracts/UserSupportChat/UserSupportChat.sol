@@ -93,16 +93,16 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
     function sendMessage(bytes32 _token, uint256 topic_id, InputMessage memory message) external {
 
-        uint256 user_id = _Auth().isLogin(_token);
+         uint256 user_id = _Auth().isLogin(_token);
 
         _access(_token, topic_id);
-        
-        
+    
+        uint256 timestamp =  block.timestamp+topics[topic_id].message_counter;
 
-        topics[topic_id].update_at = block.timestamp;
-
+        topics[topic_id].update_at = timestamp;
+   
         messages[topic_id][topics[topic_id].message_counter].text = message.text;
-        messages[topic_id][topics[topic_id].message_counter].create_at = block.timestamp;
+        messages[topic_id][topics[topic_id].message_counter].create_at = timestamp;
         messages[topic_id][topics[topic_id].message_counter].user_id = user_id;
         messages[topic_id][topics[topic_id].message_counter].reply_to = message.reply_to;
         messages[topic_id][topics[topic_id].message_counter].image = message.image;

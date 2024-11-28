@@ -24,6 +24,7 @@ contract EVSE is IEVSE, Initializable {
     address hubContract;
     uint256 partner_id;
     uint256 evsecounter;
+    uint256 timestampCounter;
 
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
@@ -189,7 +190,12 @@ contract EVSE is IEVSE, Initializable {
     }
 
     function _updated(uint256 id) internal {
-        evses_last_updated[id] = block.timestamp;
+        evses_last_updated[id] = block.timestamp+timestampCounter;
+
+        timestampCounter++;
+
+        if(timestampCounter == 20)
+            timestampCounter = 0;
     }
 
 }

@@ -29,6 +29,7 @@ contract Location is ILocation, Initializable {
     uint256 locationCounter;
     address hubContract;
     uint256 partner_id;
+    uint256 timestampCounter;
 
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
@@ -175,11 +176,14 @@ contract Location is ILocation, Initializable {
         newLocation.owner = user_id;
         newLocation.country_code = IHub(hubContract).getPartnerCountryCode(partner_id);
         newLocation.party_id = IHub(hubContract).getPartnerPartyId(partner_id);
-        newLocation.last_updated = block.timestamp;
+        
         newLocation.uid = locationCounter;
         
         locations[locationCounter] = newLocation;
         
+
+        _updated(locationCounter); 
+
         int16 lat_integerPart = add.coordinates.latitude.splitCoordinate();
         int16 lon_integerPart = add.coordinates.longtitude.splitCoordinate();
         
@@ -227,6 +231,11 @@ contract Location is ILocation, Initializable {
     }
 
     function _updated(uint256 location_id) internal {
-        locations[location_id].last_updated = block.timestamp;
+        locations[location_id].last_updated = block.timestamp+timestampCounter;
+
+        timestampCounter++;
+
+        if(timestampCounter == 20)
+            timestampCounter = 0;
     }
 }

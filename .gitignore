@@ -17,6 +17,8 @@ node_modules
 ignition/deployments/chain-31337
 parseStations.js
 .mnemonic
+forapp.app
+contracts/MobileApp/
 
 ignition/deployments
 .openzeppelin/

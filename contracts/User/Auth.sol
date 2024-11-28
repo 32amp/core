@@ -32,6 +32,7 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
     address emailServiceAddress;
     uint256 partner_id;
     bytes tg_bot_token;
+    uint256 time_counter;
 
 
     function getVersion() external pure returns(string memory){
@@ -186,26 +187,34 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
 
     function _createAuthToken(uint256 user_id, bytes32 salt) internal {
         AuthToken memory token;
-        token.date_start = block.timestamp;
-        token.date_expire = block.timestamp + 130 days;
+
+        uint256 timestamp = block.timestamp+time_counter;
+
+        token.date_start = timestamp;
+        token.date_expire = timestamp + 130 days;
         token.user_id = user_id;
         token._type = TokenType.APP_USER;
-        token.visual_number = block.timestamp;
+        token.visual_number = timestamp;
 
         token.uid = keccak256(
-            abi.encodePacked(block.prevrandao, block.timestamp, user_id, salt, token.date_start, token.date_expire, token.visual_number )
+            abi.encodePacked(block.prevrandao, timestamp, user_id, salt, token.date_start, token.date_expire, token.visual_number )
         );
 
         token.issuer = IHub(hubContract).getPartnerName(partner_id);
 
         bytes32 _token = keccak256(
-            abi.encodePacked(block.prevrandao, block.timestamp, user_id, salt)
+            abi.encodePacked(block.prevrandao, timestamp, user_id, salt)
         );
         user_tokens[user_id].push(_token);
         auth_tokens[_token] = token;
         public_tokens[token.uid] = token;
 
         emit CreateAuthToken(user_id, user_tokens[user_id].length - 1);
+        
+        time_counter++;
+
+        if(time_counter > 10)
+            time_counter = 0;
     }
 
 
