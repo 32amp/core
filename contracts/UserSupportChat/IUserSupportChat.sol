@@ -61,7 +61,7 @@ interface IUserSupportChat {
     function closeTopic(bytes32 _token, uint256 topic_id) external;
     function setReadedMessages(bytes32 _token, uint256 topic_id, uint256[] calldata message_ids) external;
     function getMyTopics(bytes32 _token, uint256 offset) external view returns(Topic[] memory);
-    function getTopic(bytes32 _token, uint256 topic_id) external returns(Topic memory);
+    function getTopic(bytes32 _token, uint256 topic_id) external view returns(Topic memory);
     function getMessages(bytes32 _token, uint256 topic_id, uint256 offset) external view returns (UserMessage[] memory);
     function getMessage(bytes32 _token, uint256 topic_id, uint256 message_id) external view returns(UserMessage memory);
 
