@@ -21,6 +21,16 @@ interface IUserSupportChat {
         Contact
     }
 
+    struct OutputUserMessage {
+        UserMessage message;
+        uint256 id;
+    }
+
+    struct OutputTopic {
+        Topic topic;
+        uint256 id;
+    }
+
     struct InputMessage {
         string text;
         bytes image;
@@ -60,9 +70,9 @@ interface IUserSupportChat {
     function setRating(bytes32 _token, uint256 topic_id, TopicRating rating) external;
     function closeTopic(bytes32 _token, uint256 topic_id) external;
     function setReadedMessages(bytes32 _token, uint256 topic_id, uint256[] calldata message_ids) external;
-    function getMyTopics(bytes32 _token, uint256 offset) external view returns(Topic[] memory);
+    function getMyTopics(bytes32 _token, uint256 offset) external view returns(OutputTopic[] memory, uint256);
     function getTopic(bytes32 _token, uint256 topic_id) external view returns(Topic memory);
-    function getMessages(bytes32 _token, uint256 topic_id, uint256 offset) external view returns (UserMessage[] memory);
+    function getMessages(bytes32 _token, uint256 topic_id, uint256 offset) external view returns (OutputUserMessage[] memory, uint256);
     function getMessage(bytes32 _token, uint256 topic_id, uint256 message_id) external view returns(UserMessage memory);
 
 }

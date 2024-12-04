@@ -146,14 +146,14 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         }
     }
 
-    function getMyTopics(bytes32 _token, uint256 offset) external view returns(Topic[] memory){
+    function getMyTopics(bytes32 _token, uint256 offset) external view returns(OutputTopic[] memory, uint256){
         uint256 user_id = _Auth().isLogin(_token);
 
         if( user_id == 0)
             revert("access_denied");
 
 
-        if(offset >= user_topics[user_id].length)
+        if(offset > user_topics[user_id].length)
             revert("offest_to_big");
 
         uint max_limit = 10;
@@ -161,15 +161,16 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         if((user_topics[user_id].length-offset) < max_limit)
             max_limit = user_topics[user_id].length-offset;
 
-        Topic[] memory ret = new Topic[](max_limit);
+        OutputTopic[] memory ret = new OutputTopic[](max_limit);
         uint256 index = 0;
         
         for (uint i = offset; i < offset+max_limit; i++) {
-            ret[index] =  topics[i];
+            ret[index].topic =  topics[i];
+            ret[index].id =  i;
             index++;
         }
 
-        return ret;            
+        return (ret, user_topics[user_id].length);            
     }
 
 
@@ -178,10 +179,10 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         return topics[topic_id];
     }
 
-    function getMessages(bytes32 _token, uint256 topic_id, uint256 offset) external view returns (UserMessage[] memory) {
+    function getMessages(bytes32 _token, uint256 topic_id, uint256 offset) external view returns (OutputUserMessage[] memory, uint256) {
         _access(_token, topic_id);
 
-        if(offset >= topics[topic_id].message_counter)
+        if(offset > topics[topic_id].message_counter)
             revert("offest_to_big");
 
         uint max_limit = 10;
@@ -189,15 +190,16 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         if((topics[topic_id].message_counter-offset) < max_limit)
             max_limit = topics[topic_id].message_counter-offset;
 
-        UserMessage[] memory ret = new UserMessage[](max_limit);
+        OutputUserMessage[] memory ret = new OutputUserMessage[](max_limit);
         uint256 index = 0;
         
         for (uint i = offset; i < offset+max_limit; i++) {
-            ret[index] =  messages[topic_id][i];
+            ret[index].message =  messages[topic_id][i];
+            ret[index].id = i;
             index++;
         }
 
-        return ret;
+        return (ret,topics[topic_id].message_counter);
     }
 
 

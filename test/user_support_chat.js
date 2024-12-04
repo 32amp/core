@@ -84,6 +84,12 @@ describe("UserSupportChat", function (){
     ];
     
 
+    it("getTopics empty", async function(){
+        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+
+        expect(topics[0].length).to.equal(0)
+    })
+
 
     it("createTopic", async function(){
         const tx = await this.contracts.UserSupportChat.createTopic(this.testUser.token, messages[0].text, 1 )
@@ -107,10 +113,11 @@ describe("UserSupportChat", function (){
     it("getMyTopics", async function(){
         const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
 
-        expect(topics[0].create_user_id).to.equal(2)
-        expect(topics[0].message_counter).to.equal(1)
-        expect(topics[0].theme).to.equal(1)
-        expect(topics[0].closed).to.equal(false)
+        expect(topics[0][0].topic.create_user_id).to.equal(2)
+        expect(topics[0][0].topic.message_counter).to.equal(1)
+        expect(topics[0][0].topic.theme).to.equal(1)
+        expect(topics[0][0].topic.closed).to.equal(false)
+        expect(topics[1]).to.equal(1)
         
     })
 
@@ -143,7 +150,7 @@ describe("UserSupportChat", function (){
         for (let index = 0; index < 10; index++) {
             const message = messages[index];
             
-            expect(message.text).to.equal(topicMessages[index].text)
+            expect(message.text).to.equal(topicMessages[0][index].message.text)
         }
 
         const topicMessagesOffset = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 10);
@@ -151,7 +158,7 @@ describe("UserSupportChat", function (){
         for (let index = 10, i =0; index < 20; index++, i++) {
             const message = messages[index];
             
-            expect(message.text).to.equal(topicMessagesOffset[i].text)
+            expect(message.text).to.equal(topicMessagesOffset[0][i].message.text)
         }
 
 
@@ -160,7 +167,7 @@ describe("UserSupportChat", function (){
         for (let index = 40, i =0; index < 20; index++, i++) {
             const message = messages[index];
             
-            expect(message.text).to.equal(topicMessagesOffset2[i].text)
+            expect(message.text).to.equal(topicMessagesOffset2[0][i].message.text)
         }
 
     })
@@ -190,7 +197,7 @@ describe("UserSupportChat", function (){
 
         const topicMessages = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 0);
 
-        expect(topicMessages[readed[0]].readed).to.equal(true);
+        expect(topicMessages[0][readed[0]].message.readed).to.equal(true);
     })
 
 
