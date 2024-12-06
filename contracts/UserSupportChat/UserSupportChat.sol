@@ -27,6 +27,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
     function registerRevertCodes() external{
         _RevertCodes().registerRevertCode("UserSupportChat", "access_denied", "Access denied");
+        _RevertCodes().registerRevertCode("UserSupportChat", "topic_not_found", "Topic not found");
         _RevertCodes().registerRevertCode("UserSupportChat", "offest_to_big", "Offset to big");
     }
 
