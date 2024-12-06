@@ -120,6 +120,7 @@ describe("UserSupportChat", function (){
         expect(topics[0][0].topic.message_counter).to.equal(1)
         expect(topics[0][0].topic.theme).to.equal(1)
         expect(topics[0][0].topic.closed).to.equal(false)
+        expect(topics[0][0].unreaded_messages).to.equal(0)
         expect(topics[1]).to.equal(1)
         
     })
@@ -144,6 +145,12 @@ describe("UserSupportChat", function (){
             expect(sendMessageSuccess.message_id).to.equal(index)
 
         }
+    })
+
+
+    it("unreaded mesages", async function(){
+        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        expect(topics[0][0].unreaded_messages).to.equal(messages.length/2)
     })
 
 
@@ -202,7 +209,12 @@ describe("UserSupportChat", function (){
         const topicMessages = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 0);
         
         expect(topicMessages[0][0].message.readed).to.equal(true);
+
+        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        expect(topics[0][0].unreaded_messages).to.equal(0)
     })
+
+
 
 
     it("closeTopic", async function(){
