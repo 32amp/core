@@ -82,6 +82,9 @@ describe("UserSupportChat", function (){
         { text: "Каковы его достижения в области образования?", who: "user" },
         { text: "Были созданы новые школы и университеты, доступные для всех.", who: "admin" },
     ];
+
+    const messagesReverse = JSON.parse(JSON.stringify(messages));
+    messagesReverse.reverse()
     
 
     it("getTopics empty", async function(){
@@ -145,18 +148,20 @@ describe("UserSupportChat", function (){
 
 
     it("getMessages", async function(){
+
         const topicMessages = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 0);
 
+
         for (let index = 0; index < 10; index++) {
-            const message = messages[index];
+            const message = messagesReverse[index];
             
             expect(message.text).to.equal(topicMessages[0][index].message.text)
         }
 
         const topicMessagesOffset = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 10);
 
-        for (let index = 10, i =0; index < 20; index++, i++) {
-            const message = messages[index];
+        for (let index = 10, i = 0; index < 20; index++, i++) {
+            const message = messagesReverse[index];
             
             expect(message.text).to.equal(topicMessagesOffset[0][i].message.text)
         }
@@ -164,8 +169,8 @@ describe("UserSupportChat", function (){
 
         const topicMessagesOffset2 = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 40);
 
-        for (let index = 40, i =0; index < 20; index++, i++) {
-            const message = messages[index];
+        for (let index = 40, i =0; index < 48; index++, i++) {
+            const message = messagesReverse[index];
             
             expect(message.text).to.equal(topicMessagesOffset2[0][i].message.text)
         }
@@ -194,10 +199,9 @@ describe("UserSupportChat", function (){
 
         await this.contracts.UserSupportChat.setReadedMessages(this.testUser.token,0, readed)
 
-
         const topicMessages = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 0);
-
-        expect(topicMessages[0][readed[0]].message.readed).to.equal(true);
+        
+        expect(topicMessages[0][0].message.readed).to.equal(true);
     })
 
 

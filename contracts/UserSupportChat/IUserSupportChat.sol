@@ -29,6 +29,7 @@ interface IUserSupportChat {
     struct OutputTopic {
         Topic topic;
         uint256 id;
+        uint256 unreaded_messages;
     }
 
     struct InputMessage {
