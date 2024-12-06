@@ -132,10 +132,10 @@ describe("UserSupportChat", function (){
             var tx;
 
             if(message.who == "user"){
-                tx = await this.contracts.UserSupportChat.sendMessage(this.testUser.token, 0, {text:message.text, reply_to:0,image:ethers.toUtf8Bytes("")})
+                tx = await this.contracts.UserSupportChat.sendMessage(this.testUser.token, 0, {text:message.text, reply_to:0,image:""})
 
             }else{
-                tx = await this.contracts.UserSupportChat.sendMessage(this.sudoUser.token, 0, {text:message.text, reply_to:0,image:ethers.toUtf8Bytes("")})
+                tx = await this.contracts.UserSupportChat.sendMessage(this.sudoUser.token, 0, {text:message.text, reply_to:0,image:""})
             }
 
 
@@ -229,4 +229,28 @@ describe("UserSupportChat", function (){
 
         expect(topic.closed).to.equal(true);
     })
+
+    it("createManyTopics", async function(){
+
+
+        for (let index = 1; index < 10; index++) {
+            const tx = await this.contracts.UserSupportChat.createTopic(this.testUser.token, "Many topics "+index, 1 )
+
+            let createTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CreateTopic")
+    
+            expect(createTopicSuccess.topic_id).to.equal(index)
+
+        }
+
+
+        let tx = await this.contracts.UserSupportChat.sendMessage(this.sudoUser.token, 5, {text:"Unreaded message", reply_to:0,image:""})
+    
+        await tx.wait()
+
+        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        
+        expect(topics[0][0].id).to.equal(5)
+        expect(topics[0][0].unreaded_messages).to.equal(1)
+    })
+
 })

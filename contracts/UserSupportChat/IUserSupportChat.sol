@@ -34,13 +34,13 @@ interface IUserSupportChat {
 
     struct InputMessage {
         string text;
-        bytes image;
+        string image;
         uint256 reply_to;
     }
 
     struct UserMessage {
         string text;
-        bytes image;
+        string image; // ipfs hash string
         uint256 reply_to;
         uint256 create_at;
         bool readed;

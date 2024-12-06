@@ -187,9 +187,10 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         // Заполняем массив с конца
         for (uint256 i = 0; i < max_limit; i++) {
             uint256 topicIndex = user_topics[user_id].length - 1 - (offset + i);
-            ret[i].topic = topics[topicIndex];
-            ret[i].id = topicIndex;
-            ret[i].unreaded_messages = countUnreadedMessages(topicIndex, user_id);
+            uint256 topicId = user_topics[user_id][topicIndex];
+            ret[i].topic = topics[topicId];
+            ret[i].id = topicId;
+            ret[i].unreaded_messages = countUnreadedMessages(topicId, user_id);
         }
     
         return (ret, user_topics[user_id].length);            
@@ -240,6 +241,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
     function countUnreadedMessages(uint256 topic_id,uint256 from_user_id) internal view returns(uint256) {
         uint256 count;
+
         for (uint i = 0; i < topics[topic_id].message_counter; i++) {
             if(messages[topic_id][i].user_id != from_user_id && messages[topic_id][i].readed == false)
                 count++;
@@ -249,7 +251,6 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     }
 
     function makeTopicFirst(uint256 topic_id) internal {
-
 
         uint256 user_id = topics[topic_id].create_user_id;
 
