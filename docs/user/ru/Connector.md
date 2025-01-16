@@ -30,7 +30,7 @@
 
 #### add(bytes32 _token, Connector connector, uint256 evse_id)
 ---
-Добавить коннектора для зарядной станции
+Добавить коннектор к зарядной станции
 
 #### get(uint256 id) returns (output)
 ---
