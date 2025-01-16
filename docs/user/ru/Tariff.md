@@ -1,4 +1,5 @@
 # Tariff
+
 Тарифы для коннектора зарядной станции. Каждому коннектору нужно устанавливать тариф по которому будет работать логика расчета стоимости зарядной сессии.
 
 ## Структуры данных
@@ -72,10 +73,10 @@
         uint256 last_updated;
         Tariff tariff;
         Price min_price;
-        Price max_price;   
+        Price max_price;
         uint256 start_date_time;
         uint256 end_date_time;
-        EnergyMix energy_mix;             
+        EnergyMix energy_mix;
     }
 ```
 
