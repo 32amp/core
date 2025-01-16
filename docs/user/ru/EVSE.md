@@ -1,6 +1,7 @@
 # EVSE
 
 ## Структуры данных
+
 Включает в себя типы из [DataTypes](./DataTypes.md)
 
 #### struct EVSEMeta
@@ -40,6 +41,7 @@
 
 
 ## Методы
+
 #### getVersion() returns(string memory)
 ---
 Получение версии контракта
@@ -56,7 +58,7 @@
 ---
 Установить метаданные для зарядной станции
 
-#### addImage(bytes32 _token, uint256 id, Image calldata image )
+#### addImage(bytes32 _token, uint256 id, Image calldata image)
 ---
 Добавить изображение зарядной станции
 
@@ -78,4 +80,4 @@
 
 #### get(uint256 id) view returns(outEVSE memory)
 ---
-Получить данные по зарядной станции 
+Получить данные по зарядной станции
