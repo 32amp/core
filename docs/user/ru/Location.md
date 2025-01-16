@@ -8,7 +8,8 @@
 
 #### struct GeoLocationString
 ---
-Структура используемся при добавлении станции, особенность ее в том что она использует тип string это нужно для алгоритма поиска в контакте [LocationSearch](./LocationSearch.md)
+Структура, используемая при добавлении станции. Особенность ее в том, что она
+использует тип string - это нужно для алгоритма поиска в контакте [LocationSearch](./LocationSearch.md)
 
 ```
     struct GeoLocationString {
