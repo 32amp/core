@@ -48,12 +48,12 @@
 
 #### getModule(string memory name, uint256 partner_id)  returns (address)
 ---
-Метод для получения адреса модуля для конткретного партнера
+Метод для получения адреса модуля для конкретного партнера
 
 
 #### function checkModuleExist(string memory name, uint256 partner_id) returns (address)
 ---
-Проверяет реализован ли модуль у конкретного партнера
+Проверяет, реализован ли модуль у конкретного партнера
 
 #### getPartnerModules(uint256 partner_id) returns (string[] memory)
 --- 
