@@ -13,7 +13,7 @@
 
 ABI находятся в - `artifacts/contracts/Hub/IHub.sol/IHub.json`
 Url rpc ноды testnet - `https://node1.portalcharge.ru`
-Адрес смарт конртакта Hub - `0xF862ECbf6d78cC5bc3b11Db1940df00fF6e4d6AA`
+Адрес смарт контракта Hub - `0xF862ECbf6d78cC5bc3b11Db1940df00fF6e4d6AA`
 
 После инициализации контракта Hub можно проанализировать все модули, для этого вам так же понадобится abi и адрес смарт контракта. abi мы уже знаем как получить, осталось получить адрес модуля.
 
