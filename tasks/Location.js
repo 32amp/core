@@ -99,8 +99,8 @@ locationScope.task("addTestLocationsWithEVSE", "Add test locations with evse")
     
     for (let index = 0; index < coords.length; index++) {
 
-        if(index > 100)
-            break;
+        //if(index > 100)
+        //    break;
 
         const coord = coords[index];
         const loc = location;

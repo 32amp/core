@@ -49,9 +49,9 @@ interface ITariff is DataTypes {
     }
 
     struct Tariff {
-        uint256 currency; // TODO, ADD currency
-        DisplayText[] tariff_alt_text;
+        uint256 currency; 
         string tariff_alt_url;
+        DisplayText[] tariff_alt_text;
         TariffElement[] elements;
     }
 
@@ -83,8 +83,8 @@ interface ITariff is DataTypes {
     }
 
     struct TariffElement {
-        PriceComponent[] price_components;
         TariffRestrictions restrictions;
+        PriceComponent[] price_components;
     }
 
     event AddTariff(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
