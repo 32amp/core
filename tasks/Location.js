@@ -14,6 +14,51 @@ locationScope.task("version", "Version module")
 })
 
 
+
+locationScope.task("getLocation", "Get info of location")
+.addParam("id")
+.setAction(async function(args){
+    const {Location} = await loadContract()
+    const loc = await Location.getLocation(args.id);
+    console.log(loc)
+})
+
+locationScope.task("inArea", "Get locations in area")
+.addParam("toprightlat")
+.addParam("toprightlong")
+.addParam("bottomleftlat")
+.addParam("bottomleftlong")
+.addParam("offset")
+.setAction(async function(args){
+    const {LocationSearch} = await loadContract()
+    const locs = await LocationSearch.inArea({
+        publish: false, 
+        topRightLat:args.toprightlat,
+        topRightLong:args.toprightlong,
+        bottomLeftLat:args.bottomleftlat,
+        bottomLeftLong:args.bottomleftlong, 
+        offset:args.offset, 
+        connectors:[1,2,3,4,5,6,7,8], 
+        onlyFreeConnectors:false,
+        max_payment_by_kwt:0,
+        max_payment_buy_time:0,
+        favorite_evse:[]
+    });
+    
+
+    for (let index = 0; index < locs[0].length; index++) {
+        const loc = locs[0][index];
+
+        console.log("id:", loc.id, "lat:", ethers.formatEther(loc.coordinates.latitude), "lon:", ethers.formatEther(loc.coordinates.longtitude))
+        
+        
+    }
+})
+
+
+
+
+
 locationScope.task("addTestLocationsWithEVSE", "Add test locations with evse")
 //.addParam("token", "Access token")
 .setAction(async (args) => {
@@ -53,6 +98,10 @@ locationScope.task("addTestLocationsWithEVSE", "Add test locations with evse")
 
     
     for (let index = 0; index < coords.length; index++) {
+
+        if(index > 100)
+            break;
+
         const coord = coords[index];
         const loc = location;
 
@@ -180,6 +229,7 @@ async function loadContract(){
 
     const hubartifacts = require("../artifacts/contracts/Hub/IHub.sol/IHub.json");
     const ILocationArtifacts = require("../artifacts/contracts/Location/ILocation.sol/ILocation.json");
+    const ILocationSearchArtifacts = require("../artifacts/contracts/Location/ILocationSearch.sol/ILocationSearch.json");
     const EVSEArtifacts = require("../artifacts/contracts/Location/IEVSE.sol/IEVSE.json");
     const ConnectorArtifacts = require("../artifacts/contracts/Location/IConnector.sol/IConnector.json");
     const TariffArtifacts = require("../artifacts/contracts/Tariff/ITariff.sol/ITariff.json");
@@ -195,14 +245,16 @@ async function loadContract(){
     const EVSEModuleAddress = await hub.getModule("EVSE", partnerid);
     const ConnectorModuleAddress = await hub.getModule("Connector", partnerid);
     const TariffModuleAddress = await hub.getModule("Tariff", partnerid);
+    const LocationSearchModuleAddress = await hub.getModule("LocationSearch", partnerid);
 
     console.log("Module address", locationModuleAddress);
 
     const Location = await new ethers.Contract(locationModuleAddress,ILocationArtifacts.abi,accounts[0])
+    const LocationSearch = await new ethers.Contract(LocationSearchModuleAddress,ILocationSearchArtifacts.abi,accounts[0])
     const Auth = await new ethers.Contract(authModuleAddress,AuthArtifacts.abi,accounts[0])
     const EVSE = await new ethers.Contract(EVSEModuleAddress,EVSEArtifacts.abi,accounts[0])
     const Connector = await new ethers.Contract(ConnectorModuleAddress,ConnectorArtifacts.abi,accounts[0])
     const Tariff = await new ethers.Contract(TariffModuleAddress,TariffArtifacts.abi,accounts[0])
 
-    return {hub, hubAddress:deployed_addresses["Hub"],Location,Auth, EVSE, Connector, Tariff, config: config.networks[network.name]};
+    return {hub, hubAddress:deployed_addresses["Hub"],Location,Auth, EVSE, Connector,LocationSearch, Tariff, config: config.networks[network.name]};
 }

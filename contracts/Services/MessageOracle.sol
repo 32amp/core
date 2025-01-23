@@ -67,12 +67,12 @@ contract MessageOracle is IMessageOracle, Initializable, OwnableUpgradeable {
         oracles[oracle] = false;
     }
 
-    function addToWhitelist(address oracle) external onlyOwner {
-        senderWhitelist[oracle] = true;
+    function addToWhitelist(address sender) external onlyOwner {
+        senderWhitelist[sender] = true;
     }
 
-    function removeFromWhitelist(address oracle) external onlyOwner {
-        senderWhitelist[oracle] = false;
+    function removeFromWhitelist(address sender) external onlyOwner {
+        senderWhitelist[sender] = false;
     }
 
     function activateWhitelist(bool state) external onlyOwner {

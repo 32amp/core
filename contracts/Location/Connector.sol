@@ -19,7 +19,7 @@ contract Connector is IConnector, Initializable {
     mapping (uint256 => Connector)  connectors;
     mapping (uint256 => uint256) last_updated;
     mapping (uint256 => ConnectorStatus) connector_status;
-    mapping (uint256 => uint256[]) connector_tariff;
+    mapping (uint256 => uint256) connector_tariff;
 
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
@@ -94,12 +94,12 @@ contract Connector is IConnector, Initializable {
     }
 
 
-    function setTariffs(bytes32 _token, uint256 id, uint256[] calldata _tariffs) access(_token, id) external {
-        for (uint i = 0; i < _tariffs.length; i++) {
-            if(!_Tariff().exist(_tariffs[i]))
-                revert("tariff_does_not_exist");
-        }
-        connector_tariff[id] = _tariffs;
+    function setTariffs(bytes32 _token, uint256 id, uint256  _tariff) access(_token, id) external {
+
+        if(!_Tariff().exist(_tariff))
+            revert("tariff_does_not_exist");
+
+        connector_tariff[id] = _tariff;
     }
 
 
@@ -112,14 +112,9 @@ contract Connector is IConnector, Initializable {
         ret.status = connector_status[id];
 
 
-        if(connector_tariff[id].length > 0){
-            ITariff.OutputLight[] memory tariffs = new ITariff.OutputLight[](connector_tariff[id].length);
-            for (uint i = 0; i < connector_tariff[id].length; i++) {
-                tariffs[i] = _Tariff().getLight(connector_tariff[id][i]);
-            }
-            ret.tariffs = tariffs;
+        if(connector_tariff[id] > 0){
+            ret.tariff = _Tariff().getLight(connector_tariff[id]);
         }
-        
 
         return ret;
     }

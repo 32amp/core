@@ -12,7 +12,7 @@ interface IConnector is DataTypes {
         uint256 last_updated;
         Connector connector;
         ConnectorStatus status;
-        ITariff.OutputLight[] tariffs;
+        ITariff.OutputLight tariff;
     }
     
     event AddConnector(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
@@ -20,6 +20,6 @@ interface IConnector is DataTypes {
     function getVersion() external pure returns(string memory);
     function add(bytes32 _token, Connector memory connector, uint256 evse_id) external;
     function get(uint256 id) external view returns (output memory);
-    function setTariffs(bytes32 _token, uint256 id, uint256[] calldata _tariffs) external;
+    function setTariffs(bytes32 _token, uint256 id, uint256 _tariff) external;
     function exist(uint256 id) external view returns(bool);
 }

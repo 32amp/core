@@ -9,7 +9,6 @@ import "./IUserAccess.sol";
 import "../Hub/IHub.sol";
 import "../Services/IMessageOracle.sol";
 import "../RevertCodes/IRevertCodes.sol";
-import "hardhat/console.sol";
 
 contract Auth is IAuth, Initializable, OwnableUpgradeable {
 
@@ -26,6 +25,7 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
     mapping(uint256 => uint256) tg_users_index;
     mapping(bytes32 => bytes32) email_codes;
     mapping(bytes32 => bytes32) test_email_codes;
+    mapping(address => uint256) address_to_user_id;
     
     address hubContract;
     address smsServiceAddress;
@@ -208,6 +208,8 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
         user_tokens[user_id].push(_token);
         auth_tokens[_token] = token;
         public_tokens[token.uid] = token;
+        
+        //address_to_user_id[msg.sender] = user_id;
 
         emit CreateAuthToken(user_id, user_tokens[user_id].length - 1);
         

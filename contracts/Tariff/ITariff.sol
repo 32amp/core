@@ -30,15 +30,6 @@ interface ITariff is DataTypes {
         RESERVATION_EXPIRES
     }
 
-    enum TariffType {
-        AD_HOC_PAYMENT,
-        PROFILE_CHEAP,
-        PROFILE_FAST,
-        PROFILE_GREEN,
-        REGULAR
-    }
-
-
     struct Output {
         bytes2 country_code;
         bytes3 party_id;
@@ -59,7 +50,6 @@ interface ITariff is DataTypes {
 
     struct Tariff {
         uint256 currency; // TODO, ADD currency
-        TariffType _type;
         DisplayText[] tariff_alt_text;
         string tariff_alt_url;
         TariffElement[] elements;
@@ -74,8 +64,12 @@ interface ITariff is DataTypes {
     }
 
     struct TariffRestrictions {
-        uint256 start_unixtime;
-        uint256 end_unixtime;
+        int16 start_time_hour; // 0-24
+        int16 start_time_minute; // 0-59
+        int16 end_time_hour; // 0-24
+        int16 end_time_minute; // 0-59
+        int256 start_date; // unix timestamp
+        int256 end_date; // unix timestamp
         uint32 min_kwh;
         uint32 max_kwh;
         uint32 min_current;
@@ -86,7 +80,6 @@ interface ITariff is DataTypes {
         uint32 max_duration;
         DayOfWeek[] day_of_week;
         ReservationRestrictionType reservation;
-
     }
 
     struct TariffElement {

@@ -2,7 +2,6 @@
 
 const free_tariff = {
     currency: 1,
-    _type: 1,
     tariff_alt_text: [{
         language: "ru",
         text: "Описание тарифа"
@@ -19,8 +18,12 @@ const free_tariff = {
                 }
             ],
             restrictions: {
-                start_unixtime:0,
-                end_unixtime:0,
+                start_time_hour:0,
+                start_time_minute:0,
+                end_time_hour:0,
+                end_time_minute:0,
+                start_date:0,
+                end_date:0,
                 min_kwh:0,
                 max_kwh:0,
                 min_current:0,

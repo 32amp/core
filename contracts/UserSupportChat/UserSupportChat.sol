@@ -6,7 +6,6 @@ import "../User/IAuth.sol";
 import "../Hub/IHub.sol";
 import "../User/IUserAccess.sol";
 import "../RevertCodes/IRevertCodes.sol";
-import "hardhat/console.sol";
 
 contract UserSupportChat is IUserSupportChat, Initializable {
 
@@ -88,7 +87,10 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         messages[topic_counter][topics[topic_counter].message_counter].text = _text_message;
         messages[topic_counter][topics[topic_counter].message_counter].create_at = block.timestamp;
         messages[topic_counter][topics[topic_counter].message_counter].user_id = user_id;
+        
         emit CreateTopic(topic_counter, theme);
+        emit UserTopicEvent(topic_counter, user_id);
+
         topics[topic_counter].message_counter++;    
         topic_counter++;
     }
@@ -116,7 +118,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
         emit Message(topic_id, topics[topic_id].message_counter);
         emit UpdateTopic(topic_id, topics[topic_id].theme,topics[topic_id].update_at);
-        
+        emit UserTopicEvent(topic_id, topics[topic_id].create_user_id);
         
         
         topics[topic_id].message_counter++;
@@ -133,7 +135,9 @@ contract UserSupportChat is IUserSupportChat, Initializable {
             revert("access_denied");
 
         topics[topic_id].user_rating = rating;  
-        
+
+        emit UserTopicEvent(topic_id, topics[topic_id].create_user_id);
+
         makeTopicFirst(topic_id);
     }
 
@@ -151,6 +155,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         makeTopicFirst(topic_id);
         
         emit CloseTopic(topic_id,user_id);
+        emit UserTopicEvent(topic_id, topics[topic_id].create_user_id);
     } 
 
     function setReadedMessages(bytes32 _token, uint256 topic_id, uint256[] calldata message_ids) external{
