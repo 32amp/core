@@ -209,7 +209,7 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
         auth_tokens[_token] = token;
         public_tokens[token.uid] = token;
         
-        //address_to_user_id[msg.sender] = user_id;
+        address_to_user_id[msg.sender] = user_id;
 
         emit CreateAuthToken(user_id, user_tokens[user_id].length - 1);
         

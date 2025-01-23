@@ -20,11 +20,11 @@ module.exports = {
       optimizer: {
         enabled: true,
         runs: 200,
-        details: {
+/*         details: {
           yul: false
-        }
+        } */
       },
-      //viaIR: false,
+      viaIR: false,
     },
   },
   mocha: {
