@@ -1,6 +1,7 @@
 # EVSE
 
 ## Структуры данных
+
 Включает в себя типы из [DataTypes](./DataTypes.md)
 
 #### struct EVSEMeta
@@ -40,13 +41,14 @@
 
 
 ## Методы
+
 #### getVersion() returns(string memory)
 ---
 Получение версии контракта
 
 #### exist(uint256 id) view returns(bool)
 ---
-Проверка сущетвования зарядной станции
+Проверка существования зарядной станции
 
 #### add(bytes32 _token, EVSE calldata evse, uint256 location_id)
 ---
@@ -54,9 +56,9 @@
 
 #### setMeta(bytes32 _token, uint256 id, EVSEMeta calldata meta)
 ---
-Установить мета данные для зарядной станции
+Установить метаданные для зарядной станции
 
-#### addImage(bytes32 _token, uint256 id, Image calldata image )
+#### addImage(bytes32 _token, uint256 id, Image calldata image)
 ---
 Добавить изображение зарядной станции
 
@@ -70,7 +72,7 @@
 
 #### addConnector(bytes32 _token, uint256 evse_id,  uint256 connector_id )
 ---
-Прикрепить коннектор к зарядной станции
+Добавить коннектор к зарядной станции
 
 #### removeConnector(bytes32 _token, uint256 evse_id, uint connector_id)
 ---
@@ -78,4 +80,4 @@
 
 #### get(uint256 id) view returns(outEVSE memory)
 ---
-Получить данные по зарядной станции 
+Получить данные по зарядной станции
