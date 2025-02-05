@@ -25,7 +25,7 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
     mapping(uint256 => uint256) tg_users_index;
     mapping(bytes32 => bytes32) email_codes;
     mapping(bytes32 => bytes32) test_email_codes;
-    mapping(address => uint256) address_to_user_id;
+    mapping(bytes32 => address) address_to_token;
     
     address hubContract;
     address smsServiceAddress;
@@ -77,6 +77,9 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
         if (token.date_start == 0) return 0;
 
         if (token.date_expire < block.timestamp) return 0;
+
+        //if(address_to_token[_token] != msg.sender) return 0;
+        // TODO: modify all calls in other contract to delegateCall, and then uncomment
 
         return token.user_id;
     }
@@ -208,8 +211,7 @@ contract Auth is IAuth, Initializable, OwnableUpgradeable {
         user_tokens[user_id].push(_token);
         auth_tokens[_token] = token;
         public_tokens[token.uid] = token;
-        
-        address_to_user_id[msg.sender] = user_id;
+        address_to_token[_token] = msg.sender;
 
         emit CreateAuthToken(user_id, user_tokens[user_id].length - 1);
         

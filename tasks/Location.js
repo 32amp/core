@@ -20,8 +20,9 @@ locationScope.task("getLocation", "Get info of location")
 .setAction(async function(args){
     const {Location} = await loadContract()
     const loc = await Location.getLocation(args.id);
-    console.log(loc)
+    printLocation(loc)
 })
+
 
 locationScope.task("inArea", "Get locations in area")
 .addParam("toprightlat")
@@ -60,7 +61,6 @@ locationScope.task("inArea", "Get locations in area")
 
 
 locationScope.task("addTestLocationsWithEVSE", "Add test locations with evse")
-//.addParam("token", "Access token")
 .setAction(async (args) => {
     const {getEvseData} = require("../test/lib/evse_data");
 
@@ -98,9 +98,6 @@ locationScope.task("addTestLocationsWithEVSE", "Add test locations with evse")
 
     
     for (let index = 0; index < coords.length; index++) {
-
-        //if(index > 100)
-        //    break;
 
         const coord = coords[index];
         const loc = location;
@@ -179,15 +176,24 @@ locationScope.task("addTestLocationsWithEVSE", "Add test locations with evse")
 
             let maxConnectors = Math.floor(Math.random() * 4);
 
+            if(maxConnectors == 0)
+                maxConnectors = 1;
+
             for (let index = 0; index < maxConnectors; index++) {
 
                 let conn = connector;
 
                 conn.standard = Math.floor(Math.random() * 7)
 
+                if(conn.standard == 0)
+                    conn.standard = 1;
+
                 let addConnector =  await Connector.add(sudoUser.token, conn, resultEvse.uid);
 
-                await addConnector.wait();
+                let addconntx = await addConnector.wait();
+                let resultconn = await GetEventArgumentsByNameAsync(addconntx, "AddConnector")
+
+                await Connector.setTariffs(sudoUser.token, resultconn.uid, resulttariff.uid)
                 
             }
 

@@ -11,7 +11,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     mapping (address => uint256) owner_address_to_id;
     mapping (uint256 => mapping(string => address)) modules;
     mapping (uint256 => string[]) modules_list;
-    mapping (string => bool) avaliable_modules;
+
     mapping (string => address) services;
     mapping (address => uint256) deposit;
 
@@ -23,19 +23,6 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
     }
 
     function initialize(addService[] memory _services) public initializer {
-        avaliable_modules["RevertCodes"] = true;
-        avaliable_modules["User"] = true;
-        avaliable_modules["MobileApp"] = true;
-        avaliable_modules["Auth"] = true;
-        avaliable_modules["UserGroups"] = true;
-        avaliable_modules["UserAccess"] = true;
-        avaliable_modules["Tariff"] = true;
-        avaliable_modules["Location"] = true;
-        avaliable_modules["LocationSearch"] = true;
-        avaliable_modules["EVSE"] = true;
-        avaliable_modules["Connector"] = true;
-        avaliable_modules["UserSupportChat"] = true;
-
         addPartnerAmount = 1 ether;
 
         for (uint i = 0; i < _services.length; i++) {
@@ -95,9 +82,6 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         if(partner_id == 0)
             revert("access_denied");
 
-        if(avaliable_modules[name] == false)
-            revert("module_name_incorrect");
-
         modules[partner_id][name] = contractAddress;
         modules_list[partner_id].push(name);        
     }
@@ -107,9 +91,6 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
 
         if(partner_id == 0)
             revert("access_denied");
-        
-        if(avaliable_modules[name] == false)
-            revert("module_name_incorrect");
         
         modules[partner_id][name] = contractAddress;        
     }
@@ -175,9 +156,5 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
         return partners[partner_id].country_code;
     }
 
-    function upgrade() external onlyOwner {
-        // in v 1.1
-        avaliable_modules["Auth"] = true;
-    }
 
 }

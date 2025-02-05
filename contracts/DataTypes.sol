@@ -183,6 +183,22 @@ interface DataTypes {
         SVG
     }
 
+    enum FileType {
+        None,
+        JSON,
+        HTML,
+        PDF,
+        CSV,
+        XLSX,
+        XLS,
+        DOC,
+        DOCX,
+        JPG,
+        PNG,
+        GIF,
+        SVG
+    }
+
 
     enum EnergySourceCategory {
         None,
@@ -251,11 +267,17 @@ interface DataTypes {
 
     struct Image {
         string url;
-        string thumbnail_ipfs;
+        string ipfs_cid;
         ImageCategory category;
         ImageType _type;
         uint16 width;
         uint16 height;
+    }
+
+    struct File {
+        string name_file;
+        string ipfs_cid;
+        FileType file_type;
     }
 
     struct ExceptionalPeriod {

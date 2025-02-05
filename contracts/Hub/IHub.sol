@@ -63,5 +63,4 @@ interface IHub {
     function getPartnerName(uint256 partner_id) external view returns(bytes32);
     function getPartnerPartyId(uint256 partner_id) external view returns(bytes3);
     function getPartnerCountryCode(uint256 partner_id) external view returns(bytes2);
-    function upgrade() external;
 }

@@ -66,6 +66,7 @@ module.exports.upgradeProxy = async function(contract, prefix="", contract_addre
 }
 
 module.exports.getDeployConfig = getDeployConfig;
+
 async function getDeployConfig(){
     const {network} = require("hardhat");
 

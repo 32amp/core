@@ -235,6 +235,16 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 
         console.log("UserSupportChat deployed to:", UserSupportChat.target);
 
+
+        const MobileAppSettings = await deployProxy("MobileAppSettings",[partnerid,hubAddress],"",false);
+
+        let addMobileAppSettings = await hub.addModule("MobileAppSettings", MobileAppSettings.target);
+        await addMobileAppSettings.wait()
+
+
+        console.log("MobileAppSettings deployed to:", MobileAppSettings.target);
+
+
         // UserAccess
         const UserAccess = await deployProxy("UserAccess",[partnerid,hubAddress],"",false);
         
@@ -243,6 +253,9 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
         await UserAccess.registerRevertCodes()
 
         console.log("UserAccess deployed to:", UserAccess.target);
+
+
+
 
     }
 

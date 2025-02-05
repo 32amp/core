@@ -162,6 +162,15 @@ module.exports.deploy = async function(tgtoken, sudoUser, modules){
     }    
 
 
+    if(typeof modules?.MobileAppSettings != "undefined"){
+        retmodules.MobileAppSettings = await deployProxy("MobileAppSettings",[partner.id,retmodules.Hub.target],"",false);
+        
+        let txAddModuleMobileAppSettings = await retmodules.Hub.addModule("MobileAppSettings", retmodules.MobileAppSettings.target);
+        await txAddModuleMobileAppSettings.wait()
+        console.log("MobileAppSettings deployed to:", retmodules.MobileAppSettings.target);
+    }    
+
+
     retmodules.UserAccess = await deployProxy("UserAccess",[partner.id,retmodules.Hub.target],"",false);
 
     let tx11 = await retmodules.Hub.addModule("UserAccess", retmodules.UserAccess.target);
