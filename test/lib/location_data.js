@@ -18,7 +18,7 @@ const location = {
 
 const image = {
     url: "https://upload.wikimedia.org/wikipedia/ru/thumb/e/e8/BORAT%21.jpg/201px-BORAT%21.jpg",
-    thumbnail_ipfs: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Borat_in_Cologne.jpg/220px-Borat_in_Cologne.jpg",
+    ipfs_cid: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Borat_in_Cologne.jpg/220px-Borat_in_Cologne.jpg",
     category: 3,
     _type: 1,
     width: 100,

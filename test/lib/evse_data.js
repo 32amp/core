@@ -30,7 +30,7 @@ module.exports.getEvseData = function (){
 
     const image = {
         url: "https://wikimedia.org/",
-        thumbnail_ipfs: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Borat_in_Cologne.jpg/220px-Borat_in_Cologne.jpg",
+        ipfs_cid: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Borat_in_Cologne.jpg/220px-Borat_in_Cologne.jpg",
         category: 3,
         _type: 1,
         width: 100,

@@ -190,8 +190,8 @@ locationScope.task("addTestLocationsWithEVSE", "Add test locations with evse")
 
                 let addConnector =  await Connector.add(sudoUser.token, conn, resultEvse.uid);
 
-                let addconntx = await addConnector.wait();
-                let resultconn = await GetEventArgumentsByNameAsync(addconntx, "AddConnector")
+                
+                let resultconn = await GetEventArgumentsByNameAsync(addConnector, "AddConnector")
 
                 await Connector.setTariffs(sudoUser.token, resultconn.uid, resulttariff.uid)
                 
