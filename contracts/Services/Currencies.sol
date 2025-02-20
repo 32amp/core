@@ -20,6 +20,7 @@ contract Currencies is ICurrencies, Initializable, OwnableUpgradeable {
             country: "UNITED STATES OF AMERICA",
             currency: "US Dollar",
             alphabetic_code: "USD",
+            symbol: "$",
             numeric_code: 840,
             minor_unit:2
         });

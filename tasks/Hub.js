@@ -2,6 +2,8 @@ const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
 const {formatPartner, formatPartners} = require("../helpers/Hub");
 const {deployProxy, upgradeProxy} = require("../utils/deploy")
 const hubScope = scope("hub", "Tasks for HUB");
+const { loadContracts } = require("./helpers/load_contract")
+
 
 hubScope.task("hubdeploy", "Deploy hub contract")
 .setAction(async function(){
@@ -45,15 +47,15 @@ hubScope.task("changeModuleAddress", "Change module address if you recrate modul
 .addParam("name", "name of module")
 .addParam("address", "Address of contract")
 .setAction(async function(){
-    const {hub} = await loadContract();
+    const {hub} = await loadContracts();
     await hub.changeModuleAddress(args.name,args.address)
 })
 
-hubScope.task("getService", "get address of service")
+hubScope.task("getService", "Get address of service")
 .addParam("name")
 .setAction(async (args) => {
 
-    const {hub} = await loadContract();
+    const {hub} = await loadContracts();
 
     const email_service = await hub.getService(args.name)
 
@@ -65,7 +67,7 @@ hubScope.task("getPartnerModules", "Get list of modules for specific partner")
 .addParam("partnerid")
 .setAction(async (args) => {
 
-    const {hub} = await loadContract();
+    const {hub} = await loadContracts();
 
     const list = await hub.getPartnerModules(args.partnerid)
 
@@ -76,7 +78,7 @@ hubScope.task("getPartnerModules", "Get list of modules for specific partner")
 hubScope.task("getPartners", "Get list of partners")
 .setAction(async () => {
 
-    const {hub} = await loadContract();
+    const {hub} = await loadContracts();
 
     const list = await hub.getPartners()
 
@@ -87,7 +89,7 @@ hubScope.task("getPartners", "Get list of partners")
 hubScope.task("me", "Get my profile in hub")
 .setAction(async () => {
 
-    const {hub} = await loadContract();
+    const {hub} = await loadContracts();
 
     const me = await hub.me()
 
@@ -104,7 +106,7 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 .addParam("tgtoken")
 .setAction(async (args) => {
     
-    const {hub,hubAddress, SMSMessageOracle, EmailMessageOracle} = await loadContract();
+    const {hub,hubAddress, SMSMessageOracle, EmailMessageOracle} = await loadContracts();
 
     var partnerid = 0;
 
@@ -254,34 +256,6 @@ hubScope.task("registerPartner", "Register new partner and deploy all modules" )
 
         console.log("UserAccess deployed to:", UserAccess.target);
 
-
-
-
     }
 
 })
-
-async function loadContract(){
-
-    const {network, ethers} = require("hardhat");
-
-    if(typeof network.config.networkid == "undefined")
-            throw("Please select network")
-    
-    const accounts = await ethers.getSigners();
-
-    const balance = await ethers.provider.getBalance(accounts[0].address)
-
-    console.log("Balance:", hre.ethers.formatEther(balance), "ETH")
-
-    const deployed_addresses = require(`../${network.name}_proxy_addresses.json`)
-
-    const hubartifacts = require("../artifacts/contracts/Hub/IHub.sol/IHub.json");
-    const MessageOracleArtifacts = require("../artifacts/contracts/Services/IMessageOracle.sol/IMessageOracle.json");
-
-
-    const hub = await new ethers.Contract(deployed_addresses["Hub"],hubartifacts.abi,accounts[0])
-    const SMSMessageOracle = await new ethers.Contract(deployed_addresses["MessageOracle#SMS"],MessageOracleArtifacts.abi,accounts[0])
-    const EmailMessageOracle = await new ethers.Contract(deployed_addresses["MessageOracle#Email"],MessageOracleArtifacts.abi,accounts[0])
-    return {hub, hubAddress:deployed_addresses["Hub"],SMSMessageOracle, EmailMessageOracle};
-}

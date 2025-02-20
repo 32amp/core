@@ -8,6 +8,7 @@ interface ICurrencies {
         string country;
         string currency;
         string alphabetic_code;
+        string symbol;
         uint16 numeric_code;
         uint8 minor_unit;
     }

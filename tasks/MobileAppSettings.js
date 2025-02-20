@@ -41,8 +41,6 @@ MobileAppSettingsScope.task("setConfig", "Set config from hub.config.js")
     } catch (error) {
         console.error(error)
     }
-
-
 })
 
 

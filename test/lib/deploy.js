@@ -170,6 +170,21 @@ module.exports.deploy = async function(tgtoken, sudoUser, modules){
         console.log("MobileAppSettings deployed to:", retmodules.MobileAppSettings.target);
     }    
 
+    if(typeof modules?.Balance != "undefined"){
+        retmodules.Balance = await deployProxy("Balance",[partner.id,retmodules.Hub.target,1],"",false);
+        
+        let txAddModuleBalance = await retmodules.Hub.addModule("Balance", retmodules.Balance.target);
+        await txAddModuleBalance.wait()
+        console.log("Balance deployed to:", retmodules.Balance.target);
+    }    
+    if(typeof modules?.Cards != "undefined"){
+        retmodules.Cards = await deployProxy("Cards",[partner.id,retmodules.Hub.target],"",false);
+        
+        let txAddModuleCards = await retmodules.Hub.addModule("BalaCardsnce", retmodules.Cards.target);
+        await txAddModuleCards.wait()
+        console.log("Cards deployed to:", retmodules.Cards.target);
+    }    
+
 
     retmodules.UserAccess = await deployProxy("UserAccess",[partner.id,retmodules.Hub.target],"",false);
 

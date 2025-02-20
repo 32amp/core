@@ -12,20 +12,12 @@ module.exports.loadContracts = async function(modules = []){
     
     const accounts = await ethers.getSigners();
 
-    const balance = await ethers.provider.getBalance(accounts[0].address)
-
-    //console.log("Balance:", ethers.formatEther(balance), "ETH")
-
-    
     const deployed_addresses = require(`../../${network.name}_proxy_addresses.json`)
     const output = {};
 
-    const hubartifacts = require("../../artifacts/contracts/Hub/IHub.sol/IHub.json");
-    output.hub = await new ethers.Contract(deployed_addresses["Hub"],hubartifacts.abi,accounts[0])
+    
+    output.hub = await ethers.getContractAt("Hub", deployed_addresses["Hub"], accounts[0])
     const partnerid = await output.hub.getPartnerIdByAddress(accounts[0].address)
-
-    //console.log("partnerid", partnerid)
-
 
     var partnerModules = await output.hub.getPartnerModules(partnerid)
 
@@ -44,6 +36,9 @@ module.exports.loadContracts = async function(modules = []){
         }
 
     }
+
+    output.SMSMessageOracle = await ethers.getContractAt("MessageOracle",deployed_addresses["MessageOracle#SMS"],accounts[0])
+    output.EmailMessageOracle = await ethers.getContractAt("MessageOracle",deployed_addresses["MessageOracle#Email"],accounts[0])
 
     output.hubAddress = deployed_addresses["Hub"]
     output.config = config.networks[network.name]
