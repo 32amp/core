@@ -1,31 +1,17 @@
 
 const { expect } = require('chai');
-
-
 const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
-
 const {deploy} = require("./lib/deploy");
-const {auth} = require("./lib/auth");
+
 
 before(async function() {
-    const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
     const accounts = await ethers.getSigners();
-    this.owner = accounts[0].address
+    this.owner = accounts[0];
+    this.simpleUser = accounts[1];
+    this.adminUser = accounts[2];
+    this.contracts = await deploy({User:true, UserSupportChat: true})
 
-    this.sudoUser = {
-        login: ethers.encodeBytes32String("sudo"),
-        password: ethers.encodeBytes32String("433455"),
-        token:null
-    }
-
-
-    this.contracts = await deploy(tgtoken,this.sudoUser,{User:true,Auth:true, UserSupportChat: true})
-
-    const {testUser, sudoUser} = await auth(this.contracts.Auth)
-
-    this.testUser = testUser
-    this.sudoUser = sudoUser;
-
+    await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"UserSupportChat", 4);
 })
 
 
@@ -88,14 +74,14 @@ describe("UserSupportChat", function (){
     
 
     it("getTopics empty", async function(){
-        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        const topics = await this.contracts.UserSupportChat.connect(this.simpleUser).getMyTopics(0)
 
         expect(topics[0].length).to.equal(0)
     })
 
 
     it("createTopic", async function(){
-        const tx = await this.contracts.UserSupportChat.createTopic(this.testUser.token, messages[0].text, 1 )
+        const tx = await this.contracts.UserSupportChat.connect(this.simpleUser).createTopic( messages[0].text, 1 )
 
         let createTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CreateTopic")
 
@@ -105,18 +91,18 @@ describe("UserSupportChat", function (){
 
 
     it("getTopic", async function(){
-        const topic = await this.contracts.UserSupportChat.getTopic(this.testUser.token, 0);
+        const topic = await this.contracts.UserSupportChat.connect(this.simpleUser).getTopic(0);
 
-        expect(topic.create_user_id).to.equal(2)
+        expect(topic.create_user_account).to.equal(this.simpleUser.address)
         expect(topic.message_counter).to.equal(1)
         expect(topic.theme).to.equal(1)
         expect(topic.closed).to.equal(false)
     })
 
     it("getMyTopics", async function(){
-        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        const topics = await this.contracts.UserSupportChat.connect(this.simpleUser).getMyTopics(0)
 
-        expect(topics[0][0].topic.create_user_id).to.equal(2)
+        expect(topics[0][0].topic.create_user_account).to.equal(this.simpleUser.address)
         expect(topics[0][0].topic.message_counter).to.equal(1)
         expect(topics[0][0].topic.theme).to.equal(1)
         expect(topics[0][0].topic.closed).to.equal(false)
@@ -132,10 +118,10 @@ describe("UserSupportChat", function (){
             var tx;
 
             if(message.who == "user"){
-                tx = await this.contracts.UserSupportChat.sendMessage(this.testUser.token, 0, {text:message.text, reply_to:0,image:""})
+                tx = await this.contracts.UserSupportChat.connect(this.simpleUser).sendMessage(0, {text:message.text, reply_to:0,image:""})
 
             }else{
-                tx = await this.contracts.UserSupportChat.sendMessage(this.sudoUser.token, 0, {text:message.text, reply_to:0,image:""})
+                tx = await this.contracts.UserSupportChat.connect(this.adminUser).sendMessage(0, {text:message.text, reply_to:0,image:""})
             }
 
 
@@ -149,14 +135,14 @@ describe("UserSupportChat", function (){
 
 
     it("unreaded mesages", async function(){
-        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        const topics = await this.contracts.UserSupportChat.connect(this.simpleUser).getMyTopics(0)
         expect(topics[0][0].unreaded_messages).to.equal(messages.length/2)
     })
 
 
     it("getMessages", async function(){
 
-        const topicMessages = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 0);
+        const topicMessages = await this.contracts.UserSupportChat.connect(this.simpleUser).getMessages(0, 0);
 
 
         for (let index = 0; index < 10; index++) {
@@ -165,7 +151,7 @@ describe("UserSupportChat", function (){
             expect(message.text).to.equal(topicMessages[0][index].message.text)
         }
 
-        const topicMessagesOffset = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 10);
+        const topicMessagesOffset = await this.contracts.UserSupportChat.connect(this.simpleUser).getMessages(0, 10);
 
         for (let index = 10, i = 0; index < 20; index++, i++) {
             const message = messagesReverse[index];
@@ -174,7 +160,7 @@ describe("UserSupportChat", function (){
         }
 
 
-        const topicMessagesOffset2 = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 40);
+        const topicMessagesOffset2 = await this.contracts.UserSupportChat.connect(this.simpleUser).getMessages(0, 40);
 
         for (let index = 40, i =0; index < 48; index++, i++) {
             const message = messagesReverse[index];
@@ -185,9 +171,9 @@ describe("UserSupportChat", function (){
     })
 
     it("setRating", async function(){
-        await this.contracts.UserSupportChat.setRating(this.testUser.token, 0,5)
+        await this.contracts.UserSupportChat.connect(this.simpleUser).setRating(0,5)
 
-        const topic = await this.contracts.UserSupportChat.getTopic(this.testUser.token,0);
+        const topic = await this.contracts.UserSupportChat.connect(this.simpleUser).getTopic(0);
 
         expect(topic.user_rating).to.equal(5)
     })
@@ -204,13 +190,13 @@ describe("UserSupportChat", function (){
             
         }
 
-        await this.contracts.UserSupportChat.setReadedMessages(this.testUser.token,0, readed)
+        await this.contracts.UserSupportChat.connect(this.simpleUser).setReadedMessages(0, readed)
 
-        const topicMessages = await this.contracts.UserSupportChat.getMessages(this.testUser.token, 0, 0);
+        const topicMessages = await this.contracts.UserSupportChat.connect(this.simpleUser).getMessages(0, 0);
         
         expect(topicMessages[0][0].message.readed).to.equal(true);
 
-        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        const topics = await this.contracts.UserSupportChat.connect(this.simpleUser).getMyTopics(0)
         expect(topics[0][0].unreaded_messages).to.equal(0)
     })
 
@@ -218,14 +204,14 @@ describe("UserSupportChat", function (){
 
 
     it("closeTopic", async function(){
-        let tx = await this.contracts.UserSupportChat.closeTopic(this.testUser.token, 0);
+        let tx = await this.contracts.UserSupportChat.connect(this.simpleUser).closeTopic(0);
         let closeTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CloseTopic")
 
         expect(closeTopicSuccess.topic_id).to.equal(0);
-        expect(closeTopicSuccess.user_id).to.equal(2);
+        expect(closeTopicSuccess.account).to.equal(this.simpleUser.address);
 
 
-        const topic = await this.contracts.UserSupportChat.getTopic(this.testUser.token, 0);
+        const topic = await this.contracts.UserSupportChat.connect(this.simpleUser).getTopic(0);
 
         expect(topic.closed).to.equal(true);
     })
@@ -234,7 +220,7 @@ describe("UserSupportChat", function (){
 
 
         for (let index = 1; index < 10; index++) {
-            const tx = await this.contracts.UserSupportChat.createTopic(this.testUser.token, "Many topics "+index, 1 )
+            const tx = await this.contracts.UserSupportChat.connect(this.simpleUser).createTopic("Many topics "+index, 1 )
 
             let createTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CreateTopic")
     
@@ -243,11 +229,11 @@ describe("UserSupportChat", function (){
         }
 
 
-        let tx = await this.contracts.UserSupportChat.sendMessage(this.sudoUser.token, 5, {text:"Unreaded message", reply_to:0,image:""})
+        let tx = await this.contracts.UserSupportChat.connect(this.adminUser).sendMessage(5, {text:"Unreaded message", reply_to:0,image:""})
     
         await tx.wait()
 
-        const topics = await this.contracts.UserSupportChat.getMyTopics(this.testUser.token, 0)
+        const topics = await this.contracts.UserSupportChat.connect(this.simpleUser).getMyTopics(0)
         
         expect(topics[0][0].id).to.equal(5)
         expect(topics[0][0].unreaded_messages).to.equal(1)

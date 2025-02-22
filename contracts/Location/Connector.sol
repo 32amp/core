@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
 import "./IEVSE.sol";
 import "./IConnector.sol";
-import "../User/IAuth.sol";
 import "../Tariff/ITariff.sol";
 import "../User/IUserAccess.sol";
 import "../RevertCodes/IRevertCodes.sol";
@@ -36,19 +35,15 @@ contract Connector is IConnector, Initializable {
         return "1.0";
     }
 
-    modifier access(bytes32 _token, uint256 id) {
-        _UserAccess().checkAccess( "Connector",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    modifier access( uint256 id) {
+
+        _UserAccess().checkAccess(msg.sender, "Connector", bytes32(id), uint(IUserAccess.AccessLevel.FOURTH));
         _;
     }
 
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
-
-    function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
-    }
-
 
     function _EVSE() private view returns(IEVSE) {
         return IEVSE(IHub(hubContract).getModule("EVSE", partner_id));
@@ -67,11 +62,9 @@ contract Connector is IConnector, Initializable {
         _RevertCodes().panic("Connector", code);
     }
 
-    function add(bytes32 _token, Connector memory connector, uint256 evse_id) external {
+    function add( Connector memory connector, uint256 evse_id) external {
         
-        uint256 user_id = _Auth().isLogin(_token);
-
-        uint access_level = _UserAccess().getModuleAccessLevel("Connector", user_id);
+        uint access_level = _UserAccess().getModuleAccessLevel("Connector", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             _panic("access_denied_level_four");
@@ -84,17 +77,30 @@ contract Connector is IConnector, Initializable {
 
         connectors[connector_counter] = connector;
 
-        _EVSE().addConnector(_token, evse_id, connector_counter);
+        _UserAccess().setAccessLevelToModuleObject(bytes32(connector_counter),msg.sender,"Connector",IUserAccess.AccessLevel.FOURTH);
+        _EVSE().addConnector(evse_id, connector_counter);
 
-        _UserAccess().setAccessLevelToModuleObject(_token,bytes32(connector_counter),user_id,"Connector",IUserAccess.AccessLevel.FOURTH);
+/* 
+        {
+            (bool success, bytes memory data ) = IHub(hubContract).getModule("UserAccess", partner_id).delegatecall(
+                abi.encodeWithSignature("setAccessLevelToModuleObject( bytes32, address, string, uint)", bytes32(connector_counter),msg.sender,"Connector",IUserAccess.AccessLevel.FOURTH)
+            );
+        }
 
-        emit AddConnector(connector_counter, partner_id, user_id);
+        {
+            (bool success, bytes memory data ) = IHub(hubContract).getModule("EVSE", partner_id).delegatecall(
+                abi.encodeWithSignature("addConnector( uint256, uint256)",  evse_id, connector_counter)
+            );
+        } */
+        
+
+        emit AddConnector(connector_counter, partner_id, msg.sender);
 
         _updated(connector_counter);
     }
 
 
-    function setTariffs(bytes32 _token, uint256 id, uint256  _tariff) access(_token, id) external {
+    function setTariffs( uint256 id, uint256  _tariff) access(id) external {
 
         if(!_Tariff().exist(_tariff))
             revert("tariff_does_not_exist");

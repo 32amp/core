@@ -13,7 +13,7 @@ interface IMobileAppSettings is DataTypes {
     }
 
     function getVersion() external pure returns(string memory);
-    function setConfig(bytes32 _token, Config memory) external;
-    function setTechnicalWork(bytes32 _token, bool technical_work) external;
+    function setConfig(Config memory) external;
+    function setTechnicalWork(bool technical_work) external;
     function getConfig() external view returns(Config memory);
 }

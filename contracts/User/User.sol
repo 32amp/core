@@ -5,25 +5,18 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IUser.sol";
 import "./IUserAccess.sol";
-import "./IAuth.sol";
 import "../Hub/IHub.sol";
 import "../Services/IMessageOracle.sol";
 import "../RevertCodes/IRevertCodes.sol";
 
 contract User is IUser, Initializable, OwnableUpgradeable {
-    mapping(uint256 => IUser.User) users;
-    mapping(uint256 => IUser.Company) user_company_data;
-    mapping(uint256 => IUser.CarData[]) user_cars;
+    mapping(address => IUser.User) users;
+    mapping(address => IUser.Company) user_company_data;
+    mapping(address => IUser.CarData[]) user_cars;
 
     uint256 usersIndex;
     address hubContract;
     uint256 partner_id;
-
-    modifier onlyAuthContract(){
-        if(IHub(hubContract).getModule("Auth", partner_id) != msg.sender)
-            revert("access_denied");
-        _;
-    } 
 
     function getVersion() external pure returns(string memory){
         return "1.0";
@@ -31,10 +24,6 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
-    }
-
-    function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
     function _RevertCodes() private view returns(IRevertCodes) {
@@ -54,209 +43,191 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         _RevertCodes().registerRevertCode("User", "car_not_found", "Car not found");
     }
 
-    function addUser() external returns (uint256) {
-
-        if(IHub(hubContract).getModule("Auth", partner_id) != msg.sender)
-            revert("access_denied");
+    
+    function addUser(address account) onlyOwner external returns (uint256) {
 
         usersIndex++;
-        users[usersIndex].id = usersIndex;
-        users[usersIndex].last_updated = block.timestamp;
-        users[usersIndex].enable = true;
+
+        users[account].id = usersIndex;
+        users[account].last_updated = block.timestamp;
+        users[account].enable = true;
+
         return usersIndex;
     }
 
-    function whoami(bytes32 _token) external view returns (IUser.User memory) {
-        uint256 user_id = _Auth().isLogin(_token);
-
-        if (user_id == 0) revert("access_denied");
-
-        return users[user_id];
+    function whoami() external view returns (IUser.User memory) {
+        return users[msg.sender];
     }
 
-    function getUser(bytes32 _token, uint256 _user_id) external view returns (IUser.User memory) {
-        uint256 user_id = _Auth().isLogin(_token);
-
-        if (user_id == 0) revert("access_denied");
-
-
-        uint access_level = _UserAccess().getModuleAccessLevel("User", user_id);
-
-        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
-        }
-
-        return users[_user_id];
-    }
-
-    function _updateData(uint256 user_id, bytes32 first_name, bytes32 last_name, bytes32 language_code) internal {
-        users[user_id].first_name = first_name;
-        users[user_id].last_name = last_name;
-        users[user_id].language_code = language_code;
-    }
-
-    function updateBaseData(bytes32 _token, uint256 user_id, bytes32 first_name, bytes32 last_name, bytes32 language_code) external {
-        uint256 my_user_id = _Auth().isLogin(_token);
-
-        if (my_user_id == 0) revert("access_denied");
-
-        if(user_id == 0){
-            _updateData(my_user_id,first_name, last_name, language_code);
-            return;
-        }
-
-        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
-
-        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
-        }
-
-        _updateData(user_id,first_name, last_name, language_code);
-    }
-
-
-    function addCar(bytes32 _token, uint256 user_id, CarData memory car_data) external{
-        uint256 my_user_id = _Auth().isLogin(_token);
-
-        if (my_user_id == 0) revert("access_denied");
-
-        if(user_id == 0){
-            user_cars[my_user_id].push(car_data);
-            return;
-        }
-
-
-        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
-
-        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
-        }
-
-        if(users[user_id].id == 0)
+    function exist(address account) public view {
+        if(users[account].id == 0)
             revert("user_not_found");
+    }
 
-        user_cars[user_id].push(car_data);
+    modifier _exist() {
+        exist(msg.sender);
+        _;
+    }
+
+    function getUser(address account) external view returns (IUser.User memory) {
+        exist(account);
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }
+
+        return users[account];
+    }
+
+
+    function _updateData(address account, string calldata first_name, string calldata last_name, string calldata language_code) internal {
+        exist(account);
+
+        users[account].first_name = first_name;
+        users[account].last_name = last_name;
+        users[account].language_code = language_code;
+    }
+
+    function setPhone(address account, string calldata phone) onlyOwner external{
+        users[account].phone = phone;
+    }
+
+    function setEmail(address account, string calldata email) onlyOwner external{
+        users[account].email = email;
+    }
+
+    function updateBaseData( address account, string calldata first_name, string calldata last_name, string calldata language_code) external {
+
+        if(account == address(0)){
+            _updateData(msg.sender,first_name, last_name, language_code);
+            return;
+        }
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }
+
+        _updateData(account, first_name, last_name, language_code);
+    }
+
+
+    function addCar(address account, CarData memory car_data) external{
+        
+        if(account == address(0)){
+            exist(msg.sender);
+            user_cars[msg.sender].push(car_data);
+            return;
+        }
+
+        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
+
+        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
+            revert("access_denied");
+        }
+
+        exist(account);
+
+        user_cars[account].push(car_data);
 
     }
 
-    function _removeCar(uint256 user_id, uint _index) internal {
-
-        if (_index >= user_cars[user_id].length) {
+    function _removeCar(address account, uint _index) internal {
+        
+        exist(account);
+        
+        if (_index >= user_cars[account].length) {
             revert("car_not_found");
         }
    
-        for (uint i = _index; i < user_cars[user_id].length - 1; i++) {
-            user_cars[user_id][i] = user_cars[user_id][i + 1];
+        for (uint i = _index; i < user_cars[account].length - 1; i++) {
+            user_cars[account][i] = user_cars[account][i + 1];
         }
 
-        user_cars[user_id].pop();
+        user_cars[account].pop();
     }
 
 
-    function removeCar(bytes32 _token, uint256 user_id, uint _index) external {
-        uint256 my_user_id = _Auth().isLogin(_token);
+    function removeCar( address account, uint _index) external {
 
-        if (my_user_id == 0) revert("access_denied");
-
-        if(user_id == 0){
-            _removeCar(my_user_id, _index);
+        if(account == address(0)){
+            _removeCar(msg.sender, _index);
             return;
         }
 
-        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
             revert("access_denied");
         }
 
-
-        if(users[user_id].id == 0)
-            revert("user_not_found");
-
-        _removeCar(user_id, _index);
+        
+        _removeCar(account, _index);
     }
 
 
-    function getCars(bytes32 _token, uint256 user_id) external view returns(CarData[] memory) {
-        uint256 my_user_id = _Auth().isLogin(_token);
+    function getCars(address account) external view returns(CarData[] memory) {
+        
 
-        if (my_user_id == 0) revert("access_denied");
-
-        if(user_id == 0)
-            return user_cars[my_user_id];
-
-
-        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+        if(account == address(0)){
+            exist(msg.sender);
+            return user_cars[msg.sender];
+        }
+            
+        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
             revert("access_denied");
         }
+
+        exist(account);
     
-        return user_cars[user_id];
+        return user_cars[account];
         
     }
 
-    function updateCompanyInfo(bytes32 _token, uint256 user_id, Company memory company_data) external{
-        uint256 my_user_id = _Auth().isLogin(_token);
+    function updateCompanyInfo(address account, Company memory company_data) external{
 
-        if (my_user_id == 0) revert("access_denied");
+        if(account == address(0)){
+            exist(msg.sender);
+            users[msg.sender].user_type = IUser.TypeUser.COMPANY;
 
-        if(user_id == 0){
-            users[my_user_id].user_type = IUser.TypeUser.COMPANY;
-
-            user_company_data[my_user_id] = company_data;
+            user_company_data[msg.sender] = company_data;
             return;
         }
 
-        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
             revert("access_denied");
         }
 
-        users[user_id].user_type = IUser.TypeUser.COMPANY;
+        exist(account);
 
-        user_company_data[user_id] = company_data;
+        users[account].user_type = IUser.TypeUser.COMPANY;
+
+        user_company_data[account] = company_data;
 
     }
 
-    function getCompanyInfo(bytes32 _token, uint256 user_id) external view returns(Company memory){
-        uint256 my_user_id = _Auth().isLogin(_token);
-
-        if (my_user_id == 0) revert("access_denied");
+    function getCompanyInfo(address account) external view returns(Company memory){
         
-        if(user_id == 0)
-            return user_company_data[my_user_id];
+        if(account == address(0)){
+            exist(msg.sender);
+            return user_company_data[msg.sender];
+        }
 
-        uint access_level = _UserAccess().getModuleAccessLevel("User", my_user_id);
+        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
             revert("access_denied");
         }    
+
+        exist(account);
         
-        return user_company_data[user_id];
-    }
-
-    function fromContractUpdateData(uint256 user_id, bytes32 first_name, bytes32 last_name, bytes32 language_code, uint256 tg_id) onlyAuthContract external {
-        users[user_id].first_name = first_name;
-        users[user_id].last_name = last_name;
-        users[user_id].language_code = language_code;
-        users[user_id].tg_id = tg_id;
-    }
-
-    function fromContractUpdatePhone(uint256 user_id, bytes32 phone) onlyAuthContract external {
-        users[user_id].phone = phone;
-    }
-
-    function fromContractUpdateEmail(uint256 user_id, bytes32 email) onlyAuthContract external {
-        users[user_id].email = email;
-    }
-
-    function fromContractUpdateUsername(uint256 user_id, bytes32 username) external {
-
-        if(IHub(hubContract).getModule("Auth", partner_id) != msg.sender)
-            revert("access_denied");
-
-        users[user_id].username = username;
+        return user_company_data[account];
     }
 }

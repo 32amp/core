@@ -7,7 +7,6 @@ import "../Hub/IHub.sol";
 import "./ILocation.sol";
 import "./IConnector.sol";
 import "./IEVSE.sol";
-import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 import "../RevertCodes/IRevertCodes.sol";
 
@@ -47,10 +46,6 @@ contract EVSE is IEVSE, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
-    }
-
     function _Location() private view returns(ILocation) {
         return ILocation(IHub(hubContract).getModule("Location", partner_id));
     }
@@ -77,11 +72,15 @@ contract EVSE is IEVSE, Initializable {
         return false;
     }
 
-    function add(bytes32 _token, EVSE calldata evse, uint256 location_id) external {
-        
-        uint256 user_id = _Auth().isLogin(_token);
+    modifier access(uint256 evse_id) {
+        _UserAccess().checkAccess( msg.sender, "EVSE", bytes32(evse_id), uint(IUserAccess.AccessLevel.FOURTH));
+        _;
+    }
 
-        uint access_level = _UserAccess().getModuleAccessLevel("EVSE", user_id);
+    function add(EVSE calldata evse, uint256 location_id) external {
+        
+
+        uint access_level = _UserAccess().getModuleAccessLevel("EVSE", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             _panic("access_denied");
@@ -99,49 +98,44 @@ contract EVSE is IEVSE, Initializable {
         evses_status[evsecounter] = EVSEStatus.Planned;
         evses_related_location[evsecounter] = location_id;
 
-        _UserAccess().setAccessLevelToModuleObject(_token,bytes32(evsecounter),user_id,"EVSE",IUserAccess.AccessLevel.FOURTH);
+        _UserAccess().setAccessLevelToModuleObject(bytes32(evsecounter), msg.sender, "EVSE", IUserAccess.AccessLevel.FOURTH);
 
-        _Location().addEVSE(_token, location_id, evsecounter);
-        emit AddEVSE(evsecounter, partner_id, user_id);        
+        _Location().addEVSE(location_id, evsecounter);
+
+        emit AddEVSE(evsecounter, partner_id, msg.sender);        
         _updated(evsecounter);
     }
 
-    function setMeta(bytes32 _token, uint256 id, EVSEMeta calldata meta) external {
-        _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
-        evses_meta[id] = meta;
-        _updated(id);
+    function setMeta(uint256 evse_id, EVSEMeta calldata meta) access(evse_id) external {
+        evses_meta[evse_id] = meta;
+        _updated(evse_id);
     }
 
 
-    function addImage(bytes32 _token, uint256 id, Image calldata image ) external {
-        _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
-        evse_images[id].push(image);
-        _updated(id);
+    function addImage( uint256 evse_id, Image calldata image ) access(evse_id) external {
+        evse_images[evse_id].push(image);
+        _updated(evse_id);
     }
 
-    function removeImage(bytes32 _token, uint256 id, uint image_id) external {
-        _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
-        for (uint i = image_id; i < evse_images[id].length - 1; i++) {
-            evse_images[id][i] = evse_images[id][i + 1];
+    function removeImage(uint256 evse_id, uint image_id) access(evse_id) external {
+
+        for (uint i = image_id; i < evse_images[evse_id].length - 1; i++) {
+            evse_images[evse_id][i] = evse_images[evse_id][i + 1];
         }
-        evse_images[id].pop();
-        _updated(id);
+
+        evse_images[evse_id].pop();
+        _updated(evse_id);
     }
 
-    function setStatus(bytes32 _token, uint256 id, EVSEStatus status) external {
-        _UserAccess().checkAccess( "EVSE",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function setStatus( uint256 evse_id, EVSEStatus status) access(evse_id) external {
         
-
-        if(evse_connectors[id].length == 0 && status == EVSEStatus.Available)
+        if(evse_connectors[evse_id].length == 0 && status == EVSEStatus.Available)
             _panic("add_connectors_first");
 
-        evses_status[id] = status;
+        evses_status[evse_id] = status;
     }
 
-    function addConnector(bytes32 _token, uint256 evse_id,  uint256 connector_id ) external {
-
-
-        _UserAccess().checkAccess( "EVSE",bytes32(evse_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function addConnector(uint256 evse_id,  uint256 connector_id ) access(evse_id) external {
         
         if(IHub(hubContract).getModule("Connector", partner_id) != msg.sender)
             if(!_Connector().exist(connector_id))
@@ -152,8 +146,7 @@ contract EVSE is IEVSE, Initializable {
     }
 
 
-    function removeConnector(bytes32 _token, uint256 evse_id, uint connector_id) external {
-        _UserAccess().checkAccess( "EVSE",bytes32(evse_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function removeConnector(uint256 evse_id, uint connector_id) access(evse_id) external {
         
         for (uint i = connector_id; i < evse_connectors[evse_id].length - 1; i++) {
             evse_connectors[evse_id][i] = evse_connectors[evse_id][i + 1];

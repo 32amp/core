@@ -1,33 +1,18 @@
 
 const { expect } = require('chai');
 
-
-
 const {deploy} = require("./lib/deploy");
-const {auth} = require("./lib/auth");
+
 const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
 
 before(async function() {
-    const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
+
     const accounts = await ethers.getSigners();
-    this.owner = accounts[0].address
+    this.owner = accounts[0]
+    this.adminUser = accounts[1]
 
-    this.sudoUser = {
-        login: ethers.encodeBytes32String("sudo"),
-        password: ethers.encodeBytes32String("433455"),
-        token:null
-    }
+    this.contracts = await deploy({User:true,Auth:true,Location:true, LocationSearch:true})
 
-
-    this.contracts = await deploy(tgtoken,this.sudoUser,{User:true,Auth:true,Location:true, LocationSearch:true})
-
-    const {sudoUser, testUser} = await auth(this.contracts.Auth)
-
-    this.sudoUser = sudoUser;
-    this.testUser = testUser;
-
-    console.log("sudoUser", sudoUser)
-    console.log("testUser", testUser)
 })
 
 
@@ -40,10 +25,10 @@ describe("Locations", function(){
 
     it("AddLocation", async function(){
 
-        const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Location", 4);
+        const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Location", 4);
         await tx.wait()
 
-        const tx2 =  await this.contracts.Location.addLocation(this.testUser.token, location);
+        const tx2 =  await this.contracts.Location.connect(this.adminUser).addLocation(location);
 
         let result = await GetEventArgumentsByNameAsync(tx2, "AddLocation")
         expect(result.uid).to.equal(1)
@@ -52,24 +37,24 @@ describe("Locations", function(){
 
     it("addRelatedLocation", async function(){
 
-        let tx = await this.contracts.Location.addRelatedLocation(this.testUser.token, 1, relatedLocation);
+        let tx = await this.contracts.Location.connect(this.adminUser).addRelatedLocation( 1, relatedLocation);
         await tx.wait()
 
     })
 
     it("addImage", async function(){
-        let tx = await this.contracts.Location.addImage(this.testUser.token, 1, image);
+        let tx = await this.contracts.Location.connect(this.adminUser).addImage(1, image);
         await tx.wait()
     })
 
     it("addDirection", async function(){
-        let tx = await this.contracts.Location.addDirection(this.testUser.token, 1, direction);
+        let tx = await this.contracts.Location.connect(this.adminUser).addDirection(1, direction);
         await tx.wait()
     })
 
 
     it("setOpeningTimes", async function(){
-        let tx = await this.contracts.Location.setOpeningTimes(this.testUser.token, 1, openingTimes);
+        let tx = await this.contracts.Location.connect(this.adminUser).setOpeningTimes(1, openingTimes);
         await tx.wait()
     })
 
@@ -121,7 +106,7 @@ describe("Locations", function(){
 
 
     it("removeRelatedLocation", async function(){
-        let tx = await this.contracts.Location.removeRelatedLocation(this.testUser.token, 1, 1); 
+        let tx = await this.contracts.Location.connect(this.adminUser).removeRelatedLocation( 1, 1); 
         await tx.wait()
 
         const newLocation = await this.contracts.Location.getLocation(1);
@@ -129,7 +114,7 @@ describe("Locations", function(){
     })
 
     it("removeImage", async function(){
-        let tx = await this.contracts.Location.removeImage(this.testUser.token, 1, 1); 
+        let tx = await this.contracts.Location.connect(this.adminUser).removeImage(1, 1); 
         await tx.wait()
 
         const newLocation = await this.contracts.Location.getLocation(1);
@@ -137,7 +122,7 @@ describe("Locations", function(){
     })
 
     it("removeDirection", async function(){
-        let tx = await this.contracts.Location.removeDirection(this.testUser.token, 1, 1); 
+        let tx = await this.contracts.Location.connect(this.adminUser).removeDirection(1, 1); 
         await tx.wait()
 
         const newLocation = await this.contracts.Location.getLocation(1);

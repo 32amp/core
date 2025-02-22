@@ -22,8 +22,8 @@ contract MobileAppSettings is IMobileAppSettings,  Initializable {
         return "1.0";
     }
 
-    modifier access(bytes32 _token) {
-        _UserAccess().checkAccessModule( "MobileAppSettings", _token, uint(IUserAccess.AccessLevel.GOD));
+    modifier access() {
+        _UserAccess().checkAccessModule( msg.sender, "MobileAppSettings",  uint(IUserAccess.AccessLevel.GOD));
         _;
     }
 
@@ -31,11 +31,11 @@ contract MobileAppSettings is IMobileAppSettings,  Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function setConfig(bytes32 _token, Config memory _config) external access(_token) {
+    function setConfig(Config memory _config) external access() {
         config = _config;
     }
 
-    function setTechnicalWork(bytes32 _token, bool technical_work) external access(_token) {
+    function setTechnicalWork(bool technical_work) external access() {
         config.technical_work = technical_work;
     }
 

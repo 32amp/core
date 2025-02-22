@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
 import "../RevertCodes/IRevertCodes.sol";
-import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 import "./ICards.sol";
 
@@ -14,10 +13,10 @@ contract Cards is ICards, Initializable {
     uint256 partner_id;
     uint256 max_user_cards;
 
-    mapping(uint256 => Card[]) cards;
-    mapping(uint256 => AutopaySettings) autopay_settings;
-    mapping(uint256 => uint256) add_card_request_id;
-    mapping(uint256 => uint256) write_off_request_id;
+    mapping(address => Card[]) cards;
+    mapping(address => AutopaySettings) autopay_settings;
+    mapping(address => uint256) add_card_request_id;
+    mapping(address => uint256) write_off_request_id;
 
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
@@ -28,10 +27,6 @@ contract Cards is ICards, Initializable {
 
     function _RevertCodes() private view returns(IRevertCodes) {
         return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
-    }
-
-    function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
     function _UserAccess() private view returns(IUserAccess) {
@@ -51,127 +46,107 @@ contract Cards is ICards, Initializable {
     }
 
 
-    modifier onlyAdmin(bytes32 _token){
-        uint256 user_id = _Auth().isLogin(_token);
-
-        uint access_level = _UserAccess().getModuleAccessLevel("Cards", user_id);
-
-        if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
-            revert("access_denied_level_four");
-        }
-
+    modifier onlyAdmin(){
+        _UserAccess().checkAccessModule( msg.sender, "Cards",  uint(IUserAccess.AccessLevel.FOURTH));
         _;
     }
 
-    function addCardRequest(bytes32 _token) external {
-        uint256 user_id = _Auth().isLogin(_token);
+    // check user exist
+    function addCardRequest() external {
         
-        if (user_id == 0) revert("access_denied");
-
-        if(max_user_cards == cards[user_id].length)
+        if(max_user_cards == cards[msg.sender].length)
             revert("max_cards");
 
-        add_card_request_id[user_id]++;
+        add_card_request_id[msg.sender]++;
         
-        emit AddCardRequest(user_id, add_card_request_id[user_id], _token);
+        emit AddCardRequest(msg.sender, add_card_request_id[msg.sender]);
     }
 
-    function addCardResponse(bytes32 _token, uint256 user_id, bool status, string memory message, string memory paymentEndpoint) onlyAdmin(_token) external {
-        emit AddCardResponse(user_id, add_card_request_id[user_id], status, message, paymentEndpoint);
+    function addCardResponse(address user_address, uint256 request_id, bool status, string memory message, string memory paymentEndpoint) onlyAdmin() external {
+        emit AddCardResponse(user_address, request_id, status, message, paymentEndpoint);
     }
 
 
-    function addCard(bytes32 _token, uint256 user_id, Card memory card) onlyAdmin(_token) external {
+    function addCard(address user_address, Card memory card) onlyAdmin() external {
 
-        if(cards[user_id].length > 0)
-            for (uint i = 0; i < cards[user_id].length; i++) {
-                cards[user_id][i].is_primary = false;
+        if(cards[user_address].length > 0)
+            for (uint i = 0; i < cards[user_address].length; i++) {
+                cards[user_address][i].is_primary = false;
             }
 
-        cards[user_id].push(card);
+        cards[user_address].push(card);
         
-        emit AddCardSuccess(user_id, cards[user_id].length);
+        emit AddCardSuccess(user_address, cards[user_address].length);
     }
 
-    function setAutoPaySettings(bytes32 _token, uint256 amount, uint256 monthly_limit, uint256 threshold) external {
-        uint256 user_id = _Auth().isLogin(_token);
-
-        if (user_id == 0) revert("access_denied");
-
-        autopay_settings[user_id].amount = amount;
-        autopay_settings[user_id].monthly_limit = monthly_limit;
-        autopay_settings[user_id].threshold = threshold;
-        autopay_settings[user_id].is_active = true;
-        
+    // check user exist
+    function setAutoPaySettings(uint256 amount, uint256 monthly_limit, uint256 threshold) external {
+        autopay_settings[msg.sender].amount = amount;
+        autopay_settings[msg.sender].monthly_limit = monthly_limit;
+        autopay_settings[msg.sender].threshold = threshold;
+        autopay_settings[msg.sender].is_active = true;
     }
 
-    function disableAutoPay(bytes32 _token) external {
-        uint256 user_id = _Auth().isLogin(_token);
-
-        if (user_id == 0) revert("access_denied");
-
-        autopay_settings[user_id].is_active = false;
-
+    // check user exist
+    function disableAutoPay() external {
+        autopay_settings[msg.sender].is_active = false;
     }
 
-    function removeCard(bytes32 _token, uint _index) external {
-        uint256 user_id = _Auth().isLogin(_token);
+    // check user exist
+    function removeCard(uint _index) external {
 
-        if (user_id == 0) revert("access_denied");
 
-        if (_index >= cards[user_id].length) {
+        if (_index >= cards[msg.sender].length) {
             revert("card_not_found");
         }
 
         bool removedCardWasPrimary = false;
 
-        if(cards[user_id][_index].is_primary)
+        if(cards[msg.sender][_index].is_primary)
             removedCardWasPrimary = true;
    
-        for (uint i = _index; i < cards[user_id].length - 1; i++) {
-            cards[user_id][i] = cards[user_id][i + 1];
+        for (uint i = _index; i < cards[msg.sender].length - 1; i++) {
+            cards[msg.sender][i] = cards[msg.sender][i + 1];
         }
 
-        cards[user_id].pop();
+        cards[msg.sender].pop();
 
-        if(removedCardWasPrimary && cards[user_id].length > 0)
-            cards[user_id][0].is_primary = true;
+        if(removedCardWasPrimary && cards[msg.sender].length > 0)
+            cards[msg.sender][0].is_primary = true;
     }
 
-    function writeOffRequest(bytes32 _token, uint256 amount) external {
-        uint256 user_id = _Auth().isLogin(_token);
+    // check user exist
+    function writeOffRequest(string memory amount) external {
         
-        if (user_id == 0) revert("access_denied");
-
-        if(cards[user_id].length == 0)
+        if(cards[msg.sender].length == 0)
             revert("card_not_found");
 
-        write_off_request_id[user_id]++;
+        write_off_request_id[msg.sender]++;
 
-        uint256 card_id = _getPrimaryCard(user_id);
+        uint256 card_id = _getPrimaryCard(msg.sender);
 
-        emit WriteOffRequest(user_id, write_off_request_id[user_id], card_id, amount);
+        emit WriteOffRequest(msg.sender, write_off_request_id[msg.sender], card_id, amount);
     }
 
-    function writeOffResponse(bytes32 _token, uint256 user_id, uint256 request_id, uint256 card_id, bool status, string memory message, uint256 amount ) onlyAdmin(_token)  external {
-        emit WriteOffResponse(user_id, request_id, card_id, status, message, amount);
+    function writeOffResponse(address user_address, uint256 request_id, uint256 card_id, bool status, string memory message, string memory amount ) onlyAdmin()  external {
+        emit WriteOffResponse(user_address, request_id, card_id, status, message, amount);
     }
 
-    function _getPrimaryCard(uint256 user_id) internal returns(uint256){
-        for (uint i = 0; i < cards[user_id].length; i++) {
+    function _getPrimaryCard(address user_address) internal view returns(uint256){
+        for (uint i = 0; i < cards[user_address].length; i++) {
             
-            if(cards[user_id][i].is_primary){
+            if(cards[user_address][i].is_primary){
                 return i;
             }
         }
         return 0;
     }
 
-    function getCards(uint256 user_id) external view returns(Card[] memory){
-        return cards[user_id];
+    function getCards(address user_address) external view returns(Card[] memory){
+        return cards[user_address];
     }
 
-    function getAutoPaymentSettings(uint256 user_id) external view returns(AutopaySettings memory){
-        return autopay_settings[user_id];
+    function getAutoPaymentSettings(address user_address) external view returns(AutopaySettings memory){
+        return autopay_settings[user_address];
     }
 }

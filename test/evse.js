@@ -4,55 +4,23 @@ const { expect } = require('chai');
 
 
 const {deploy} = require("./lib/deploy");
-const {auth} = require("./lib/auth");
+
 const {getEvseData} = require("./lib/evse_data");
 const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
 
 before(async function() {
-    const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
     const accounts = await ethers.getSigners();
-    this.owner = accounts[0].address
+    this.owner = accounts[0]
+    this.adminUser = accounts[1]
 
-    this.sudoUser = {
-        login: ethers.encodeBytes32String("sudo"),
-        password: ethers.encodeBytes32String("433455"),
-        token:null
-    }
+    const {location} = require("./lib/location_data");
 
+    this.contracts = await deploy({User:true,Auth:true,Location:true,LocationSearch:true,EVSE:true})
 
-    this.contracts = await deploy(tgtoken,this.sudoUser,{User:true,Auth:true,Location:true,LocationSearch:true,EVSE:true})
-
-    const {sudoUser, testUser} = await auth(this.contracts.Auth)
-
-    this.sudoUser = sudoUser;
-    this.testUser = testUser;
-
-    console.log("sudoUser", sudoUser)
-    console.log("testUser", testUser)
-
-
-    const location = {
-        name: "New location",
-        _address: "Dom kolotuskina",
-        city:  ethers.encodeBytes32String("Moskow"),
-        postal_code: ethers.encodeBytes32String("103892"),
-        state: ethers.encodeBytes32String("Moskow"),
-        country: ethers.encodeBytes32String("RUS"),
-        coordinates: {
-            latitude: "59.694982",
-            longtitude: "30.416469"
-        },
-        parking_type: 5,
-        facilities: [1,2], // Hotel, Restaurant
-        time_zone : "Moskow/Europe",
-        charging_when_closed: true,
-        publish: true
-    };
-
-    const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Location", 4);
+    const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Location", 4);
     await tx.wait()
 
-    const tx2 =  await this.contracts.Location.addLocation(this.testUser.token, location);
+    const tx2 =  await this.contracts.Location.connect(this.adminUser).addLocation(location);
     await tx2.wait()
 })
 
@@ -62,10 +30,10 @@ describe("EVSE", function(){
     const {EVSEdata, EVSEmeta, image} = getEvseData();
 
     it("add", async function(){
-        let tx = await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"EVSE", 4);
+        let tx = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"EVSE", 4);
         await tx.wait()
 
-        const tx2 =  await this.contracts.EVSE.add(this.testUser.token, EVSEdata, 1);
+        const tx2 =  await this.contracts.EVSE.connect(this.adminUser).add(EVSEdata, 1);
 
         let result = await GetEventArgumentsByNameAsync(tx2, "AddEVSE")
         expect(result.uid).to.equal(1)
@@ -74,23 +42,23 @@ describe("EVSE", function(){
     })
 
     it("setMeta", async function(){
-        let tx = await this.contracts.EVSE.setMeta(this.testUser.token, 1, EVSEmeta)
+        let tx = await this.contracts.EVSE.connect(this.adminUser).setMeta(1, EVSEmeta)
         await tx.wait()
     })
 
     it("addImage", async function(){
-        let tx = await this.contracts.EVSE.addImage(this.testUser.token, 1, image);
+        let tx = await this.contracts.EVSE.connect(this.adminUser).addImage(1, image);
         await tx.wait()
     })
 
     it("get", async function(){
         const evse = await this.contracts.EVSE.get(1)
 
-        expect(evse.evse.evse_id).to.equal(EVSE.evse_id)
-        expect(evse.evse.evse_model).to.equal(EVSE.evse_model)
-        expect(evse.evse.physical_reference).to.equal(EVSE.physical_reference)
-        expect(evse.evse.directions.language).to.equal(EVSE.directions.language)
-        expect(evse.evse.directions.text).to.equal(EVSE.directions.text)
+        expect(evse.evse.evse_id).to.equal(EVSEdata.evse_id)
+        expect(evse.evse.evse_model).to.equal(EVSEdata.evse_model)
+        expect(evse.evse.physical_reference).to.equal(EVSEdata.physical_reference)
+        expect(evse.evse.directions.language).to.equal(EVSEdata.directions.language)
+        expect(evse.evse.directions.text).to.equal(EVSEdata.directions.text)
 
         expect(evse.meta.status_schedule.begin).to.equal(EVSEmeta.status_schedule.begin)
         expect(evse.meta.status_schedule.end).to.equal(EVSEmeta.status_schedule.end)
@@ -114,7 +82,7 @@ describe("EVSE", function(){
 
 
     it("removeImage", async function(){
-        let tx = await this.contracts.EVSE.removeImage(this.testUser.token, 1, 1); 
+        let tx = await this.contracts.EVSE.connect(this.adminUser).removeImage( 1, 1); 
         await tx.wait()
 
         const evse = await this.contracts.EVSE.get(1);
@@ -124,19 +92,19 @@ describe("EVSE", function(){
 
 
     it("getlocation check evse ", async function(){
-        const {EVSE, EVSEmeta, image, connector} = getEvseData();
+        const {EVSEdata, EVSEmeta} = getEvseData();
 
-        let tx = await this.contracts.Location.addEVSE(this.testUser.token, 1, 1);
+        let tx = await this.contracts.Location.connect(this.adminUser).addEVSE( 1, 1);
         await tx.wait()
 
 
         const loc = await this.contracts.Location.getLocation(1);
 
-        expect(loc.evses[0].evse.evse_id).to.equal(EVSE.evse_id)
-        expect(loc.evses[0].evse.evse_model).to.equal(EVSE.evse_model)
-        expect(loc.evses[0].evse.physical_reference).to.equal(EVSE.physical_reference)
-        expect(loc.evses[0].evse.directions.language).to.equal(EVSE.directions.language)
-        expect(loc.evses[0].evse.directions.text).to.equal(EVSE.directions.text)
+        expect(loc.evses[0].evse.evse_id).to.equal(EVSEdata.evse_id)
+        expect(loc.evses[0].evse.evse_model).to.equal(EVSEdata.evse_model)
+        expect(loc.evses[0].evse.physical_reference).to.equal(EVSEdata.physical_reference)
+        expect(loc.evses[0].evse.directions.language).to.equal(EVSEdata.directions.language)
+        expect(loc.evses[0].evse.directions.text).to.equal(EVSEdata.directions.text)
 
         expect(loc.evses[0].meta.status_schedule.begin).to.equal(EVSEmeta.status_schedule.begin)
         expect(loc.evses[0].meta.status_schedule.end).to.equal(EVSEmeta.status_schedule.end)
@@ -163,7 +131,7 @@ describe("EVSE", function(){
     })
 
     it("removeEVSE", async function(){
-        await this.contracts.Location.removeEVSE(this.testUser.token, 1, 1); 
+        await this.contracts.Location.connect(this.adminUser).removeEVSE(1, 1); 
         
         const newLocation = await this.contracts.Location.getLocation(1);
         expect(newLocation[4].length).to.equal(0)

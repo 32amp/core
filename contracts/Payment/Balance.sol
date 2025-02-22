@@ -7,7 +7,6 @@ import "../Services/ICurrencies.sol";
 import "../Hub/IHub.sol";
 import "./IBalance.sol";
 import "../RevertCodes/IRevertCodes.sol";
-import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 
 contract Balance is Initializable,  IBalance {
@@ -17,8 +16,16 @@ contract Balance is Initializable,  IBalance {
     uint256 partner_id;
     uint256 _totalSupply;
     uint256 _currency;
+    uint256 _transfer_ids;
 
-    mapping(uint256 => uint256) _balances;
+    struct TransferData {
+        address from;
+        address to;
+        uint256 value;
+    }
+
+    mapping(address => uint256) _balances;
+    mapping(uint256 => TransferData) _transfers;
 
     function initialize(uint256 _partner_id, address _hubContract, uint256 __currency) public initializer {
         hubContract = _hubContract;
@@ -36,10 +43,6 @@ contract Balance is Initializable,  IBalance {
 
     function _RevertCodes() private view returns(IRevertCodes) {
         return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
-    }
-
-    function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
     }
 
     function _UserAccess() private view returns(IUserAccess) {
@@ -60,10 +63,8 @@ contract Balance is Initializable,  IBalance {
     }
 
 
-    modifier onlyAdmin(bytes32 _token){
-        uint256 user_id = _Auth().isLogin(_token);
-
-        uint access_level = _UserAccess().getModuleAccessLevel("Balance", user_id);
+    modifier onlyAdmin(){
+        uint access_level = _UserAccess().getModuleAccessLevel("Balance", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             revert("access_denied_level_four");
@@ -76,11 +77,11 @@ contract Balance is Initializable,  IBalance {
         return _currency;
     }
 
-    function mint(bytes32 _token, uint256 account, uint256 amount) external onlyAdmin(_token) {
+    function mint(address account, uint256 amount) external onlyAdmin() {
         _mint(account, amount);
     }
 
-    function burn(bytes32 _token, uint256 account, uint256 amount) external onlyAdmin(_token) {
+    function burn(address account, uint256 amount) external onlyAdmin() {
         _burn(account, amount);
     }
 
@@ -88,25 +89,22 @@ contract Balance is Initializable,  IBalance {
         return _totalSupply;
     }
 
-    function balanceOf(uint256 user_id) external view returns (uint256){
-        return _balances[user_id];
+    function balanceOf(address account) external view returns (uint256){
+        return _balances[account];
     }
 
-    function transfer(bytes32 _token, uint256 to, uint256 value) external {
-        uint256 user_id = _Auth().isLogin(_token);
-        
-        if (user_id == 0) revert("access_denied");
-        
-        _update(user_id, to, value);
+    // check user exist
+    function transfer(address to, uint256 value) external {
+        _update(msg.sender, to, value);
     }
 
-    function transferFrom(bytes32 _token, uint256 from, uint256 to, uint256 value) onlyAdmin(_token) external {
+    function transferFrom(address from, address to, uint256 value) onlyAdmin() external {
         _update(from, to, value);
     }
 
 
-    function _update(uint256 from, uint256 to, uint256 value) internal {
-        if (from == 0) {
+    function _update(address from, address to, uint256 value) internal {
+        if (from == address(0)) {
             _totalSupply += value;
         } else {
             uint256 fromBalance = _balances[from];
@@ -118,7 +116,7 @@ contract Balance is Initializable,  IBalance {
             }
         }
 
-        if (to == 0) {
+        if (to == address(0)) {
             unchecked {
                 _totalSupply -= value;
             }
@@ -128,21 +126,28 @@ contract Balance is Initializable,  IBalance {
             }
         }
 
-        emit Transfer(from, to, value);
+        _transfer_ids++;
+
+
+        _transfers[_transfer_ids].from = from;
+        _transfers[_transfer_ids].to = to;
+        _transfers[_transfer_ids].value = value;
+
+        emit Transfer(from, to, _transfer_ids);
     }
 
-    function _mint(uint256 account, uint256 value) internal {
-        if (account == 0) {
+    function _mint(address account, uint256 value) internal {
+        if (account == address(0)) {
             revert("invalid_receiver");
         }
-        _update(0, account, value);
+        _update(address(0), account, value);
     }
 
-    function _burn(uint256 account, uint256 value) internal {
-        if (account == 0) {
+    function _burn(address account, uint256 value) internal {
+        if (account == address(0)) {
             revert("invalid_sender");
         }
-        _update(account, 0, value);
+        _update(account, address(0), value);
     }
 
 }

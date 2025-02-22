@@ -44,13 +44,13 @@ interface IUserSupportChat {
         uint256 reply_to;
         uint256 create_at;
         bool readed;
-        uint256 user_id;
+        address account;
     }
 
     struct Topic {
         uint256 create_at;
         uint256 update_at;
-        uint256 create_user_id;
+        address create_user_account;
         uint256 message_counter;
         TopicTheme theme;
         bool closed;
@@ -63,19 +63,19 @@ interface IUserSupportChat {
     event Message(uint256 indexed topic_id, uint256 indexed message_id );
     event CreateTopic(uint256 indexed topic_id, TopicTheme indexed theme);
     event UpdateTopic(uint256 indexed topic_id, TopicTheme indexed theme, uint256 indexed update_at);
-    event CloseTopic(uint256 indexed topic_id, uint256 indexed user_id); 
+    event CloseTopic(uint256 indexed topic_id, address indexed account); 
     
-    event UserTopicEvent(uint256 indexed topic_id, uint256 indexed user_id);
+    event UserTopicEvent(uint256 indexed topic_id, address indexed account);
     
     function getVersion() external pure returns(string memory);
-    function createTopic(bytes32 _token, string memory _text_message, TopicTheme theme) external;
-    function sendMessage(bytes32 _token, uint256 topic_id, InputMessage memory message) external;
-    function setRating(bytes32 _token, uint256 topic_id, TopicRating rating) external;
-    function closeTopic(bytes32 _token, uint256 topic_id) external;
-    function setReadedMessages(bytes32 _token, uint256 topic_id, uint256[] calldata message_ids) external;
-    function getMyTopics(bytes32 _token, uint256 offset) external view returns(OutputTopic[] memory, uint256);
-    function getTopic(bytes32 _token, uint256 topic_id) external view returns(Topic memory);
-    function getMessages(bytes32 _token, uint256 topic_id, uint256 offset) external view returns (OutputUserMessage[] memory, uint256);
-    function getMessage(bytes32 _token, uint256 topic_id, uint256 message_id) external view returns(UserMessage memory);
+    function createTopic(string memory _text_message, TopicTheme theme) external;
+    function sendMessage(uint256 topic_id, InputMessage memory message) external;
+    function setRating(uint256 topic_id, TopicRating rating) external;
+    function closeTopic(uint256 topic_id) external;
+    function setReadedMessages(uint256 topic_id, uint256[] calldata message_ids) external;
+    function getMyTopics(uint256 offset) external view returns(OutputTopic[] memory, uint256);
+    function getTopic(uint256 topic_id) external view returns(Topic memory);
+    function getMessages(uint256 topic_id, uint256 offset) external view returns (OutputUserMessage[] memory, uint256);
+    function getMessage(uint256 topic_id, uint256 message_id) external view returns(UserMessage memory);
 
 }

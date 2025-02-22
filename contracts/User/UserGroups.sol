@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../Hub/IHub.sol";
-import "./IAuth.sol";
 import "./IUserAccess.sol";
 import "../RevertCodes/IRevertCodes.sol";
 
@@ -14,13 +13,13 @@ contract UserGroups is Initializable, OwnableUpgradeable {
     struct Group {
         uint256 id;
         string name;
-        uint256 owner_user_id;
+        address owner;
         bool deleted;
     }
 
     mapping (uint256 => Group) groups;
-    mapping (uint256 => uint256[]) users_group;
-    mapping (uint256 => uint256[]) user_group_list;
+    mapping (uint256 => address[]) users_group;
+    mapping (address => uint256[]) user_group_list;
 
     uint256 groupIndex;
     address hubContract;
@@ -31,7 +30,7 @@ contract UserGroups is Initializable, OwnableUpgradeable {
 
         hubContract = _hubContract;
         partner_id = _partner_id;
-        _addGroup("sudo", 1);
+        _addGroup("sudo", msg.sender);
         __Ownable_init(msg.sender);
     }
 
@@ -47,58 +46,52 @@ contract UserGroups is Initializable, OwnableUpgradeable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
-    }
-
     function _RevertCodes() private view returns(IRevertCodes) {
         return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
     }
 
-    function addGroup(bytes32 _token, string memory name) external {
+    function addGroup( string memory name) external {
 
-        uint256 user_id = _Auth().isLogin(_token);
-
-        uint access_level = _UserAccess().getModuleAccessLevel("UserGroups", user_id);
+        uint access_level = _UserAccess().getModuleAccessLevel("UserGroups", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             revert("access_denied");
         }
 
-        _addGroup(name, user_id);
+        _addGroup(name, msg.sender);
 
     }
 
-    function _addGroup(string memory name, uint256 owner_user_id) internal {
+    function _addGroup(string memory name, address owner) internal {
         groupIndex++;
 
         groups[groupIndex] = Group({
             name:name,
             id: groupIndex,
-            owner_user_id: owner_user_id,
+            owner: owner,
             deleted: false
         });
 
-        users_group[groupIndex].push(owner_user_id);
-        user_group_list[owner_user_id].push(groupIndex);
+        users_group[groupIndex].push(owner);
+        user_group_list[owner].push(groupIndex);
         
     }
 
 
-    
-    function getMyGroups(bytes32 _token) external view returns(Group[] memory) {
-        uint256 user_id = _Auth().isLogin(_token);
+    // isHave user
+    function getMyGroups() external view returns(Group[] memory) {
+        
 
-        uint access_level = _UserAccess().getModuleAccessLevel("UserGroups", user_id);
+        uint access_level = _UserAccess().getModuleAccessLevel("UserGroups", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.SECOND)){
             revert("access_denied");
         }
 
-        Group[] memory ret = new Group[](user_group_list[user_id].length);
+        Group[] memory ret = new Group[](user_group_list[msg.sender].length);
 
-        for (uint i = 0; i < user_group_list[user_id].length; i++) {
-            ret[i] = groups[user_group_list[user_id][i]];
+        for (uint i = 0; i < user_group_list[msg.sender].length; i++) {
+            ret[i] = groups[user_group_list[msg.sender][i]];
         }
 
         return ret;

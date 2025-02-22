@@ -1,11 +1,9 @@
 const {deployProxy} = require("../../utils/deploy")
 const {GetEventArgumentsByNameAsync} = require("../../utils/IFBUtils");
 
-module.exports.deploy = async function(tgtoken, sudoUser, modules){
+module.exports.deploy = async function(modules){
 
     const retmodules = {};
-
-    const tg_bot_token = ethers.toUtf8Bytes(tgtoken)
 
     const accounts = await ethers.getSigners();
 
@@ -72,22 +70,12 @@ module.exports.deploy = async function(tgtoken, sudoUser, modules){
         await tx2.wait()
     
         await retmodules.User.registerRevertCodes()
+
+        await retmodules.User.addUser(accounts[0].address)
+
         console.log("User deployed to:", retmodules.User.target);
-    }
 
 
-
-    if(typeof modules?.Auth != "undefined"){
-        retmodules.Auth = await deployProxy("Auth",[partner.id,retmodules.Hub.target, tg_bot_token],"",false);
-
-        let tx3 = await retmodules.Hub.addModule("Auth", retmodules.Auth.target)
-        await tx3.wait()
-        await retmodules.Auth.registerRevertCodes()
-        await retmodules.Auth.registerByPassword(sudoUser.login, sudoUser.password);
-        
-        console.log("Auth deployed to:", retmodules.Auth.target);
-        await SMSServiceAddress.refill(retmodules.Auth.target,{value:10n});
-        await EmailServiceAddess.refill(retmodules.Auth.target,{value:10n});
     }
 
 
@@ -150,7 +138,8 @@ module.exports.deploy = async function(tgtoken, sudoUser, modules){
         await retmodules.Connector.registerRevertCodes()
         console.log("Connector deployed to:", retmodules.Connector.target);
     }
-    //Connector
+
+    //UserSupportChat
 
     if(typeof modules?.UserSupportChat != "undefined"){
         retmodules.UserSupportChat = await deployProxy("UserSupportChat",[partner.id,retmodules.Hub.target],"",false);
@@ -180,7 +169,7 @@ module.exports.deploy = async function(tgtoken, sudoUser, modules){
     if(typeof modules?.Cards != "undefined"){
         retmodules.Cards = await deployProxy("Cards",[partner.id,retmodules.Hub.target],"",false);
         
-        let txAddModuleCards = await retmodules.Hub.addModule("BalaCardsnce", retmodules.Cards.target);
+        let txAddModuleCards = await retmodules.Hub.addModule("Cards", retmodules.Cards.target);
         await txAddModuleCards.wait()
         console.log("Cards deployed to:", retmodules.Cards.target);
     }    
@@ -191,6 +180,14 @@ module.exports.deploy = async function(tgtoken, sudoUser, modules){
     let tx11 = await retmodules.Hub.addModule("UserAccess", retmodules.UserAccess.target);
     await tx11.wait();
     await retmodules.UserAccess.registerRevertCodes()
+    
+    if(retmodules?.Connector?.target)
+        await retmodules.UserAccess.setAccessLevelToModule(retmodules.Connector.target,"EVSE",6)
+    
+
+    if(retmodules?.EVSE?.target)
+        await retmodules.UserAccess.setAccessLevelToModule(retmodules.EVSE.target,"Location",6)
+
     console.log("UserAccess deployed to:", retmodules.UserAccess.target);
     
     

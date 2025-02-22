@@ -39,20 +39,20 @@ interface ILocation is DataTypes {
     
 
 
-    event AddLocation(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
+    event AddLocation(uint256 indexed uid, uint256 indexed partner_id, address indexed user_address );
 
     function getVersion() external pure returns(string memory);
-    function addLocation(bytes32 _token, Add memory add) external;
+    function addLocation(Add memory add) external;
     function getLocation(uint256 id) external view returns (outLocation memory);
     function exist(uint256 location_id) external returns(bool);
-    function addRelatedLocation(bytes32 _token, uint256 location_id, AdditionalGeoLocation calldata add ) external;
-    function removeRelatedLocation(bytes32 _token, uint256 location_id, uint loc_id) external;
-    function addImage(bytes32 _token, uint256 location_id, Image calldata add ) external;
-    function removeImage(bytes32 _token, uint256 location_id, uint image_id) external;
-    function addDirection( bytes32 _token, uint256 location_id, DisplayText calldata add ) external;
-    function removeDirection( bytes32 _token, uint256 location_id, uint direction_id) external;
-    function setOpeningTimes( bytes32 _token, uint256 location_id, Hours calldata add ) external;
-    function addEVSE( bytes32 _token, uint256 location_id, uint256 add ) external;
-    function removeEVSE(bytes32 _token, uint256 location_id, uint evse) external;
+    function addRelatedLocation(uint256 location_id, AdditionalGeoLocation calldata add ) external;
+    function removeRelatedLocation(uint256 location_id, uint loc_id) external;
+    function addImage(uint256 location_id, Image calldata add ) external;
+    function removeImage(uint256 location_id, uint image_id) external;
+    function addDirection(uint256 location_id, DisplayText calldata add ) external;
+    function removeDirection(uint256 location_id, uint direction_id) external;
+    function setOpeningTimes(uint256 location_id, Hours calldata add ) external;
+    function addEVSE(uint256 location_id, uint256 add ) external;
+    function removeEVSE(uint256 location_id, uint evse) external;
 
 }

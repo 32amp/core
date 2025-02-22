@@ -7,7 +7,6 @@ import "../Hub/IHub.sol";
 import "./ILocation.sol";
 import "./ILocationSearch.sol";
 import "./IEVSE.sol";
-import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 import "../Utils.sol";
 import "../RevertCodes/IRevertCodes.sol";
@@ -49,10 +48,6 @@ contract Location is ILocation, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
-    }
-
     function _EVSE() private view returns(IEVSE) {
         return IEVSE(IHub(hubContract).getModule("EVSE", partner_id));
     }
@@ -69,86 +64,92 @@ contract Location is ILocation, Initializable {
         _RevertCodes().panic("Location", code);
     }
 
-    function addRelatedLocation(bytes32 _token, uint256 location_id, AdditionalGeoLocation calldata add ) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    modifier access(uint256 location_id){
+        _UserAccess().checkAccess( msg.sender, "Location", bytes32(location_id), uint(IUserAccess.AccessLevel.FOURTH));
+        _;
+    }
+
+    function addRelatedLocation(uint256 location_id, AdditionalGeoLocation calldata add ) access(location_id) external {
         related_locations[location_id].push(add);
         _updated(location_id);
     }
 
-    function removeRelatedLocation( bytes32 _token, uint256 location_id, uint loc_id) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function removeRelatedLocation( uint256 location_id, uint loc_id) access(location_id) external {
+
         for (uint i = loc_id; i < related_locations[location_id].length - 1; i++) {
             related_locations[location_id][i] = related_locations[location_id][i + 1];
         }
+
         related_locations[location_id].pop();
         _updated(location_id);
     }
 
-    function addImage(bytes32 _token, uint256 location_id, Image calldata add ) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function addImage(uint256 location_id, Image calldata add ) access(location_id) external {
         images_location[location_id].push(add);
         _updated(location_id);
     }
 
-    function removeImage( bytes32 _token, uint256 location_id, uint image_id) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function removeImage( uint256 location_id, uint image_id) access(location_id) external {
+
         for (uint i = image_id; i < images_location[location_id].length - 1; i++) {
             images_location[location_id][i] = images_location[location_id][i + 1];
         }
+
         images_location[location_id].pop();
+        
         _updated(location_id);
     }
 
-    function addDirection(bytes32 _token, uint256 location_id, DisplayText calldata add ) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function addDirection(uint256 location_id, DisplayText calldata add ) access(location_id) external {
         directions_location[location_id].push(add);
         _updated(location_id);
     }
 
 
-    function removeDirection(bytes32 _token, uint256 location_id, uint direction_id) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function removeDirection(uint256 location_id, uint direction_id) access(location_id) external {
         for (uint i = direction_id; i < directions_location[location_id].length - 1; i++) {
             directions_location[location_id][i] = directions_location[location_id][i + 1];
         }
+
         directions_location[location_id].pop();
         _updated(location_id);
     }
 
 
-    function addEVSE(bytes32 _token, uint256 location_id,  uint256 add ) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function addEVSE(uint256 location_id,  uint256 add ) access(location_id) external {
         
         if(IHub(hubContract).getModule("EVSE", partner_id) != msg.sender)
             if(!_EVSE().exist(add))
                 revert("EVSE_does_not_exist");
 
         evses_location[location_id].push(add);
+
         _updated(location_id);
     }
 
 
-    function removeEVSE(bytes32 _token, uint256 location_id, uint evse) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function removeEVSE(uint256 location_id, uint evse) access(location_id) external {
+
         for (uint i = evse; i < evses_location[location_id].length - 1; i++) {
             evses_location[location_id][i] = evses_location[location_id][i + 1];
         }
+
         evses_location[location_id].pop();
+
         _updated(location_id);
     }
 
-    function setOpeningTimes( bytes32 _token, uint256 location_id, Hours calldata add ) external {
-        _UserAccess().checkAccess( "Location",bytes32(location_id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    function setOpeningTimes( uint256 location_id, Hours calldata add ) access(location_id) external {
         opening_times_location[location_id] = add;
         _updated(location_id); 
     }
 
 
-    function addLocation(bytes32 _token, Add memory add ) external {
+    function addLocation(Add memory add ) external {
 
-        uint256 user_id = _Auth().isLogin(_token);
+        
 
-        uint access_level = _UserAccess().getModuleAccessLevel("Location", user_id);
+        uint access_level = _UserAccess().getModuleAccessLevel("Location", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             revert("access_denied");
@@ -173,7 +174,7 @@ contract Location is ILocation, Initializable {
 
 
         newLocation.operator = partner_id;
-        newLocation.owner = user_id;
+        newLocation.owner = msg.sender;
         newLocation.country_code = IHub(hubContract).getPartnerCountryCode(partner_id);
         newLocation.party_id = IHub(hubContract).getPartnerPartyId(partner_id);
         
@@ -188,11 +189,9 @@ contract Location is ILocation, Initializable {
         int16 lon_integerPart = add.coordinates.longtitude.splitCoordinate();
         
         _LocationSearch().addLocationToIndex(lat_integerPart,lon_integerPart,locationCounter);
+        _UserAccess().setAccessLevelToModuleObject(bytes32(locationCounter),msg.sender,"Location",IUserAccess.AccessLevel.FOURTH);   
         
-
-        _UserAccess().setAccessLevelToModuleObject(_token,bytes32(locationCounter),user_id,"Location",IUserAccess.AccessLevel.FOURTH);
-        
-        emit AddLocation(locationCounter, partner_id, user_id);
+        emit AddLocation(locationCounter, partner_id, msg.sender);
     }
 
 

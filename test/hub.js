@@ -5,23 +5,10 @@ const {GetEventArgumentsByNameAsync, createpayload} = require("../utils/IFBUtils
 const {deploy} = require("./lib/deploy");
 
 before(async function() {
-    const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
     const accounts = await ethers.getSigners();
     this.owner = accounts[0].address
 
-    this.sudoUser = {
-        login: ethers.encodeBytes32String("sudo"),
-        password: ethers.encodeBytes32String("433455"),
-        token:null
-    }
-
-    this.contracts = await deploy(tgtoken,this.sudoUser,{User:true})
-
-
-    this.testUser = {
-        login: ethers.encodeBytes32String("darkrain"),
-        password: ethers.encodeBytes32String("159753"),
-    }
+    this.contracts = await deploy({User:true})
 
 })
 

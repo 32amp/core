@@ -87,16 +87,16 @@ interface ITariff is DataTypes {
         PriceComponent[] price_components;
     }
 
-    event AddTariff(uint256 indexed uid, uint256 indexed partner_id, uint256 indexed user_id );
+    event AddTariff(uint256 indexed uid, uint256 indexed partner_id, address indexed account );
 
     function getVersion() external pure returns(string memory);
     function exist(uint256 id) external returns(bool);
-    function add(bytes32 _token, Tariff calldata tariff) external;
-    function setMinPrice(bytes32 _token, uint256 id, Price calldata _min_price) external;
-    function setMaxPrice(bytes32 _token, uint256 id, Price calldata _max_price) external;
-    function setStartDateTime(bytes32 _token, uint256 id, uint256 _start_date_time) external;
-    function setEndDateTime(bytes32 _token, uint256 id, uint256 _end_date_time) external;
-    function setEnergyMix(bytes32 _token, uint256 id, EnergyMix calldata _energy_mix ) external;
+    function add(Tariff calldata tariff) external;
+    function setMinPrice(uint256 id, Price calldata _min_price) external;
+    function setMaxPrice(uint256 id, Price calldata _max_price) external;
+    function setStartDateTime(uint256 id, uint256 _start_date_time) external;
+    function setEndDateTime(uint256 id, uint256 _end_date_time) external;
+    function setEnergyMix(uint256 id, EnergyMix calldata _energy_mix ) external;
     function get(uint256 id) external view returns(Output memory);
     function getLight(uint256 id) external view returns(OutputLight memory);
 }

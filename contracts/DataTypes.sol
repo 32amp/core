@@ -331,7 +331,7 @@ interface DataTypes {
         ParkingType parking_type;
         uint256[] evses;
         uint256 operator;
-        uint256 owner;
+        address owner;
         Facility[] facilities;
         string time_zone;
         bool charging_when_closed;

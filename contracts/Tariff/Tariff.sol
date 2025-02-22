@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
 import "./ITariff.sol";
-import "../User/IAuth.sol";
 import "../User/IUserAccess.sol";
 import "../Services/ICurrencies.sol";
 import "../RevertCodes/IRevertCodes.sol";
@@ -48,8 +47,8 @@ contract Tariff is ITariff, Initializable {
         return false;
     }
 
-    modifier access(bytes32 _token, uint256 id) {
-        _UserAccess().checkAccess( "Tariff",bytes32(id), _token, uint(IUserAccess.AccessLevel.FOURTH));
+    modifier access(uint256 id) {
+        _UserAccess().checkAccess( msg.sender, "Tariff", bytes32(id), uint(IUserAccess.AccessLevel.FOURTH));
         _;
     }
 
@@ -61,9 +60,6 @@ contract Tariff is ITariff, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _Auth() private view returns(IAuth) {
-        return IAuth(IHub(hubContract).getModule("Auth", partner_id));
-    }
 
     function _Currencies() private view returns(ICurrencies) {
         return ICurrencies(IHub(hubContract).getService("Currencies"));
@@ -78,10 +74,9 @@ contract Tariff is ITariff, Initializable {
     }
 
 
-    function add(bytes32 _token, Tariff calldata tariff) external {
-        uint256 user_id = _Auth().isLogin(_token);
+    function add(Tariff calldata tariff) external {
 
-        uint access_level = _UserAccess().getModuleAccessLevel("Tariff", user_id);
+        uint access_level = _UserAccess().getModuleAccessLevel("Tariff", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             _panic("access_denied");
@@ -97,30 +92,31 @@ contract Tariff is ITariff, Initializable {
 
         _updated(counter);
 
-        emit AddTariff(counter, partner_id, user_id);
+        emit AddTariff(counter, partner_id, msg.sender);
 
-        _UserAccess().setAccessLevelToModuleObject(_token,bytes32(counter),user_id,"Tariff",IUserAccess.AccessLevel.FOURTH);
+        _UserAccess().setAccessLevelToModuleObject(bytes32(counter),msg.sender,"Tariff",IUserAccess.AccessLevel.FOURTH);
+
     }
 
     
 
-    function setMinPrice(bytes32 _token, uint256 id, Price calldata _min_price) access(_token,id) external{
+    function setMinPrice(uint256 id, Price calldata _min_price) access(id) external{
         min_price[id] = _min_price;
     }
     
-    function setMaxPrice(bytes32 _token, uint256 id, Price calldata _max_price) access(_token,id) external{
+    function setMaxPrice(uint256 id, Price calldata _max_price) access(id) external{
         max_price[id] = _max_price;
     }
 
-    function setStartDateTime(bytes32 _token, uint256 id, uint256 _start_date_time) access(_token,id) external {
+    function setStartDateTime(uint256 id, uint256 _start_date_time) access(id) external {
         start_date_time[id] = _start_date_time;
     }
 
-    function setEndDateTime(bytes32 _token, uint256 id, uint256 _end_date_time) access(_token,id) external {
+    function setEndDateTime(uint256 id, uint256 _end_date_time) access(id) external {
         end_date_time[id] = _end_date_time;
     }
 
-    function setEnergyMix(bytes32 _token, uint256 id, EnergyMix calldata _energy_mix ) access(_token,id) external {
+    function setEnergyMix(uint256 id, EnergyMix calldata _energy_mix ) access(id) external {
         energy_mix[id] = _energy_mix;
     }
 

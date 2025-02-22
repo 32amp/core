@@ -1,17 +1,10 @@
 const { expect } = require('chai');
-const {auth} = require("./lib/auth");
 const {deploy} = require("./lib/deploy");
 
 before(async function() {
     const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
     const accounts = await ethers.getSigners();
-    this.owner = accounts[0].address
-
-    this.sudoUser = {
-        login: ethers.encodeBytes32String("sudo"),
-        password: ethers.encodeBytes32String("433455"),
-        token:null
-    }
+    this.owner = accounts[0]
 
     this.config = {
         privacy_policy: {
@@ -28,16 +21,7 @@ before(async function() {
         support_phone: "+78125603524"
     };
 
-    this.contracts = await deploy(tgtoken,this.sudoUser,{User:true, MobileAppSettings:true, Auth:true})
-
-    const {sudoUser} = await auth(this.contracts.Auth)
-
-    this.sudoUser = sudoUser;
-
-    console.log("sudoUser", sudoUser)
-
-
-
+    this.contracts = await deploy({User:true, MobileAppSettings:true})
 
 })
 
@@ -46,7 +30,7 @@ describe("MobileAppSettings", function(){
 
     it("setConfig", async function(){
 
-        const setConfig = await this.contracts.MobileAppSettings.setConfig(this.sudoUser.token, this.config);
+        const setConfig = await this.contracts.MobileAppSettings.setConfig(this.config);
 
         await setConfig.wait();
     })
@@ -68,7 +52,7 @@ describe("MobileAppSettings", function(){
     })
 
     it("setTechnicalWork", async function(){
-        const setTechnicalWork = await this.contracts.MobileAppSettings.setTechnicalWork(this.sudoUser.token, true);
+        const setTechnicalWork = await this.contracts.MobileAppSettings.setTechnicalWork(true);
         await setTechnicalWork.wait()
 
         const config = await this.contracts.MobileAppSettings.getConfig()

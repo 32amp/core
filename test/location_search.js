@@ -4,34 +4,20 @@ const { expect } = require('chai');
 
 
 const {deploy} = require("./lib/deploy");
-const {auth} = require("./lib/auth");
+
 const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
 
 before(async function() {
-    const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
     const accounts = await ethers.getSigners();
-    this.owner = accounts[0].address
+    
+    this.owner = accounts[0]
+    this.adminUser = accounts[1]
 
-    this.sudoUser = {
-        login: ethers.encodeBytes32String("sudo"),
-        password: ethers.encodeBytes32String("433455"),
-        token:null
-    }
+    this.contracts = await deploy({User:true,Location:true, LocationSearch:true})
 
-
-    this.contracts = await deploy(tgtoken,this.sudoUser,{User:true,Auth:true,Location:true, LocationSearch:true})
-
-    const {sudoUser, testUser} = await auth(this.contracts.Auth)
-
-    this.sudoUser = sudoUser;
-    this.testUser = testUser;
-
-
-    const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.sudoUser.token,2,"Location", 4);
+    const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Location", 4);
     await tx.wait()
 
-    console.log("sudoUser", sudoUser)
-    console.log("testUser", testUser)
     
 })
 
@@ -70,7 +56,7 @@ describe("LocationSearch", function(){
             loc.coordinates.latitude = coord.lat;
             loc.coordinates.longtitude = coord.lon;
             
-            let tx = await this.contracts.Location.addLocation(this.testUser.token, loc);
+            let tx = await this.contracts.Location.connect(this.adminUser).addLocation(loc);
 
             let result = await GetEventArgumentsByNameAsync(tx, "AddLocation")
             console.log("add location", index)
