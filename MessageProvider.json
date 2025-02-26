@@ -1,0 +1,8 @@
+{
+    "min_provider_deposit": "1",
+    "processing_time": 30,
+    "service_fee":"0.01",
+    "min_cost_per_message": "0.2",
+    "punishment_coast": "0.3",
+    "service_wallet": "0x602A44E855777E8b15597F0cDf476BEbB7aa70dE"
+}

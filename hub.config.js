@@ -1,16 +1,4 @@
 module.exports.config = {
-    "SMSService": {
-        "sendTimeout": 60n,
-        "priceForMessage": 1n,
-        "whitelistEnable": false,
-        "bodyTemplate": "[message]"
-    },
-    "EmailService": {
-        "sendTimeout": 60n,
-        "priceForMessage": 1n,
-        "whitelistEnable": false,
-        "bodyTemplate": "[message]"
-    },
     "MobileAppSettings": {
         "privacy_policy": {
             "name_file": "private_policy.html",
