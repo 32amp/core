@@ -7,53 +7,74 @@ import "../Utils.sol";
 import "./ILocation.sol";
 import "./ILocationSearch.sol";
 import "../Hub/IHub.sol";
-import "../RevertCodes/IRevertCodes.sol";
 
+/**
+ * @title Location Search Contract
+ * @notice Provides geospatial search capabilities for charging locations
+ * @dev Implements grid-based spatial indexing for efficient location queries
+ * @custom:warning Requires proper initialization via Hub contract
+ */
 contract LocationSearch is ILocationSearch, Initializable {
-    
+    // Storage mapping documentation
+    /// @dev Grid-based spatial index [latitude][longitude] => location IDs
     mapping(int16 => mapping(int16 => uint256[])) locations_index;
 
+    // State variables documentation
+    /// @notice Hub contract reference
     address hubContract;
+    
+    /// @notice Associated partner ID
     uint256 partner_id;
+    
+    /// @dev Utility library for string operations
     using Utils for string;
 
-
+    /**
+     * @notice Initializes contract with Hub connection
+     * @param _partner_id Partner ID from Hub registry
+     * @param _hubContract Address of Hub contract
+     * @custom:init Called once during proxy deployment
+     */
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
     }
 
-    function registerRevertCodes() external {
-        _RevertCodes().registerRevertCode("LocationSearch", "access_denied_to_add_location_index", "Only Location module have access to add index");
-        _RevertCodes().registerRevertCode("LocationSearch", "big_offset", "Big offset");
-    }
 
+    // Module accessors documentation
+    /// @dev Returns Location module interface
     function _Location() private view returns(ILocation) {
         return ILocation(IHub(hubContract).getModule("Location", partner_id));
     }
-    
+
+    /// @notice Returns current contract version
     function getVersion() external pure returns(string memory){
         return "1.0";
     }
-    
+
+    /**
+     * @notice Adds location to spatial index
+     * @param lat Integer latitude coordinate
+     * @param lon Integer longitude coordinate
+     * @param location_id Location ID to index
+     * @custom:reverts "AccessDenied" if caller is not Location module
+     */
     function addLocationToIndex(int16 lat, int16 lon, uint256 location_id) external {
 
         if(msg.sender != IHub(hubContract).getModule("Location", partner_id))
-            revert("access_denied_to_add_location_index");
+            revert AccessDenied("LocationSearch");
 
         locations_index[lat][lon].push(location_id);
     }
 
-    function _RevertCodes() private view returns(IRevertCodes) {
-        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
-    }
 
-    function _panic(string memory code) private {
-        _RevertCodes().panic("LocationSearch", code);
-    }
-
-
-    function inArea(inAreaInput memory input) external view returns (inAreaOutput[] memory, uint256) {
+    /**
+     * @notice Searches locations within specified area
+     * @param input Search parameters including coordinates
+     * @return (inAreaOutput[] memory, uint256) Array of results and total count
+     * @custom:reverts "BigOffset" if offset exceeds available results
+     */
+    function inArea(inAreaInput calldata input) external view returns (inAreaOutput[] memory, uint256) {
 
         uint64 output_count = 50;
 
@@ -70,8 +91,14 @@ contract LocationSearch is ILocationSearch, Initializable {
             return inAreaLocalSearch(input,output_count);
     }
 
-
-    function inAreaLocalSearch(inAreaInput memory input, uint64 output_count) private view returns (inAreaOutput[] memory, uint256) {
+    /**
+     * @dev Performs local grid cell search
+     * @param input Search parameters
+     * @param output_count Maximum results to return
+     * @return (inAreaOutput[] memory, uint256) Results array and total count
+     * @custom:reverts "BigOffset" if offset exceeds available results
+     */
+    function inAreaLocalSearch(inAreaInput calldata input, uint64 output_count) private view returns (inAreaOutput[] memory, uint256) {
         uint64 count = 0;
 
         uint256[] memory locationIds = locations_index[input.topRightLat.splitCoordinate()][input.topRightLong.splitCoordinate()];
@@ -81,7 +108,7 @@ contract LocationSearch is ILocationSearch, Initializable {
         int256 topRightLong = input.topRightLong.stringToInt32();
         int256 bottomLeftLong = input.bottomLeftLong.stringToInt32();
 
-        // Первоначальный подсчет количества локаций в области
+        
         for (uint256 i = 0; i < locationIds.length; i++) {
             uint256 id = locationIds[i];
             ILocation.outLocation memory location = _Location().getLocation(id);
@@ -99,9 +126,9 @@ contract LocationSearch is ILocationSearch, Initializable {
         
         
         if(input.offset > count)
-            revert("big_offset");
+            revert BigOffset(input.offset);
 
-        // Создание идекса для вывода
+        
         uint256[] memory outputIds = new uint256[](count);
 
         {
@@ -132,13 +159,13 @@ contract LocationSearch is ILocationSearch, Initializable {
         if(count-input.offset < output_count)
             output_count = count-input.offset;
 
-        // Создание массива для хранения результатов
+        
         inAreaOutput[] memory results = new inAreaOutput[](output_count);
 
         {
             uint256 index = 0;
 
-            // Заполнение массива результатами
+            
             for (uint256 i = input.offset; i < outputIds.length; i++) {
                 uint256 id = outputIds[i];
 
@@ -158,7 +185,14 @@ contract LocationSearch is ILocationSearch, Initializable {
         return (results,count);
     }
 
-    function inAreaGlobalSearch(inAreaInput memory input, uint64 output_count) private view returns (inAreaOutput[] memory, uint256) {
+    /**
+     * @dev Performs global grid search across multiple cells
+     * @param input Search parameters
+     * @param output_count Maximum results to return
+     * @return (inAreaOutput[] memory, uint256) Results array and total count
+     * @custom:reverts "BigOffset" if offset exceeds available results
+     */
+    function inAreaGlobalSearch(inAreaInput calldata input, uint64 output_count) private view returns (inAreaOutput[] memory, uint256) {
 
         uint64 count = 0;
         int16 i_vertical_start;
@@ -202,7 +236,7 @@ contract LocationSearch is ILocationSearch, Initializable {
         
 
         if(input.offset >= count)
-            revert("big_offset");
+            revert BigOffset(input.offset);
         
         if(count < output_count )
             output_count = count;

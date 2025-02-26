@@ -1,17 +1,96 @@
 // SPDX-License-Identifier: GPLV3
 pragma solidity ^0.8.12;
+import "../IBaseErrors.sol";
 
+/**
+ * @title Cards Management Interface
+ * @notice Defines data structures and events for card and autopay operations
+ * @dev Provides the foundation for managing user payment cards and autopay settings
+ */
+interface ICards is IBaseErrors {
 
-interface ICards {
-    event AddCardRequest(address indexed user_address, uint256 indexed request_id);
-    event AddCardResponse(address indexed user_address, uint256 indexed request_id, bool status, string message, string paymentEndpoint);
-    event AddCardSuccess(address indexed user_address, uint256 card_id);
-    event WriteOffRequest(address indexed user_address, uint256 request_id, uint256 indexed card_id, string amount);
-    event WriteOffResponse(address indexed user_address, uint256 request_id, uint256 indexed card_id, bool status, string message, string amount);
+    /**
+     * @notice Emitted when a user initiates a card addition request
+     * @param account Address of the user requesting to add a card
+     * @param request_id Unique identifier for the request
+     */
+    event AddCardRequest(
+        address indexed account,
+        uint256 indexed request_id
+    );
 
+    /**
+     * @notice Emitted when an admin responds to a card addition request
+     * @param account Address of the user who made the request
+     * @param request_id Unique identifier for the request
+     * @param status Response status (true for success, false for failure)
+     * @param message Response message or error details
+     * @param payment_endpoint URL for payment processing (if applicable)
+     */
+    event AddCardResponse(
+        address indexed account,
+        uint256 indexed request_id,
+        bool status,
+        string message,
+        string payment_endpoint
+    );
 
+    /**
+     * @notice Emitted when a card is successfully added to a user's account
+     * @param account Address of the user
+     * @param card_id Index of the newly added card
+     */
+    event AddCardSuccess(
+        address indexed account,
+        uint256 indexed request_id,
+        uint256 card_id
+    );
+
+    /**
+     * @notice Emitted when a user initiates a write-off request
+     * @param account Address of the user
+     * @param request_id Unique identifier for the request
+     * @param card_id Id of the card used for the write-off
+     * @param amount Amount to be written off
+     */
+    event WriteOffRequest(
+        address indexed account,
+        uint256 request_id,
+        string card_id,
+        string amount
+    );
+
+    /**
+     * @notice Emitted when an admin responds to a write-off request
+     * @param account Address of the user
+     * @param request_id Unique identifier for the request
+     * @param card_id Index of the card used for the write-off
+     * @param error_code Response code from bank
+     * @param status Response status (true for success, false for failure)
+     * @param message Response message or error details
+     * @param amount Amount written off
+     */
+    event WriteOffResponse(
+        address indexed account,
+        uint256 request_id,
+        string card_id,
+        uint256 indexed error_code,
+        bool status,
+        string message,
+        string amount
+    );
+
+    /**
+     * @title Card Data Structure
+     * @notice Contains details of a user's payment card
+     * @param session_id Session identifier for the card
+     * @param rebill_id Rebill identifier for recurring payments
+     * @param provider Payment provider name
+     * @param card_id Unique identifier for the card
+     * @param card_number Masked or partial card number
+     * @param is_primary Flag indicating if the card is the primary payment method
+     */
     struct Card {
-        string session_id;
         string rebill_id;
         string provider;
         string card_id;
@@ -19,6 +98,14 @@ interface ICards {
         bool is_primary;
     }
 
+    /**
+     * @title Autopay Settings Structure
+     * @notice Contains configuration for automatic payments
+     * @param amount Amount to be charged during autopay
+     * @param monthly_limit Maximum monthly spending limit
+     * @param threshold Balance threshold to trigger autopay
+     * @param is_active Flag indicating if autopay is enabled
+     */
     struct AutopaySettings {
         uint256 amount;
         uint256 monthly_limit;
@@ -28,13 +115,13 @@ interface ICards {
 
     function getVersion() external pure returns(string memory);
     function addCardRequest() external;
-    function addCardResponse(address user_address, uint256 request_id, bool status, string memory message, string memory paymentEndpoint) external;
-    function addCard(address user_address, Card memory card) external;
+    function addCardResponse(address account, uint256 request_id, bool status, string calldata message, string calldata paymentEndpoint) external;
+    function addCard(address account, uint256 request_id, Card calldata card) external;
     function setAutoPaySettings(uint256 amount, uint256 monthly_limit, uint256 threshold) external;
     function disableAutoPay() external;
     function removeCard(uint _index) external;
-    function getCards(address user_address) external view returns(Card[] memory);
-    function getAutoPaymentSettings(address user_address) external view returns(AutopaySettings memory);
-    function writeOffRequest(string memory amount) external;
-    function writeOffResponse(address user_address, uint256 request_id, uint256 card_id, bool status, string memory message, string memory amount )  external;
+    function getCards(address account) external view returns(Card[] memory);
+    function getAutoPaymentSettings(address account) external view returns(AutopaySettings memory);
+    function writeOffRequest(string calldata amount) external;
+    function writeOffResponse(address account, uint256 request_id, string calldata card_id, uint256 error_code, bool status, string calldata message, string calldata amount )  external;
 }

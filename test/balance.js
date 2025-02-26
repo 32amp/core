@@ -2,6 +2,7 @@
 const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 
+const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
 
 before(async function() {
 
@@ -9,7 +10,7 @@ before(async function() {
     this.owner = accounts[0]
     this.simpleUser = accounts[1]
 
-    this.contracts = await deploy({User:true,Balance: true, Cards: true})
+    this.contracts = await deploy({User:true,Balance: true})
 
 })
 
@@ -67,3 +68,4 @@ describe("Balance", function (){
 
 
 })
+

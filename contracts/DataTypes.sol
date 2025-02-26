@@ -1,18 +1,25 @@
-// SPDX-License-Identifier: GPLV3
-pragma solidity ^0.8.12;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
+/**
+ * @title DataTypes
+ * @dev Comprehensive interface for electric vehicle charging infrastructure management system
+ * Contains all data types required to describe charging stations, their specifications, and related entities
+ */
 interface DataTypes {
 
+    /// @notice Charging connector types
+    /// @dev Complete list of standardized and proprietary connector types
     enum ConnectorTypes {
-        None, 
-        Type1, 
-        Type2, 
-        Chademo, 
-        CCS1, 
-        CCS2, 
-        GBTDC, 
-        GBTAC, 
-        DOMESTIC_A,
+        None,               // Undefined type
+        Type1,              // SAE J1772-2009 (Yazaki) - 1-phase AC (up to 80A)
+        Type2,              // IEC 62196-2 (Mennekes) - 3-phase AC (up to 63A)
+        Chademo,            // Japanese DC fast charging standard (up to 200A)
+        CCS1,               // Combined Charging System Type 1 (Combo 1) - DC + Type1 AC
+        CCS2,               // Combined Charging System Type 2 (Combo 2) - DC + Type2 AC
+        GBTDC,              // Chinese GB/T 20234.3 DC charging standard
+        GBTAC,              // Chinese GB/T 20234.2 AC charging standard
+        DOMESTIC_A,         // Country-specific domestic connectors (see regional documentation)
         DOMESTIC_B,
         DOMESTIC_C,
         DOMESTIC_D,
@@ -27,207 +34,234 @@ interface DataTypes {
         DOMESTIC_M,
         DOMESTIC_N,
         DOMESTIC_O,
-        IEC_60309_2_single_16,
-        IEC_60309_2_three_16,
-        IEC_60309_2_three_32,
-        IEC_60309_2_three_64,
-        IEC_62196_T3A,
-        NEMA_5_20,
-        NEMA_6_30,
-        NEMA_6_50,
-        NEMA_10_30,
-        NEMA_10_50,
-        NEMA_14_30,
-        NEMA_14_50,
-        PANTOGRAPH_BOTTOM_UP,
-        PANTOGRAPH_TOP_DOWN,
-        TSL
+        IEC_60309_2_single_16,  // IEC 60309-2 industrial 16A 1-phase connector
+        IEC_60309_2_three_16,   // IEC 60309-2 industrial 16A 3-phase connector
+        IEC_60309_2_three_32,   // IEC 60309-2 industrial 32A 3-phase connector
+        IEC_60309_2_three_64,   // IEC 60309-2 industrial 64A 3-phase connector
+        IEC_62196_T3A,          // IEC 62196 Type 3A standard
+        NEMA_5_20,              // North American 120V 20A connector
+        NEMA_6_30,              // North American 240V 30A connector
+        NEMA_6_50,              // North American 240V 50A connector
+        NEMA_10_30,             // North American 3-wire 240V 30A
+        NEMA_10_50,             // North American 3-wire 240V 50A
+        NEMA_14_30,             // North American 4-wire 240V 30A
+        NEMA_14_50,             // North American 4-wire 240V 50A
+        PANTOGRAPH_BOTTOM_UP,   // Bottom-up pantograph connector (bus charging)
+        PANTOGRAPH_TOP_DOWN,    // Top-down pantograph connector
+        TSL                     // Tesla Supercharger proprietary connector
     }
 
+    /// @notice Charging equipment error codes
+    /// @dev Detailed fault statuses for diagnostics
     enum ConnectorErrors {
-        None,
-        ConnectorLockFailure,
-        EVCommunicationError,
-        GroundFailure,
-        HighTemperature,
-        InternalError,
-        LocalListConflict,
-        NoError,
-        OtherError,
-        OverCurrentFailure,
-        PowerMeterFailure,
-        PowerSwitchFailure,
-        ReaderFailure,
-        ResetFailure,
-        UnderVoltage,
-        OverVoltage,
-        WeakSignalint,
-        PowerModuleFailure,
-        EmergencyButtonPressed
+        None,                   // No errors
+        ConnectorLockFailure,   // Connector locking mechanism failure
+        EVCommunicationError,   // Vehicle communication error (PLC/ISO 15118)
+        GroundFailure,          // Ground circuit fault
+        HighTemperature,        // Overheating (>85°C)
+        InternalError,          // Controller internal error
+        LocalListConflict,      // Local authorization list conflict
+        NoError,                // Normal operation (error reset)
+        OtherError,             // Unspecified error
+        OverCurrentFailure,     // Current overflow
+        PowerMeterFailure,      // Energy meter malfunction
+        PowerSwitchFailure,     // Power relay failure
+        ReaderFailure,          // RFID/NFC module error
+        ResetFailure,           // Reset failure
+        UnderVoltage,           // Low input voltage
+        OverVoltage,            // High input voltage
+        WeakSignal,             // Weak communication signal
+        PowerModuleFailure,     // Power module failure
+        EmergencyButtonPressed  // Emergency stop activated
     }
 
-
+    /// @notice Charging connector statuses
+    /// @dev States according to OCPP 2.0.1 standard
     enum ConnectorStatus {
-        None,
-        Available,
-        Preparing,
-        Charging,
-        SuspendedEVSE,
-        SuspendedEV,
-        Finishing,
-        Reserved,
-        Unavailable,
-        Faulted
+        None,           // Undefined status
+        Available,      // Ready for use
+        Preparing,      // Session initialization
+        Charging,       // Active charging
+        SuspendedEVSE,  // Suspended by EVSE (power management)
+        SuspendedEV,    // Suspended by vehicle (BMS control)
+        Finishing,      // Session termination
+        Reserved,       // Reserved state
+        Unavailable,    // Out of service
+        Faulted         // Fault condition
     }
 
+    /// @notice EVSE (Electric Vehicle Supply Equipment) statuses
     enum EVSEStatus {
-        None,
-        Available,
-        Unavailable,
-        Planned,
-        Removed,
-        Blocked,
-        Maintance
+        None,           // Undefined status
+        Available,      // Operational
+        Unavailable,    // Temporarily inactive
+        Planned,        // Installation planned
+        Removed,        // Decommissioned
+        Blocked,        // Physically blocked
+        Maintenance     // Under maintenance
     }
 
+    /// @notice Physical connection format
     enum ConnectorFormat {
-        None,
-        Socket,
-        Cable
+        None,   // Undefined
+        Socket, // Socket (requires user cable)
+        Cable   // Attached cable
     }
 
+    /// @notice Infrastructure facility types
     enum Facility {
-        None,
-        Hotel,
-        Restaurant,
-        Cafe,
-        Mall,
-        Supermarket,
-        Sport,
-        RecreationArea,
-        Nature,
-        Museum,
-        BikeSharing,
-        BusStop,
-        TaxiStand,
-        TramStop,
-        MetroStation,
-        TrainStation,
-        Airport,
-        ParkingLot,
-        CarpoolParking,
-        FuelStation,
-        Wifi
+        None,               // Undefined
+        Hotel,              // Hotel accommodation
+        Restaurant,         // Dining establishment
+        Cafe,               // Coffee shop
+        Mall,               // Shopping mall
+        Supermarket,        // Grocery store
+        Sport,              // Sports facility
+        RecreationArea,     // Leisure area
+        Nature,             // Natural reserve
+        Museum,             // Museum institution
+        BikeSharing,        // Bicycle rental
+        BusStop,            // Bus station
+        TaxiStand,          // Taxi rank
+        TramStop,           // Tram station
+        MetroStation,       // Subway station
+        TrainStation,       // Railway station
+        Airport,            // Airport complex
+        ParkingLot,         // Parking area
+        CarpoolParking,     // Carpool parking
+        FuelStation,        // Gasoline station
+        Wifi                // Wireless internet zone
     }
 
+    /// @notice Image categorization
     enum ImageCategory {
-        None,
-        Charger,
-        Enterence,
-        Location,
-        Network,
-        Operator,
-        Other,
-        Owner
+        None,       // Undefined
+        Charger,    // Charging equipment photo
+        Entrance,   // Location entrance
+        Location,   // Site overview
+        Network,    // Network logo
+        Operator,   // Operator branding
+        Other,      // Miscellaneous
+        Owner       // Ownership documentation
     }
 
+    /// @notice Parking restrictions
     enum ParkingRestriction {
-        None,
-        EvOnly,
-        Plugged,
-        Disabled,
-        Customers,
-        Motorcycles
+        None,           // No restrictions
+        EvOnly,         // Electric vehicles only
+        Plugged,        // Must be charging
+        Disabled,       // Accessible parking
+        Customers,      // Patron-only
+        Motorcycles     // Two-wheelers only
     }
 
+    /// @notice Parking facility types
     enum ParkingType {
-        None,
-        AlongMotorway,
-        ParkingGarage,
-        ParkingLot,
-        OnDriveway,
-        OnStreet,
-        UndergroundGarage
+        None,               // Undefined
+        AlongMotorway,      // Highway-adjacent
+        ParkingGarage,     // Multi-story garage
+        ParkingLot,        // Surface parking
+        OnDriveway,        // Driveway parking
+        OnStreet,          // Street parking
+        UndergroundGarage  // Underground facility
     }
 
+    /// @notice Electrical power types
     enum PowerType {
-        None,
-        AC_1_PHASE,
-        AC_2_PHASE,
-        AC_2_PHASE_SPLIT,
-        AC_3_PHASE,
-        DC
+        None,           // Undefined
+        AC_1_PHASE,     // Single-phase AC
+        AC_2_PHASE,     // Two-phase AC
+        AC_2_PHASE_SPLIT, // Split-phase (120V/240V)
+        AC_3_PHASE,     // Three-phase AC
+        DC              // Direct Current
     }
 
+    /// @notice EVSE capabilities
     enum Capabilities {
-        ChargingProfileCapabile,
-        ChargingPreferencesCcapabale,
-        ChipCardSupport,
-        ContactlesCardSupport,
-        CreditCardPayble,
-        DebitCardPayble,
-        PedTerminal,
-        RemoteStartStopCapable,
-        Reservable,
-        RfidReader,
-        StartSessionConnectorRequired,
-        TokenGroupCapable,
-        UnlockCapable
+        ChargingProfileCapable,      // Charging profile support
+        ChargingPreferencesCapable,  // Preference configuration
+        ChipCardSupport,             // Smart card support
+        ContactlessCardSupport,      // NFC payments
+        CreditCardPayable,          // Credit card acceptance
+        DebitCardPayable,           // Debit card acceptance
+        PedTerminal,                // Payment terminal
+        RemoteStartStopCapable,     // Remote control
+        Reservable,                 // Reservation capability
+        RfidReader,                 // RFID authentication
+        StartSessionConnectorRequired, // Physical connection required
+        TokenGroupCapable,          // Token group management
+        UnlockCapable               // Remote unlock
     }
 
+    /// @notice Supported image formats
     enum ImageType {
-        None,
-        JPG,
-        PNG,
-        GIF,
-        SVG
+        None,   // Undefined
+        JPG,    // JPEG/JFIF
+        PNG,    // Portable Network Graphics
+        GIF,    // Graphics Interchange
+        SVG     // Scalable Vector Graphics
     }
 
+    /// @notice Document file types
     enum FileType {
-        None,
-        JSON,
-        HTML,
-        PDF,
-        CSV,
-        XLSX,
-        XLS,
-        DOC,
-        DOCX,
-        JPG,
-        PNG,
-        GIF,
-        SVG
+        None,   // Undefined
+        JSON,    // JavaScript Object Notation
+        HTML,    // Hypertext Markup
+        PDF,     // Portable Document
+        CSV,     // Comma-Separated
+        XLSX,    // Excel OpenXML
+        XLS,     // Excel 97-2003
+        DOC,     // Word 97-2003
+        DOCX,    // Word OpenXML
+        JPG,     // JPEG image
+        PNG,     // PNG image
+        GIF,     // GIF image
+        SVG      // SVG vector
     }
 
-
+    /// @notice Energy generation sources
     enum EnergySourceCategory {
-        None,
-        NUCLEAR,
-        GENERAL_FOSSIL,
-        COAL,
-        GAS,
-        GENERAL_GREEN,
-        SOLAR,
-        WIND,
-        WATER
+        None,           // Undefined
+        NUCLEAR,        // Nuclear fission
+        GENERAL_FOSSIL, // Fossil fuels
+        COAL,          // Coal power
+        GAS,           // Natural gas
+        GENERAL_GREEN, // Renewable mix
+        SOLAR,         // Solar power
+        WIND,          // Wind power
+        WATER          // Hydroelectric
     }
 
+    /// @notice Environmental impact categories
     enum EnvironmentalImpactCategory {
-        None,
-        NUCLEAR_WASTE,
-        CARBON_DIOXIDE
+        None,               // Undefined
+        NUCLEAR_WASTE,      // Radioactive waste (g/kWh)
+        CARBON_DIOXIDE      // CO2 emissions (g/kWh)
     }
 
+    /// @notice Energy source composition
+    /// @param source Generation type
+    /// @param percentage Mix percentage (0-100)
     struct EnergySource {
         EnergySourceCategory source;
         uint8 percentage;
     }
 
+    /// @notice Environmental impact metrics
+    /// @param category Impact type
+    /// @param amount Quantity in category units
     struct EnvironmentalImpact {
         EnvironmentalImpactCategory category;
         uint256 amount; 
     }
 
+    /// @notice Energy supply composition
+    /// @dev Compliant with ISO 14068
+    /// @param is_green_energy Renewable energy flag
+    /// @param energy_sources Source mix (sum 100%)
+    /// @param environ_impact Environmental metrics
+    /// @param supplier_name Energy provider
+    /// @param energy_product_name Tariff plan
     struct EnergyMix {
         bool is_green_energy;
         EnergySource[] energy_sources;
@@ -236,35 +270,61 @@ interface DataTypes {
         string energy_product_name;
     }
 
+    /// @notice Pricing information
+    /// @param excl_vat Pre-tax amount (milliunits)
+    /// @param incl_vat Tax-inclusive amount (milliunits)
     struct Price {
         uint256 excl_vat;
         uint256 incl_vat;
     }
 
+    /// @notice Supplemental coordinates
+    /// @dev For complex locations with multiple access points
+    /// @param latitude WGS84 decimal degrees (±90°, 1e-7 precision)
+    /// @param longitude WGS84 decimal degrees (±180°, 1e-7 precision)
+    /// @param name Localized location names
     struct AdditionalGeoLocation {
         int256 latitude;
         int256 longtitude;
         DisplayText[] name;
     }
 
+    /// @notice Business entity details
+    /// @param name Legal entity name
+    /// @param website Official URL
+    /// @param logo Branding image
     struct BusinessDetails {
         string name;
         string website;
         Image logo;
     }
 
-
+    /// @notice Localized navigation instructions
+    /// @param lang BCP-47 language code (en-US, zh-CN)
+    /// @param text Localized directions
     struct Directions {
         string lang;
         string text;
     }
 
-    struct StatusSchedule{
+    /// @notice Status change schedule
+    /// @dev For maintenance planning
+    /// @param begin Start timestamp (UTC)
+    /// @param end End timestamp (UTC)
+    /// @param status Scheduled status
+    struct StatusSchedule {
         uint256 begin;
         uint256 end;
         EVSEStatus status;
     }
 
+    /// @notice Image metadata
+    /// @param url Direct image URL
+    /// @param ipfs_cid IPFS content identifier
+    /// @param category Image purpose
+    /// @param _type File format
+    /// @param width Pixel width
+    /// @param height Pixel height
     struct Image {
         string url;
         string ipfs_cid;
@@ -274,18 +334,30 @@ interface DataTypes {
         uint16 height;
     }
 
+    /// @notice Document file reference
+    /// @param name_file Original filename
+    /// @param ipfs_cid IPFS content identifier
+    /// @param file_type File MIME type
     struct File {
         string name_file;
         string ipfs_cid;
         FileType file_type;
     }
 
+    /// @notice Exceptional time period
+    /// @dev For special operating hours
+    /// @param begin Start timestamp
+    /// @param end End timestamp
     struct ExceptionalPeriod {
         uint256 begin;
         uint256 end;
     }
 
-
+    /// @notice Operating hours configuration
+    /// @param twentyfourseven 24/7 operation flag
+    /// @param regular_hours Standard weekly schedule
+    /// @param exceptional_openings Special openings
+    /// @param exceptional_closings Special closures
     struct Hours {
         bool twentyfourseven;
         RegularHours[] regular_hours;
@@ -293,28 +365,53 @@ interface DataTypes {
         ExceptionalPeriod[] exceptional_closings;
     }
 
-
-
+    /// @notice Recurring weekly schedule
+    /// @param week_day Weekday index (0-6, Monday=0)
+    /// @param period_begin Start time (HH:MM)
+    /// @param period_end End time (HH:MM)
     struct RegularHours {
         int week_day;
         string period_begin;
         string period_end;
     }
 
+    /// @notice Localized text content
+    /// @param language BCP-47 language tag
+    /// @param text Translated content
     struct DisplayText {
         string language;
         string text;
     }
 
-
-   
+    /// @notice Geographic coordinates
+    /// @param latitude WGS84 decimal degrees
+    /// @param longitude WGS84 decimal degrees
     struct GeoLocation {
         int256 latitude;
         int256 longtitude;
     }
 
-
-
+    /// @notice Complete location description
+    /// @param uid Unique database ID
+    /// @param country_code ISO 3166-1 alpha-2
+    /// @param party_id Operator ID (ISO 15118-1)
+    /// @param publish Public visibility flag
+    /// @param publish_allowed_to Whitelist for private access
+    /// @param name Location title
+    /// @param _address Postal address
+    /// @param city ISO 3166-2 city code
+    /// @param postal_code ZIP code
+    /// @param state ISO 3166-2 region code
+    /// @param country ISO 3166-1 alpha-3
+    /// @param coordinates GPS position
+    /// @param parking_type Facility type
+    /// @param evses Installed EVSEs
+    /// @param operator Operator ID
+    /// @param owner Blockchain address
+    /// @param facilities Available amenities
+    /// @param time_zone IANA timezone
+    /// @param charging_when_closed After-hours access
+    /// @param last_updated Last update timestamp
     struct Location {
         uint256 uid;
         bytes2 country_code;
@@ -338,6 +435,11 @@ interface DataTypes {
         uint256 last_updated;
     }
 
+    /// @notice EVSE unit description
+    /// @param evse_id Unique hardware ID
+    /// @param evse_model Equipment model
+    /// @param physical_reference Physical label
+    /// @param directions Access instructions
     struct EVSE {
         string evse_id; 
         uint256 evse_model;
@@ -345,6 +447,14 @@ interface DataTypes {
         DisplayText[] directions;
     }
 
+    /// @notice Technical connector specifications
+    /// @param standard Connector type
+    /// @param format Socket/cable type
+    /// @param power_type AC/DC configuration
+    /// @param max_voltage Maximum voltage (volts)
+    /// @param max_amperage Maximum current (amps)
+    /// @param max_electric_power Maximum power (watts)
+    /// @param terms_and_conditions_url Usage terms URL
     struct Connector {
         ConnectorTypes standard;
         ConnectorFormat format;
@@ -355,4 +465,3 @@ interface DataTypes {
         string terms_and_conditions_url;
     }
 }
-

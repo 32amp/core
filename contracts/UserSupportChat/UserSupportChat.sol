@@ -4,48 +4,74 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IUserSupportChat.sol";
 import "../Hub/IHub.sol";
 import "../User/IUserAccess.sol";
-import "../RevertCodes/IRevertCodes.sol";
 
+
+/**
+ * @title User Support Chat Contract
+ * @notice Handles user support ticket creation and communication
+ * @dev Manages support topics and messages with access control
+ * @custom:warning Requires proper initialization via Hub contract
+ */
 contract UserSupportChat is IUserSupportChat, Initializable {
-
-
+    // State variables documentation
+    /// @notice Hub contract reference
     address hubContract;
+    
+    /// @notice Associated partner ID
     uint256 partner_id;
+    
+    /// @dev Auto-incrementing topic ID counter
     uint256 topic_counter;
 
-
+    // Storage mappings documentation
+    /// @dev Topic data storage by ID
     mapping(uint256 => Topic) topics;
+    
+    /// @dev Message storage by topic and message ID
     mapping(uint256 => mapping(uint256 => UserMessage)) messages;
+    
+    /// @dev User-to-topics mapping: address => topic IDs[]
     mapping(address => uint256[]) user_topics;
 
+    /**
+     * @notice Initializes the contract with Hub connection
+     * @param _partner_id Partner ID from Hub registry
+     * @param _hubContract Hub contract address
+     * @custom:init Called once during proxy deployment
+     */
     function initialize(uint256 _partner_id, address _hubContract) external initializer{
         hubContract = _hubContract;
         partner_id = _partner_id;
     }
 
-    function registerRevertCodes() external{
-        _RevertCodes().registerRevertCode("UserSupportChat", "access_denied", "Access denied");
-        _RevertCodes().registerRevertCode("UserSupportChat", "topic_not_found", "Topic not found");
-        _RevertCodes().registerRevertCode("UserSupportChat", "offest_to_big", "Offset to big");
-    }
-
+    /**
+     * @notice Returns contract version
+     * @return string Constant version identifier
+     */
     function getVersion() external pure returns(string memory){
         return "1.0";
     }
 
+    /**
+     * @dev Internal access to UserAccess module
+     * @return IUserAccess UserAccess module interface
+     */    
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _RevertCodes() private view returns(IRevertCodes) {
-        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
-    }
-
     // add check user exist
+    /**
+     * @notice Modifier for topic access control
+     * @dev Checks topic existence and user permissions
+     * @param topic_id ID of the topic to access
+     * @custom:reverts ObjectNotFound If topic doesn't exist
+     * @custom:reverts AccessDenied If user lacks access rights
+     */    
     modifier topic_access( uint256 topic_id)  {
 
         if(topics[topic_id].create_at == 0)
-            revert("topic_not_found");
+            revert ObjectNotFound("Topic", topic_id);
 
 
         bool isAccess = false;
@@ -60,13 +86,20 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         }
 
         if(!isAccess)
-            revert("access_denied");
+            revert AccessDenied("UserSupportChat:Topic");
         
         _;
     }
 
     // add check user exist
-    function createTopic(string memory _text_message, TopicTheme theme) external {
+    /**
+     * @notice Creates a new support topic
+     * @param _text_message Initial message content
+     * @param theme Category/type of the support topic
+     * @custom:emits CreateTopic On successful creation
+     * @custom:emits UserTopicEvent For user notification
+     */    
+    function createTopic(string calldata _text_message, TopicTheme theme) external {
 
         
         topics[topic_counter].create_at = block.timestamp;
@@ -88,7 +121,14 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         topic_counter++;
     }
 
-    function sendMessage(uint256 topic_id, InputMessage memory message) topic_access(topic_id) external {
+    /**
+     * @notice Sends a message to an existing topic
+     * @param topic_id ID of the target topic
+     * @param message Message content and metadata
+     * @custom:emits Message On successful send
+     * @custom:emits UpdateTopic For topic status change
+     */
+    function sendMessage(uint256 topic_id, InputMessage calldata message) topic_access(topic_id) external {
         
         uint256 timestamp =  block.timestamp+topics[topic_id].message_counter;
 
@@ -111,6 +151,12 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     }
 
     // check user exist
+    /**
+     * @notice Sets user rating for a resolved topic
+     * @param topic_id ID of the topic to rate
+     * @param rating User satisfaction rating
+     * @custom:emits UserTopicEvent For rating notification
+     */
     function setRating(uint256 topic_id, TopicRating rating) topic_access(topic_id) external {
         
         topics[topic_id].user_rating = rating;  
@@ -120,6 +166,12 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         makeTopicFirst(topic_id);
     }
 
+    /**
+     * @notice Closes a support topic
+     * @param topic_id ID of the topic to close
+     * @custom:emits CloseTopic On successful closure
+     * @custom:emits UserTopicEvent For notification
+     */    
     function closeTopic(uint256 topic_id) topic_access(topic_id) external {
         
         topics[topic_id].closed = true;
@@ -130,6 +182,11 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         emit UserTopicEvent(topic_id, topics[topic_id].create_user_account);
     } 
 
+    /**
+     * @notice Marks messages as read
+     * @param topic_id ID of the topic containing messages
+     * @param message_ids Array of message IDs to mark
+     */    
     function setReadedMessages(uint256 topic_id, uint256[] calldata message_ids) topic_access(topic_id) external {
 
 
@@ -142,10 +199,16 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     }
 
     // check user exist
+    /**
+     * @notice Retrieves paginated list of user's topics
+     * @param offset Pagination starting point
+     * @return (OutputTopic[], uint256) Topics array and total count
+     * @custom:reverts BigOffset If offset exceeds topics count
+     */    
     function getMyTopics(uint256 offset) external view returns(OutputTopic[] memory, uint256) {
 
         if (offset > user_topics[msg.sender].length)
-            revert("offset_too_big");
+            revert BigOffset(offset);
     
         uint max_limit = 50;
     
@@ -166,16 +229,26 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         return (ret, user_topics[msg.sender].length);            
     }
     
-
+    /**
+     * @notice Retrieves topic details
+     * @param topic_id ID of the topic to fetch
+     * @return Topic Complete topic data structure
+     */
     function getTopic(uint256 topic_id) topic_access(topic_id) external view returns (Topic memory) {
         return topics[topic_id];
     }
 
-
+    /**
+     * @notice Retrieves paginated messages from a topic
+     * @param topic_id ID of the target topic
+     * @param offset Pagination starting point
+     * @return (OutputUserMessage[], uint256) Messages array and total count
+     * @custom:reverts BigOffset If offset exceeds messages count
+     */
     function getMessages(uint256 topic_id, uint256 offset) topic_access(topic_id) external view returns (OutputUserMessage[] memory, uint256) {
     
         if (offset > topics[topic_id].message_counter)
-            revert("offset_too_big");
+            revert BigOffset(offset);
     
         uint max_limit = 50;
     
@@ -193,10 +266,22 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         return (ret, topics[topic_id].message_counter);
     }
     
+    /**
+     * @notice Retrieves specific message details
+     * @param topic_id ID of the containing topic
+     * @param message_id ID of the message to fetch
+     * @return UserMessage Complete message data
+     */    
     function getMessage(uint256 topic_id, uint256 message_id) topic_access(topic_id) external view returns(UserMessage memory){
         return messages[topic_id][message_id];
     }
 
+    /**
+     * @dev Calculates unread messages for a user in a topic
+     * @param topic_id ID of the target topic
+     * @param account User address to check
+     * @return uint256 Count of unread messages
+     */    
     function countUnreadedMessages(uint256 topic_id,address account) internal view returns(uint256) {
         uint256 count;
 
@@ -207,7 +292,11 @@ contract UserSupportChat is IUserSupportChat, Initializable {
 
         return count;
     }
-
+    
+    /**
+     * @dev Reorders topics to keep most recent first
+     * @param topic_id ID of the topic to prioritize
+     */
     function makeTopicFirst(uint256 topic_id) internal {
 
         address account = topics[topic_id].create_user_account;

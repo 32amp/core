@@ -2,19 +2,43 @@
 pragma solidity ^0.8.12;
 
 import "../DataTypes.sol";
+import "../IBaseErrors.sol";
 import "./IConnector.sol";
 
-interface IEVSE is DataTypes {
-
+/**
+ * @title EVSE Management Interface
+ * @notice Defines data structures and events for Electric Vehicle Supply Equipment
+ * @dev Inherits common data types from DataTypes interface
+ */
+interface IEVSE is DataTypes, IBaseErrors {
+    /**
+     * @title EVSE Metadata
+     * @notice Extended operational data for EVSE units
+     * @param status_schedule Availability timeline
+     * @param capabilities Supported charging features
+     * @param coordinates Physical location details
+     * @param parking_restrictions Vehicle accommodation rules
+     * @param floor_level Building floor identifier
+     */
     struct EVSEMeta {
         StatusSchedule[] status_schedule;
         Capabilities[] capabilities;
         GeoLocation coordinates;
-        
         ParkingRestriction[] parking_restrictions;
         int8 floor_level;
     }
 
+    /**
+     * @title Complete EVSE Data
+     * @notice Aggregated EVSE information structure
+     * @param evse Core EVSE details
+     * @param meta Extended metadata
+     * @param evses_status Current operational state
+     * @param location_id Associated location reference
+     * @param last_updated Timestamp of last modification
+     * @param images Visual references
+     * @param connectors Associated charging connectors
+     */
     struct outEVSE {
         EVSE evse;
         EVSEMeta meta;
@@ -23,11 +47,20 @@ interface IEVSE is DataTypes {
         uint256 last_updated;
         Image[] images;
         IConnector.output[] connectors;
-
     }
 
-    event AddEVSE(uint256 indexed uid, uint256 indexed partner_id, address indexed user_address );
-
+    /**
+     * @notice Emitted when new EVSE is added to the system
+     * @param uid Auto-generated EVSE ID
+     * @param partner_id Hub-registered operator ID
+     * @param account Creator's wallet address
+     */
+    event AddEVSE(
+        uint256 indexed uid,
+        uint256 indexed partner_id,
+        address indexed account
+    );
+        
     function getVersion() external pure returns(string memory);
     function exist(uint256 id) external view returns(bool);
     function add(EVSE calldata evse, uint256 location_id) external;

@@ -8,63 +8,89 @@ import "./ILocation.sol";
 import "./IConnector.sol";
 import "./IEVSE.sol";
 import "../User/IUserAccess.sol";
-import "../RevertCodes/IRevertCodes.sol";
 
+
+/**
+ * @title EVSE Management Contract
+ * @notice Handles Electric Vehicle Supply Equipment (EVSE) operations
+ * @dev Upgradeable contract integrated with Hub ecosystem
+ * @custom:warning Requires proper initialization via Hub contract
+ */
 contract EVSE is IEVSE, Initializable {
+    // Storage mappings documentation
+    /// @dev Primary EVSE data storage
     mapping (uint256 => EVSE)  evses;
+    
+    /// @dev Metadata storage for EVSEs
     mapping (uint256 => EVSEMeta)  evses_meta;
+    
+    /// @dev Operational status tracking
     mapping (uint256 => EVSEStatus)  evses_status;
+    
+    /// @dev Location association mapping
     mapping (uint256 => uint256)  evses_related_location;
+    
+    /// @dev Timestamp of last updates
     mapping (uint256 => uint256) evses_last_updated;
+    
+    /// @dev Image references storage
     mapping (uint256 => Image[]) evse_images;
+    
+    /// @dev Connector associations
     mapping (uint256 => uint256[]) evse_connectors;
 
-
+    // State variables documentation
+    /// @notice Hub contract reference
     address hubContract;
+    
+    /// @notice Associated partner ID
     uint256 partner_id;
+    
+    /// @dev Auto-incrementing EVSE ID counter
     uint256 evsecounter;
+    
+    /// @dev Cyclic timestamp counter for updates
     uint256 timestampCounter;
 
+    /**
+     * @notice Initializes contract with Hub connection
+     * @param _partner_id Partner ID from Hub registry
+     * @param _hubContract Address of Hub contract
+     * @custom:init Called once during proxy deployment
+     */
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
     }
 
-    function registerRevertCodes() external{
-        _RevertCodes().registerRevertCode("EVSE", "access_denied", "Access denied, you must have access to module EVSE not lower than four");
-        _RevertCodes().registerRevertCode("EVSE", "location_does_not_exist", "Location does not exist");
-        _RevertCodes().registerRevertCode("EVSE", "add_connectors_first", "You cannot set status Available because you dont have connectors");
-        _RevertCodes().registerRevertCode("EVSE", "connector_does_not_exist", "Connector does not eist");
-    }
-    
 
+    /// @notice Returns current contract version
     function getVersion() external pure returns(string memory){
         return "1.0";
     }
 
+    // Module accessors documentation
+    /// @dev Returns UserAccess module interface    
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
+    /// @dev Returns Location module interface
     function _Location() private view returns(ILocation) {
         return ILocation(IHub(hubContract).getModule("Location", partner_id));
     }
 
+    /// @dev Returns Connector module interface
     function _Connector() private view returns(IConnector) {
         return IConnector(IHub(hubContract).getModule("Connector", partner_id));
     }
 
 
-    function _RevertCodes() private view returns(IRevertCodes) {
-        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
-    }
-
-    function _panic(string memory code) private {
-        _RevertCodes().panic("EVSE", code);
-    }
-
-
-
+    /**
+     * @notice Checks EVSE existence
+     * @param id EVSE ID to check
+     * @return bool True if EVSE exists
+     */
     function exist(uint256 id) external view returns(bool){
         if(evses_last_updated[id] != 0)
             return true;
@@ -72,29 +98,34 @@ contract EVSE is IEVSE, Initializable {
         return false;
     }
 
+    /// @notice Access control modifier requiring FOURTH level privileges
     modifier access(uint256 evse_id) {
         _UserAccess().checkAccess( msg.sender, "EVSE", bytes32(evse_id), uint(IUserAccess.AccessLevel.FOURTH));
         _;
     }
 
+    /**
+     * @notice Registers new EVSE
+     * @param evse EVSE data structure
+     * @param location_id Associated location ID
+     * @custom:reverts "AccessDenied" if access level < FOURTH
+     * @custom:reverts "ObjectNotFound:Location" if invalid location
+     * @custom:emits AddEVSE On successful registration
+     */
     function add(EVSE calldata evse, uint256 location_id) external {
         
-
         uint access_level = _UserAccess().getModuleAccessLevel("EVSE", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
-            _panic("access_denied");
+            revert AccessDenied("EVSE");
         }
 
         if(!_Location().exist(location_id))
-            _panic("location_does_not_exist");
+            revert ObjectNotFound("Location", location_id);
 
         evsecounter++;
 
         evses[evsecounter] = evse;
-
-
-        
         evses_status[evsecounter] = EVSEStatus.Planned;
         evses_related_location[evsecounter] = location_id;
 
@@ -106,17 +137,35 @@ contract EVSE is IEVSE, Initializable {
         _updated(evsecounter);
     }
 
+    /**
+     * @notice Updates EVSE metadata
+     * @param evse_id Target EVSE ID
+     * @param meta Metadata structure
+     * @custom:reverts "AccessDenied" if insufficient privileges
+     */    
     function setMeta(uint256 evse_id, EVSEMeta calldata meta) access(evse_id) external {
         evses_meta[evse_id] = meta;
         _updated(evse_id);
     }
 
-
+    /**
+     * @notice Adds image reference to EVSE
+     * @param evse_id Target EVSE ID
+     * @param image Image data structure
+     * @custom:reverts "AccessDenied" if insufficient privileges
+     */
     function addImage( uint256 evse_id, Image calldata image ) access(evse_id) external {
         evse_images[evse_id].push(image);
         _updated(evse_id);
     }
 
+    /**
+     * @notice Removes image by index
+     * @param evse_id Target EVSE ID
+     * @param image_id Image array index
+     * @custom:reverts "AccessDenied" if insufficient privileges
+     * @custom:warning No bounds checking - may revert on invalid index
+     */    
     function removeImage(uint256 evse_id, uint image_id) access(evse_id) external {
 
         for (uint i = image_id; i < evse_images[evse_id].length - 1; i++) {
@@ -127,25 +176,45 @@ contract EVSE is IEVSE, Initializable {
         _updated(evse_id);
     }
 
+    /**
+     * @notice Updates EVSE operational status
+     * @param evse_id Target EVSE ID
+     * @param status New status value
+     * @custom:reverts "AddConnectorFirst" if setting Available without connectors
+     * @custom:reverts "AccessDenied" if insufficient privileges
+     */    
     function setStatus( uint256 evse_id, EVSEStatus status) access(evse_id) external {
         
         if(evse_connectors[evse_id].length == 0 && status == EVSEStatus.Available)
-            _panic("add_connectors_first");
+            revert AddConnectorFirst();
 
         evses_status[evse_id] = status;
     }
 
+    /**
+     * @notice Associates connector with EVSE
+     * @param evse_id Target EVSE ID
+     * @param connector_id Connector ID to add
+     * @custom:reverts "ObjectNotFound:Connector" if invalid connector
+     * @custom:reverts "AccessDenied" if insufficient privileges
+     */    
     function addConnector(uint256 evse_id,  uint256 connector_id ) access(evse_id) external {
         
         if(IHub(hubContract).getModule("Connector", partner_id) != msg.sender)
             if(!_Connector().exist(connector_id))
-                _panic("connector_does_not_exist");
+                revert ObjectNotFound("Connector", connector_id);
 
         evse_connectors[evse_id].push(connector_id);
         _updated(evse_id);
     }
 
-
+    /**
+     * @notice Removes connector association
+     * @param evse_id Target EVSE ID
+     * @param connector_id Connector array index
+     * @custom:reverts "AccessDenied" if insufficient privileges
+     * @custom:warning No bounds checking - may revert on invalid index
+     */
     function removeConnector(uint256 evse_id, uint connector_id) access(evse_id) external {
         
         for (uint i = connector_id; i < evse_connectors[evse_id].length - 1; i++) {
@@ -158,7 +227,11 @@ contract EVSE is IEVSE, Initializable {
 
 
 
-
+    /**
+     * @notice Retrieves complete EVSE data
+     * @param id EVSE ID to query
+     * @return outEVSE Aggregated EVSE information
+     */
     function get(uint256 id) external view returns(outEVSE memory){
         outEVSE memory ret;
 
@@ -182,6 +255,7 @@ contract EVSE is IEVSE, Initializable {
         return ret;
     }
 
+    /// @dev Internal update tracker with cyclic timestamp counter
     function _updated(uint256 id) internal {
         evses_last_updated[id] = block.timestamp+timestampCounter;
 

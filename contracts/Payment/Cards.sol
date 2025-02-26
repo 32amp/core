@@ -3,83 +3,123 @@ pragma solidity ^0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
-import "../RevertCodes/IRevertCodes.sol";
 import "../User/IUserAccess.sol";
 import "./ICards.sol";
 
+/**
+ * @title Cards Management Contract
+ * @notice Handles user payment cards and autopay settings
+ * @dev Manages card storage, autopay configurations, and card-related operations
+ * @custom:warning Requires proper initialization via Hub contract
+ */
 contract Cards is ICards, Initializable {
-
+    // State variables documentation
+    /// @notice Hub contract reference
     address hubContract;
+    
+    /// @notice Associated partner ID
     uint256 partner_id;
+    
+    /// @dev Maximum number of cards allowed per user
     uint256 max_user_cards;
 
+    // Storage mappings documentation
+    /// @dev User card storage
     mapping(address => Card[]) cards;
+    
+    /// @dev User autopay settings
     mapping(address => AutopaySettings) autopay_settings;
+    
+    /// @dev Card addition request IDs
     mapping(address => uint256) add_card_request_id;
+    
+    /// @dev Write-off request IDs
     mapping(address => uint256) write_off_request_id;
 
+    /**
+     * @notice Initializes contract with Hub connection
+     * @param _partner_id Partner ID from Hub registry
+     * @param _hubContract Address of Hub contract
+     * @custom:init Called once during proxy deployment
+     */
     function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
         max_user_cards = 5;
     }
 
-
-    function _RevertCodes() private view returns(IRevertCodes) {
-        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
-    }
-
+    /// @dev Returns UserAccess module interface
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function registerRevertCodes() external {
-        _RevertCodes().registerRevertCode("Cards", "access_denied_level_four", "Access denied, you must have access to module Cards not lower than four");
-        _RevertCodes().registerRevertCode("Cards", "access_denied", "Access denied");
-        _RevertCodes().registerRevertCode("Cards", "max_cards", "Maximum of cards is 5");
-        _RevertCodes().registerRevertCode("Cards", "card_not_found", "Card not found");
- 
-    }
-
+    /// @notice Returns current contract version
     function getVersion() external pure returns(string memory){
         return "1.0";
     }
 
-
+    /// @notice Access control modifier requiring FOURTH level privileges
     modifier onlyAdmin(){
-        _UserAccess().checkAccessModule( msg.sender, "Cards",  uint(IUserAccess.AccessLevel.FOURTH));
+        _UserAccess().checkAccessModule(msg.sender, "Cards", uint(IUserAccess.AccessLevel.FOURTH));
         _;
     }
 
     // check user exist
+    /**
+     * @notice Initiates a card addition request
+     * @custom:reverts "MaximumOfObject:Cards" if user has reached card limit
+     * @custom:emits AddCardRequest On successful request initiation
+     */
     function addCardRequest() external {
         
         if(max_user_cards == cards[msg.sender].length)
-            revert("max_cards");
+            revert MaximumOfObject("Cards", max_user_cards);
 
         add_card_request_id[msg.sender]++;
         
         emit AddCardRequest(msg.sender, add_card_request_id[msg.sender]);
     }
 
-    function addCardResponse(address user_address, uint256 request_id, bool status, string memory message, string memory paymentEndpoint) onlyAdmin() external {
-        emit AddCardResponse(user_address, request_id, status, message, paymentEndpoint);
+    /**
+     * @notice Responds to a card addition request
+     * @param account User address
+     * @param request_id Request ID
+     * @param status Response status
+     * @param message Response message
+     * @param payment_endpoint Payment endpoint URL
+     * @custom:reverts "AccessDeniedLevel:Four" if unauthorized
+     * @custom:emits AddCardResponse On response submission
+     */
+    function addCardResponse(address account, uint256 request_id, bool status, string calldata message, string calldata payment_endpoint) onlyAdmin() external {
+        emit AddCardResponse(account, request_id, status, message, payment_endpoint);
     }
 
+    /**
+     * @notice Adds a new card for a user
+     * @param account User address
+     * @param card Card data structure
+     * @custom:reverts "AccessDeniedLevel:Four" if unauthorized
+     * @custom:emits AddCardSuccess On successful card addition
+     */
+    function addCard(address account, uint256 request_id, Card calldata card) onlyAdmin() external {
 
-    function addCard(address user_address, Card memory card) onlyAdmin() external {
-
-        if(cards[user_address].length > 0)
-            for (uint i = 0; i < cards[user_address].length; i++) {
-                cards[user_address][i].is_primary = false;
+        if(cards[account].length > 0)
+            for (uint i = 0; i < cards[account].length; i++) {
+                cards[account][i].is_primary = false;
             }
 
-        cards[user_address].push(card);
+        cards[account].push(card);
         
-        emit AddCardSuccess(user_address, cards[user_address].length);
+        emit AddCardSuccess(account, request_id, cards[account].length);
     }
 
     // check user exist
+    /**
+     * @notice Configures autopay settings for a user
+     * @param amount Autopay amount
+     * @param monthly_limit Monthly spending limit
+     * @param threshold Balance threshold for autopay
+     */    
     function setAutoPaySettings(uint256 amount, uint256 monthly_limit, uint256 threshold) external {
         autopay_settings[msg.sender].amount = amount;
         autopay_settings[msg.sender].monthly_limit = monthly_limit;
@@ -88,16 +128,24 @@ contract Cards is ICards, Initializable {
     }
 
     // check user exist
+    /**
+     * @notice Disables autopay for a user
+     */    
     function disableAutoPay() external {
         autopay_settings[msg.sender].is_active = false;
     }
 
     // check user exist
+    /**
+     * @notice Removes a card by index
+     * @param _index Card index to remove
+     * @custom:reverts "ObjectNotFound:Card" if invalid index
+     */    
     function removeCard(uint _index) external {
 
 
         if (_index >= cards[msg.sender].length) {
-            revert("card_not_found");
+            revert ObjectNotFound("Card", _index);
         }
 
         bool removedCardWasPrimary = false;
@@ -116,37 +164,70 @@ contract Cards is ICards, Initializable {
     }
 
     // check user exist
-    function writeOffRequest(string memory amount) external {
+    /**
+     * @notice Initiates a write-off request
+     * @param amount Write-off amount
+     * @custom:reverts "ObjectNotFound:Card" if user has no cards
+     * @custom:emits WriteOffRequest On successful request initiation
+     */    
+    function writeOffRequest(string calldata amount) external {
         
         if(cards[msg.sender].length == 0)
-            revert("card_not_found");
+            revert ObjectNotFound("Card", 0);
 
         write_off_request_id[msg.sender]++;
 
-        uint256 card_id = _getPrimaryCard(msg.sender);
+        string memory card_id = _getPrimaryCard(msg.sender);
 
         emit WriteOffRequest(msg.sender, write_off_request_id[msg.sender], card_id, amount);
     }
 
-    function writeOffResponse(address user_address, uint256 request_id, uint256 card_id, bool status, string memory message, string memory amount ) onlyAdmin()  external {
-        emit WriteOffResponse(user_address, request_id, card_id, status, message, amount);
+    /**
+     * @notice Responds to a write-off request
+     * @param account User address
+     * @param request_id Request ID
+     * @param card_id Card ID used for write-off
+     * @param error_code Response code from bank
+     * @param status Response status
+     * @param message Response message
+     * @param amount Write-off amount
+     * @custom:reverts "AccessDeniedLevel:Four" if unauthorized
+     * @custom:emits WriteOffResponse On response submission
+     */
+    function writeOffResponse(address account, uint256 request_id, string calldata card_id, uint256 error_code, bool status, string calldata message, string calldata amount ) onlyAdmin()  external {
+        emit WriteOffResponse(account, request_id, card_id, error_code, status, message, amount);
     }
 
-    function _getPrimaryCard(address user_address) internal view returns(uint256){
-        for (uint i = 0; i < cards[user_address].length; i++) {
+    /**
+     * @dev Retrieves the primary card index for a user
+     * @param account User address
+     * @return uint256 Index of the primary card
+     */    
+    function _getPrimaryCard(address account) internal view returns(string memory){
+        for (uint i = 0; i < cards[account].length; i++) {
             
-            if(cards[user_address][i].is_primary){
-                return i;
+            if(cards[account][i].is_primary){
+                return cards[account][i].card_id;
             }
         }
-        return 0;
+        return "";
     }
 
-    function getCards(address user_address) external view returns(Card[] memory){
-        return cards[user_address];
+    /**
+     * @notice Retrieves user cards
+     * @param account User address
+     * @return Card[] Array of user cards
+     */    
+    function getCards(address account) external view returns(Card[] memory){
+        return cards[account];
     }
 
-    function getAutoPaymentSettings(address user_address) external view returns(AutopaySettings memory){
-        return autopay_settings[user_address];
+    /**
+     * @notice Retrieves user autopay settings
+     * @param account User address
+     * @return AutopaySettings Autopay configuration
+     */    
+    function getAutoPaymentSettings(address account) external view returns(AutopaySettings memory){
+        return autopay_settings[account];
     }
 }

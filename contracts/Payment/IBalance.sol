@@ -2,11 +2,39 @@
 
 pragma solidity ^0.8.20;
 
-interface IBalance {
+import "../IBaseErrors.sol";
 
-    event Transfer(address indexed from, address indexed to, uint256 indexed transfer_id);
-    
-    //event WriteOff(address indexed user_id, uint256 amount);
+
+/**
+ * @title Balance Management Interface
+ * @notice Defines data structures and events for balance and transfer operations
+ * @dev Provides the foundation for token balance and transfer functionality
+ */
+interface IBalance is IBaseErrors {
+    /**
+     * @title Transfer Data Structure
+     * @notice Contains details of a token transfer
+     * @param from Address of the sender (address(0) for mint operations)
+     * @param to Address of the recipient (address(0) for burn operations)
+     * @param value Amount of tokens transferred
+     */
+    struct TransferData {
+        address from;
+        address to;
+        uint256 value;
+    }
+
+    /**
+     * @notice Emitted when tokens are transferred between accounts
+     * @param from Address of the sender (address(0) for mint operations)
+     * @param to Address of the recipient (address(0) for burn operations)
+     * @param transfer_id Unique identifier for the transfer
+     */
+    event Transfer(
+        address indexed from,
+        address indexed to,
+        uint256 indexed transfer_id
+    );
 
     function totalSupply() external view returns (uint256);
 

@@ -6,44 +6,68 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./IUser.sol";
 import "./IUserAccess.sol";
 import "../Hub/IHub.sol";
-import "../Services/IMessageOracle.sol";
-import "../RevertCodes/IRevertCodes.sol";
 
+/**
+ * @title User Management Contract
+ * @notice Handles user profiles, car data, and company information
+ * @dev Manages user data storage and access control for user-related operations
+ * @custom:warning Requires proper initialization and ownership for modifications
+ */
 contract User is IUser, Initializable, OwnableUpgradeable {
+    // Storage mappings documentation
+    /// @dev User profile storage
     mapping(address => IUser.User) users;
+    
+    /// @dev Company information storage
     mapping(address => IUser.Company) user_company_data;
+    
+    /// @dev User car data storage
     mapping(address => IUser.CarData[]) user_cars;
 
+    // State variables documentation
+    /// @dev Auto-incrementing user ID counter
     uint256 usersIndex;
+    
+    /// @notice Hub contract reference
     address hubContract;
+    
+    /// @notice Associated partner ID
     uint256 partner_id;
 
-    function getVersion() external pure returns(string memory){
+    /**
+     * @notice Returns the current contract version
+     * @return string Contract version identifier
+     */
+    function getVersion() external pure returns(string memory) {
         return "1.0";
     }
 
+    /**
+     * @dev Returns UserAccess module interface
+     * @return IUserAccess UserAccess module instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    function _RevertCodes() private view returns(IRevertCodes) {
-        return IRevertCodes(IHub(hubContract).getModule("RevertCodes", partner_id));
-    }
-
-
+    /**
+     * @notice Initializes the contract with Hub connection
+     * @param _partner_id Partner ID from Hub registry
+     * @param _hubContract Address of Hub contract
+     * @custom:init Called once during proxy deployment
+     */
     function initialize(uint256 _partner_id, address _hubContract) external initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;        
         __Ownable_init(msg.sender);
     }
 
-    function registerRevertCodes() external {
-        _RevertCodes().registerRevertCode("User", "access_denied", "Access denied");
-        _RevertCodes().registerRevertCode("User", "user_not_found", "User not found");
-        _RevertCodes().registerRevertCode("User", "car_not_found", "Car not found");
-    }
-
-    
+    /**
+     * @notice Adds a new user to the system
+     * @param account Address of the user to add
+     * @return uint256 New user ID
+     * @custom:reverts OnlyOwner If caller is not the contract owner
+     */
     function addUser(address account) onlyOwner external returns (uint256) {
 
         usersIndex++;
@@ -55,33 +79,58 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         return usersIndex;
     }
 
+    /**
+     * @notice Retrieves the caller's user profile
+     * @return IUser.User User profile data
+     */    
     function whoami() external view returns (IUser.User memory) {
         return users[msg.sender];
     }
 
+    /**
+     * @notice Checks if a user exists by address
+     * @param account Address of the user to check
+     * @custom:reverts ObjectNotFound If user does not exist
+     */    
     function exist(address account) public view {
         if(users[account].id == 0)
-            revert("user_not_found");
+            revert ObjectNotFound("User", 0);
     }
 
+    /**
+     * @notice Access control modifier requiring user existence
+     */    
     modifier _exist() {
         exist(msg.sender);
         _;
     }
 
+    /**
+     * @notice Retrieves user profile by address
+     * @param account Address of the user to query
+     * @return IUser.User User profile data
+     * @custom:reverts AccessDeniedLevel If caller lacks sufficient access
+     * @custom:reverts ObjectNotFound If user does not exist
+     */    
     function getUser(address account) external view returns (IUser.User memory) {
         exist(account);
 
         uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
+            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
         }
 
         return users[account];
     }
 
-
+    /**
+     * @dev Internal function to update user profile data
+     * @param account Address of the user to update
+     * @param first_name User's first name
+     * @param last_name User's last name
+     * @param language_code Preferred language code
+     */
     function _updateData(address account, string calldata first_name, string calldata last_name, string calldata language_code) internal {
         exist(account);
 
@@ -90,14 +139,34 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         users[account].language_code = language_code;
     }
 
+    /**
+     * @notice Sets user phone number
+     * @param account Address of the user to update
+     * @param phone Phone number to set
+     * @custom:reverts OnlyOwner If caller is not the contract owner
+     */    
     function setPhone(address account, string calldata phone) onlyOwner external{
         users[account].phone = phone;
     }
 
+    /**
+     * @notice Sets user email address
+     * @param account Address of the user to update
+     * @param email Email address to set
+     * @custom:reverts OnlyOwner If caller is not the contract owner
+     */    
     function setEmail(address account, string calldata email) onlyOwner external{
         users[account].email = email;
     }
 
+    /**
+     * @notice Updates user profile data
+     * @param account Address of the user to update
+     * @param first_name User's first name
+     * @param last_name User's last name
+     * @param language_code Preferred language code
+     * @custom:reverts AccessDeniedLevel If caller lacks sufficient access
+     */    
     function updateBaseData( address account, string calldata first_name, string calldata last_name, string calldata language_code) external {
 
         if(account == address(0)){
@@ -108,14 +177,19 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
+            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
         }
 
         _updateData(account, first_name, last_name, language_code);
     }
 
-
-    function addCar(address account, CarData memory car_data) external{
+    /**
+     * @notice Adds a car to a user's profile
+     * @param account Address of the user to update
+     * @param car_data Car data structure to add
+     * @custom:reverts AccessDeniedLevel If caller lacks sufficient access
+     */
+    function addCar(address account, CarData calldata car_data) external{
         
         if(account == address(0)){
             exist(msg.sender);
@@ -126,7 +200,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
+            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
         }
 
         exist(account);
@@ -135,12 +209,18 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
     }
 
+    /**
+     * @dev Internal function to remove a car from a user's profile
+     * @param account Address of the user to update
+     * @param _index Index of the car to remove
+     * @custom:reverts ObjectNotFound If car index is invalid
+     */    
     function _removeCar(address account, uint _index) internal {
         
         exist(account);
         
         if (_index >= user_cars[account].length) {
-            revert("car_not_found");
+            revert ObjectNotFound("User:Car", _index);
         }
    
         for (uint i = _index; i < user_cars[account].length - 1; i++) {
@@ -150,7 +230,12 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         user_cars[account].pop();
     }
 
-
+    /**
+     * @notice Removes a car from a user's profile
+     * @param account Address of the user to update
+     * @param _index Index of the car to remove
+     * @custom:reverts AccessDeniedLevel If caller lacks sufficient access
+     */
     function removeCar( address account, uint _index) external {
 
         if(account == address(0)){
@@ -161,14 +246,19 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
+            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
         }
 
         
         _removeCar(account, _index);
     }
 
-
+    /**
+     * @notice Retrieves a user's car data
+     * @param account Address of the user to query
+     * @return CarData[] Array of car data structures
+     * @custom:reverts AccessDeniedLevel If caller lacks sufficient access
+     */
     function getCars(address account) external view returns(CarData[] memory) {
         
 
@@ -180,7 +270,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
+            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
         }
 
         exist(account);
@@ -189,7 +279,13 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         
     }
 
-    function updateCompanyInfo(address account, Company memory company_data) external{
+    /**
+     * @notice Updates company information for a user
+     * @param account Address of the user to update
+     * @param company_data Company data structure to set
+     * @custom:reverts AccessDeniedLevel If caller lacks sufficient access
+     */    
+    function updateCompanyInfo(address account, Company calldata company_data) external{
 
         if(account == address(0)){
             exist(msg.sender);
@@ -202,7 +298,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
+            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
         }
 
         exist(account);
@@ -213,6 +309,12 @@ contract User is IUser, Initializable, OwnableUpgradeable {
 
     }
 
+    /**
+     * @notice Retrieves company information for a user
+     * @param account Address of the user to query
+     * @return Company Company data structure
+     * @custom:reverts AccessDeniedLevel If caller lacks sufficient access
+     */    
     function getCompanyInfo(address account) external view returns(Company memory){
         
         if(account == address(0)){
@@ -223,7 +325,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
 
         if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert("access_denied");
+            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
         }    
 
         exist(account);

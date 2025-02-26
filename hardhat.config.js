@@ -1,6 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require('@openzeppelin/hardhat-upgrades');
 require("./utils/taskloader");
+require("solidity-docgen");
 
 const mnemonic = require('fs').readFileSync('.mnemonic', 'utf8');
 
@@ -29,5 +30,10 @@ module.exports = {
   },
   mocha: {
     timeout: 12000000
-  }
+  },
+  docgen: {
+    outputDir: "./docs/contracts",
+    pages: "items",
+    collapseNewlines: true,
+  },
 };
