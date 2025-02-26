@@ -11,6 +11,7 @@ before(async function() {
     this.simpleUser = accounts[1]
 
     this.contracts = await deploy({User:true,Balance: true})
+    await this.contracts.User.addUser(this.simpleUser.address);
 
 })
 

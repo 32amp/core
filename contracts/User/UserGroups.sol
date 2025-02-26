@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../Hub/IHub.sol";
 import "./IUserAccess.sol";
 import "./IUserGroups.sol";
+import "./IUser.sol";
 
 /**
  * @title User Groups Management Contract
@@ -65,13 +66,24 @@ contract UserGroups is IUserGroups, Initializable, OwnableUpgradeable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
+    /// @dev Returns User module interface
+    function _User() private view returns(IUser) {
+        return IUser(IHub(hubContract).getModule("User", partner_id));
+    }    
+
+    /// @notice Access control modifier requiring for check user exist
+    modifier onlyUser() {
+        _User().exist(msg.sender);
+        _;
+    }
+
     /**
      * @notice Creates a new user group
      * @param name Display name for the new group
      * @custom:reverts AccessDeniedLevel If caller lacks FOURTH access level
      * @custom:security Group owners get full permissions for their groups
      */    
-    function addGroup( string calldata name) external {
+    function addGroup( string calldata name) onlyUser() external {
 
         uint access_level = _UserAccess().getModuleAccessLevel("UserGroups", msg.sender);
 
@@ -105,14 +117,14 @@ contract UserGroups is IUserGroups, Initializable, OwnableUpgradeable {
     }
 
 
-    // check exist user
+    
     /**
      * @notice Retrieves caller's associated groups
      * @return Group[] Array of group structures
      * @custom:reverts AccessDeniedLevel If caller lacks SECOND access level
      * @dev Returns both owned and member groups for the caller
      */    
-    function getMyGroups() external view returns(Group[] memory) {
+    function getMyGroups() onlyUser() external view returns(Group[] memory) {
         
 
         uint access_level = _UserAccess().getModuleAccessLevel("UserGroups", msg.sender);

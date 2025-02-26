@@ -89,6 +89,7 @@ interface IUser is IBaseErrors {
     function getVersion() external pure returns(string memory);
     function addUser(address account) external returns (uint256);
     function whoami() external view returns (User memory);
+    function exist(address account) external view;
     function getUser(address account) external view returns (IUser.User memory);
     function addCar(address account, CarData calldata car_data) external;
     function removeCar(address account, uint _index) external;

@@ -7,6 +7,7 @@ import "../Services/ICurrencies.sol";
 import "../Hub/IHub.sol";
 import "./IBalance.sol";
 import "../User/IUserAccess.sol";
+import "../User/IUser.sol";
 
 /**
  * @title Balance Management Contract
@@ -67,7 +68,10 @@ contract Balance is Initializable, IBalance {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
     
-
+    /// @dev Returns User module interface
+    function _User() private view returns(IUser) {
+        return IUser(IHub(hubContract).getModule("User", partner_id));
+    }        
 
     /// @notice Returns current contract version
     function getVersion() external pure returns(string memory){
@@ -84,6 +88,12 @@ contract Balance is Initializable, IBalance {
 
         _;
     }
+
+    /// @notice Access control modifier requiring for check user exist
+    modifier onlyUser() {
+        _User().exist(msg.sender);
+        _;
+    }    
 
     /**
      * @notice Gets associated currency ID
@@ -119,7 +129,7 @@ contract Balance is Initializable, IBalance {
      * @notice Gets total token supply
      * @return uint256 Current total supply
      */    
-    function totalSupply() external view returns (uint256){
+    function totalSupply() onlyAdmin() external view returns (uint256){
         return _totalSupply;
     }
 
@@ -128,7 +138,7 @@ contract Balance is Initializable, IBalance {
      * @param account User address
      * @return uint256 Account balance
      */    
-    function balanceOf(address account) external view returns (uint256){
+    function balanceOf(address account) onlyUser() external view returns (uint256){
         return _balances[account];
     }
 
@@ -140,7 +150,7 @@ contract Balance is Initializable, IBalance {
      * @custom:reverts "InsufficientBalance" if sender lacks funds
      * @custom:reverts "InvalidReceiver" for zero address
      */    
-    function transfer(address to, uint256 value) external {
+    function transfer(address to, uint256 value)  onlyUser() external {
         _update(msg.sender, to, value);
     }
 

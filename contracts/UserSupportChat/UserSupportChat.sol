@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IUserSupportChat.sol";
 import "../Hub/IHub.sol";
 import "../User/IUserAccess.sol";
+import "../User/IUser.sol";
 
 
 /**
@@ -60,7 +61,12 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    // add check user exist
+    /// @dev Returns User module interface
+    function _User() private view returns(IUser) {
+        return IUser(IHub(hubContract).getModule("User", partner_id));
+    }        
+
+    
     /**
      * @notice Modifier for topic access control
      * @dev Checks topic existence and user permissions
@@ -68,7 +74,9 @@ contract UserSupportChat is IUserSupportChat, Initializable {
      * @custom:reverts ObjectNotFound If topic doesn't exist
      * @custom:reverts AccessDenied If user lacks access rights
      */    
-    modifier topic_access( uint256 topic_id)  {
+    modifier topic_access( uint256 topic_id)   {
+        
+        _User().exist(msg.sender);
 
         if(topics[topic_id].create_at == 0)
             revert ObjectNotFound("Topic", topic_id);
@@ -91,7 +99,13 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         _;
     }
 
-    // add check user exist
+    /// @notice Access control modifier requiring for check user exist
+    modifier onlyUser() {
+        _User().exist(msg.sender);
+        _;
+    }    
+
+    
     /**
      * @notice Creates a new support topic
      * @param _text_message Initial message content
@@ -99,7 +113,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
      * @custom:emits CreateTopic On successful creation
      * @custom:emits UserTopicEvent For user notification
      */    
-    function createTopic(string calldata _text_message, TopicTheme theme) external {
+    function createTopic(string calldata _text_message, TopicTheme theme) onlyUser() external {
 
         
         topics[topic_counter].create_at = block.timestamp;
@@ -150,7 +164,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         topics[topic_id].message_counter++;
     }
 
-    // check user exist
+    
     /**
      * @notice Sets user rating for a resolved topic
      * @param topic_id ID of the topic to rate
@@ -198,14 +212,14 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         }
     }
 
-    // check user exist
+    
     /**
      * @notice Retrieves paginated list of user's topics
      * @param offset Pagination starting point
      * @return (OutputTopic[], uint256) Topics array and total count
      * @custom:reverts BigOffset If offset exceeds topics count
      */    
-    function getMyTopics(uint256 offset) external view returns(OutputTopic[] memory, uint256) {
+    function getMyTopics(uint256 offset) onlyUser() external view returns(OutputTopic[] memory, uint256) {
 
         if (offset > user_topics[msg.sender].length)
             revert BigOffset(offset);

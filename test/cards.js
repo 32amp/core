@@ -13,6 +13,10 @@ before(async function() {
 
     this.contracts = await deploy({User:true,Balance: true, Cards: true})
 
+
+    await this.contracts.User.addUser(this.simpleUser.address);
+    await this.contracts.User.addUser(this.adminUser.address);
+    
     await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Cards", 4);
 
 })

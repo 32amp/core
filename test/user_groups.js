@@ -9,6 +9,8 @@ before(async function() {
     this.simpleUser = accounts[1];
     this.contracts = await deploy({User:true,UserGroups:true})
 
+    await this.contracts.User.addUser(this.simpleUser.address);
+
 })
 
 

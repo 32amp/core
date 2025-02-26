@@ -11,7 +11,11 @@ before(async function() {
     this.adminUser = accounts[2];
     this.contracts = await deploy({User:true, UserSupportChat: true})
 
+    await this.contracts.User.addUser(this.simpleUser.address);
+    await this.contracts.User.addUser(this.adminUser.address);
+
     await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"UserSupportChat", 4);
+    
 })
 
 
