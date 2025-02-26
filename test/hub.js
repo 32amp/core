@@ -44,7 +44,7 @@ describe("Hub", function(){
     it("getPartnerModules", async function(){
         const modules = await this.contracts.Hub.getPartnerModules(1);
 
-        expect(modules[0]).to.equal("RevertCodes")
+        expect(modules[0]).to.equal("User")
 
     })
 

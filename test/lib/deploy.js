@@ -13,19 +13,8 @@ module.exports.deploy = async function(modules){
 
     console.log("Deploying Contracts...");
    
-    //
-    const EmailServiceAddess =  await deployProxy("MessageOracle",[60n, 1n, false, "Message: [message]"],"Email", false);
-    const SMSServiceAddress = await deployProxy("MessageOracle",[60n, 1n, false, "Message: [message]"],"SMS", false);
     const Currencies = await deployProxy("Currencies",[],"",false);
     retmodules.Hub = await deployProxy("Hub",[[
-        {
-          name: "EmailService",
-          contract_address:EmailServiceAddess.target
-        },
-        {
-          name: "SMSService",
-          contract_address: SMSServiceAddress.target
-        },
         {
           name: "Currencies",
           contract_address: Currencies.target
