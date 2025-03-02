@@ -7,7 +7,7 @@ const location = {
     country: ethers.encodeBytes32String("RUS"),
     coordinates: {
         latitude: "59.694982",
-        longtitude: "30.416469"
+        longitude: "30.416469"
     },
     parking_type: 5,
     facilities: [1,2], // Hotel, Restaurant
@@ -27,7 +27,7 @@ const image = {
 
 const relatedLocation = {
     latitude: ethers.parseEther("59.694982"),
-    longtitude: ethers.parseEther("30.416469"),
+    longitude: ethers.parseEther("30.416469"),
     name: [{
         language: "ru",
         text: "Кафе"

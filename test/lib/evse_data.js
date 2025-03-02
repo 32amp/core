@@ -22,7 +22,7 @@ module.exports.getEvseData = function (){
         capabilities: [1,2,3],
         coordinates: {
             latitude: ethers.parseEther("59.694982"),
-            longtitude: ethers.parseEther("30.416469")
+            longitude: ethers.parseEther("30.416469")
         },
         parking_restrictions: [0,2,3],
         floor_level:1

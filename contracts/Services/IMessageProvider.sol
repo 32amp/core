@@ -214,4 +214,25 @@ interface IMessageProvider {
     /// @param status Delivery success status
     /// @param error_code Delivery result code
     event ResponseSendEmail(bytes32 indexed message_hash, bool indexed status, uint256 indexed error_code);
+
+    function getServiceInfo() external view returns(ServiceSettings memory);
+    function changeProcessingTime(uint256 processing_time) external;
+    function changeServiceWallet(address service_wallet) external;
+    function changeServiceFee(uint256 service_fee) external;
+    function changeMinCoastPerMessage(uint256 min_cost_per_message) external;
+    function changeMinProviderDeposit(uint256 min_provider_deposit) external;
+    function withdraw() external;
+    function registerProvider(Provider calldata provider) payable external;
+    function getProvider(address provider) external view returns(ProviderData memory);
+    function requestUserHandshakeWithProvider(string calldata aes_key, string calldata test_message, address provider) external;
+    function responseUserHandshakeWithProvider(bytes32 handshake, bool status) external;
+    function revokeHandshake(bytes32 handshake)  external;
+    function getHandshake(bytes32 handshake) external view returns(Handshake memory);
+    function requestSendSMS(bytes32 handshake, string calldata recipient, string calldata text) payable external;
+    function responseSendSMS(bytes32 message_hash, bool status, uint256 error_code) external;
+    function getSms(bytes32 message_hash) external view returns(SMSMessage memory);
+    function requestSendEmail(bytes32 handshake, string calldata recipient, string calldata subject, string calldata body) payable external;
+    function responseSendEmail(bytes32 message_hash, bool status, uint256 error_code) external;
+    function getEmail(bytes32 message_hash) external view returns(EmailMessage memory);
+    function validateHandshake(bytes32 handshake) external view;
 }

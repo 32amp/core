@@ -5,7 +5,7 @@ require("solidity-docgen");
 
 const mnemonic = require('fs').readFileSync('.mnemonic', 'utf8');
 
-/** @type import('hardhat/config').HardhatUserConfig */
+
 module.exports = {
   defaultNetwork: "hardhat",
   networks: {
@@ -21,9 +21,6 @@ module.exports = {
       optimizer: {
         enabled: true,
         runs: 200,
-/*         details: {
-          yul: false
-        } */
       },
       viaIR: false,
     },

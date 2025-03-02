@@ -45,4 +45,7 @@ interface IBalance is IBaseErrors {
     function transferFrom(address from, address to, uint256 value) external;
 
     function getCurrency() external view returns (uint256);
+
+    function mint(address account, uint256 amount) external;
+    function burn(address account, uint256 amount) external;
 }

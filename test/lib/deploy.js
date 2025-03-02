@@ -1,5 +1,5 @@
 const {deployProxy} = require("../../utils/deploy")
-const {GetEventArgumentsByNameAsync} = require("../../utils/IFBUtils");
+const {getEventArguments} = require("../../utils/utils");
 
 module.exports.deploy = async function(modules){
 
@@ -31,7 +31,7 @@ module.exports.deploy = async function(modules){
         }
     );
 
-    const partner = await GetEventArgumentsByNameAsync(tx, "AddPartner")
+    const partner = await getEventArguments(tx, "AddPartner")
 
     
     //

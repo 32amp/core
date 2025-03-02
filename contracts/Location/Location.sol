@@ -248,7 +248,7 @@ contract Location is ILocation, Initializable {
         newLocation.state = add.state;
         newLocation.country = add.country;
         newLocation.coordinates.latitude = add.coordinates.latitude.stringToInt32();
-        newLocation.coordinates.longtitude = add.coordinates.longtitude.stringToInt32();
+        newLocation.coordinates.longitude = add.coordinates.longitude.stringToInt32();
         newLocation.parking_type = add.parking_type;
         newLocation.facilities = add.facilities;
         newLocation.time_zone = add.time_zone;
@@ -269,7 +269,7 @@ contract Location is ILocation, Initializable {
         _updated(locationCounter); 
 
         int16 lat_integerPart = add.coordinates.latitude.splitCoordinate();
-        int16 lon_integerPart = add.coordinates.longtitude.splitCoordinate();
+        int16 lon_integerPart = add.coordinates.longitude.splitCoordinate();
         
         _LocationSearch().addLocationToIndex(lat_integerPart,lon_integerPart,locationCounter);
         _UserAccess().setAccessLevelToModuleObject(bytes32(locationCounter),msg.sender,"Location",IUserAccess.AccessLevel.FOURTH);   

@@ -116,8 +116,8 @@ contract LocationSearch is ILocationSearch, Initializable {
             if (
                 location.location.coordinates.latitude <= topRightLat &&
                 location.location.coordinates.latitude >= bottomLeftLat &&
-                location.location.coordinates.longtitude <= topRightLong &&
-                location.location.coordinates.longtitude >= bottomLeftLong &&
+                location.location.coordinates.longitude <= topRightLong &&
+                location.location.coordinates.longitude >= bottomLeftLong &&
                 location.location.publish
             ) {
                 count++;
@@ -140,8 +140,8 @@ contract LocationSearch is ILocationSearch, Initializable {
                 if (
                     location.location.coordinates.latitude <= topRightLat &&
                     location.location.coordinates.latitude >= bottomLeftLat &&
-                    location.location.coordinates.longtitude <= topRightLong &&
-                    location.location.coordinates.longtitude >= bottomLeftLong &&
+                    location.location.coordinates.longitude <= topRightLong &&
+                    location.location.coordinates.longitude >= bottomLeftLong &&
                     location.location.publish
                 ) {
                     

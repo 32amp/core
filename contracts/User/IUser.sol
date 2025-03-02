@@ -29,7 +29,7 @@ interface IUser is IBaseErrors {
      */
     struct User {
         uint256 id;
-        uint256 tg_id;
+        string tg_id;
         string phone;
         string email;
         string first_name;

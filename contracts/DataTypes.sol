@@ -285,7 +285,7 @@ interface DataTypes {
     /// @param name Localized location names
     struct AdditionalGeoLocation {
         int256 latitude;
-        int256 longtitude;
+        int256 longitude;
         DisplayText[] name;
     }
 
@@ -388,7 +388,7 @@ interface DataTypes {
     /// @param longitude WGS84 decimal degrees
     struct GeoLocation {
         int256 latitude;
-        int256 longtitude;
+        int256 longitude;
     }
 
     /// @notice Complete location description

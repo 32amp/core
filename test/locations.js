@@ -3,7 +3,7 @@ const { expect } = require('chai');
 
 const {deploy} = require("./lib/deploy");
 
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+const {getEventArguments} = require("../utils/utils");
 
 before(async function() {
 
@@ -30,7 +30,7 @@ describe("Locations", function(){
 
         const tx2 =  await this.contracts.Location.connect(this.adminUser).addLocation(location);
 
-        let result = await GetEventArgumentsByNameAsync(tx2, "AddLocation")
+        let result = await getEventArguments(tx2, "AddLocation")
         expect(result.uid).to.equal(1)
         expect(result.partner_id).to.equal(1)
     })
@@ -70,14 +70,14 @@ describe("Locations", function(){
         expect(newLocation.location.country).to.equal(location.country)
 
         expect(newLocation.location.coordinates.latitude).to.equal(ethers.parseEther(location.coordinates.latitude))
-        expect(newLocation.location.coordinates.longtitude).to.equal(ethers.parseEther(location.coordinates.longtitude))
+        expect(newLocation.location.coordinates.longitude).to.equal(ethers.parseEther(location.coordinates.longitude))
         expect(newLocation.location.parking_type).to.equal(location.parking_type)
         expect(newLocation.location.facilities.join(",")).to.equal(location.facilities.join(","))
         expect(newLocation.location.time_zone).to.equal(location.time_zone)
         //expect(newLocation.location.charging_when_closed, "charging_when_closed").to.equal(location.charging_when_closed)
         // relatedlocation
         expect(newLocation.related_locations[0].latitude).to.equal(relatedLocation.latitude)
-        expect(newLocation.related_locations[0].longtitude).to.equal(relatedLocation.longtitude)
+        expect(newLocation.related_locations[0].longitude).to.equal(relatedLocation.longitude)
         expect(newLocation.related_locations[0].name[0].language).to.equal(relatedLocation.name[0].language)
         expect(newLocation.related_locations[0].name[0].text).to.equal(relatedLocation.name[0].text)
         //image

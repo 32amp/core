@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 
 
-const {GetEventArgumentsByNameAsync, createpayload} = require("../utils/IFBUtils");
+const {getEventArguments, createpayload} = require("../utils/utils");
 const {deploy} = require("./lib/deploy");
 
 before(async function() {

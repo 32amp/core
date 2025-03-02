@@ -1,7 +1,7 @@
 
 const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+const {getEventArguments} = require("../utils/utils");
 
 before(async function() {
 
@@ -22,7 +22,7 @@ describe("Tariff", function(){
         await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Tariff", 4);
 
         const tx =  await this.contracts.Tariff.connect(this.adminUser).add(free_tariff);
-        let result = await GetEventArgumentsByNameAsync(tx, "AddTariff")
+        let result = await getEventArguments(tx, "AddTariff")
         expect(result.uid).to.equal(1)
         expect(result.partner_id).to.equal(1)
     })

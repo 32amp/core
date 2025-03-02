@@ -1,6 +1,6 @@
 
 const { expect } = require('chai');
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+const {getEventArguments} = require("../utils/utils");
 const {deploy} = require("./lib/deploy");
 
 
@@ -87,7 +87,7 @@ describe("UserSupportChat", function (){
     it("createTopic", async function(){
         const tx = await this.contracts.UserSupportChat.connect(this.simpleUser).createTopic( messages[0].text, 1 )
 
-        let createTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CreateTopic")
+        let createTopicSuccess = await getEventArguments(tx, "CreateTopic")
 
         expect(createTopicSuccess.topic_id).to.equal(0)
         expect(createTopicSuccess.theme).to.equal(1)
@@ -129,7 +129,7 @@ describe("UserSupportChat", function (){
             }
 
 
-            let sendMessageSuccess = await GetEventArgumentsByNameAsync(tx, "Message")
+            let sendMessageSuccess = await getEventArguments(tx, "Message")
 
             expect(sendMessageSuccess.topic_id).to.equal(0)
             expect(sendMessageSuccess.message_id).to.equal(index)
@@ -209,7 +209,7 @@ describe("UserSupportChat", function (){
 
     it("closeTopic", async function(){
         let tx = await this.contracts.UserSupportChat.connect(this.simpleUser).closeTopic(0);
-        let closeTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CloseTopic")
+        let closeTopicSuccess = await getEventArguments(tx, "CloseTopic")
 
         expect(closeTopicSuccess.topic_id).to.equal(0);
         expect(closeTopicSuccess.account).to.equal(this.simpleUser.address);
@@ -226,7 +226,7 @@ describe("UserSupportChat", function (){
         for (let index = 1; index < 10; index++) {
             const tx = await this.contracts.UserSupportChat.connect(this.simpleUser).createTopic("Many topics "+index, 1 )
 
-            let createTopicSuccess = await GetEventArgumentsByNameAsync(tx, "CreateTopic")
+            let createTopicSuccess = await getEventArguments(tx, "CreateTopic")
     
             expect(createTopicSuccess.topic_id).to.equal(index)
 

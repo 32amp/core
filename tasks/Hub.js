@@ -1,261 +1,311 @@
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
-const {formatPartner, formatPartners} = require("../helpers/Hub");
-const {deployProxy, upgradeProxy} = require("../utils/deploy")
-const hubScope = scope("hub", "Tasks for HUB");
-const { loadContracts } = require("./helpers/load_contract")
+const { getEventArguments } = require("../utils/utils");
+const { formatPartner, formatPartners } = require("../helpers/Hub");
+const hubScope = scope("Hub", "Tasks for HUB");
+const { loadConfig, saveConfig } = require("./helpers/configs")
+const { accountSelection, partnerSelection, currencySelection } = require("./helpers/promt_selection");
 
 
-hubScope.task("hubdeploy", "Deploy hub contract")
-.setAction(async function(){
-    
-    try {
-        var {config} = require(__dirname+"/../hub.config");
-    
-    } catch (error) {
-        console.log("Error open config hub.config.json", error)
-        return;
-    }
 
-    const EmailServiceAddess =  await deployProxy("MessageOracle",[config.EmailService.sendTimeout, config.EmailService.priceForMessage, config.EmailService.whitelistEnable, config.EmailService.bodyTemplate],"Email");
-    const SMSServiceAddress = await deployProxy("MessageOracle",[config.SMSService.sendTimeout, config.SMSService.priceForMessage, config.SMSService.whitelistEnable, config.SMSService.bodyTemplate],"SMS");
-    const Currencies = await deployProxy("Currencies",[],"");
-    this.Hub = await deployProxy("Hub",[[
-        {
-            name: "EmailService",
-            contract_address:EmailServiceAddess.target
-        },
-        {
-            name: "SMSService",
-            contract_address: SMSServiceAddress.target
-        },
-        {
-            name: "Currencies",
-            contract_address: Currencies.target
-        },
-    ]],"");
-    
-})
+hubScope.task("deploy", "Deploys a Hub contract with initial services")
+    .setAction(async (taskArgs, hre) => {
+        const config = await loadConfig("config")
+        const signer = await accountSelection(hre);
 
-hubScope.task("hubupgrade", "Upgrade hub contract")
-.setAction(async function(){
-    const Hub = await upgradeProxy("Hub")
-    await Hub.upgrade();
-})
+        if (typeof config?.deployed?.MessageProvider == "undefined")
+            throw new Error("MessageProvider not deployed")
+
+        if (typeof config?.deployed?.Currencies == "undefined")
+            throw new Error("Currencies not deployed")
+
+        if (typeof config?.deployed?.Hub != "undefined")
+            throw new Error("Hub already deployed")
 
 
-hubScope.task("changeModuleAddress", "Change module address if you recrate module")
-.addParam("name", "name of module")
-.addParam("address", "Address of contract")
-.setAction(async function(){
-    const {hub} = await loadContracts();
-    await hub.changeModuleAddress(args.name,args.address)
-})
+        const servicesArray = [
+            {
+                name: "MessageProvider",
+                contract_address: config.deployed.MessageProvider
+            },
+            {
+                name: "Currencies",
+                contract_address: config.deployed.Currencies
+            }
+        ]
 
-hubScope.task("getService", "Get address of service")
-.addParam("name")
-.setAction(async (args) => {
+        const HubFactory = await hre.ethers.getContractFactory("Hub");
+        const HubFactorySigner = HubFactory.connect(signer);
+        const hub = await hre.upgrades.deployProxy(HubFactorySigner, [servicesArray], { initializer: "initialize" });
+        const deployed = await hub.waitForDeployment();
 
-    const {hub} = await loadContracts();
+        if (typeof config?.deployed == "undefined")
+            config.deployed = {}
 
-    const email_service = await hub.getService(args.name)
+        config.deployed.Hub = deployed.target;
 
-    console.log("email_service:", email_service, "ETH")
-})
+        await saveConfig("config", config)
 
+        console.log("The Hub contract is deployed at:", deployed.target);
+        return deployed.target;
+    });
 
-hubScope.task("getPartnerModules", "Get list of modules for specific partner")
-.addParam("partnerid")
-.setAction(async (args) => {
+hubScope.task("register-partner", "Registers a new partner")
+    .addParam("name", "Partner name (minimum 3 characters)")
+    .addParam("country", "Country code (2 characters)")
+    .addParam("party", "Party ID (3 characters)")
+    .setAction(async (taskArgs, hre) => {
+        const { name, country, party } = taskArgs;
+        const signer = await accountSelection(hre);
+        const config = await loadConfig("config")
 
-    const {hub} = await loadContracts();
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
 
-    const list = await hub.getPartnerModules(args.partnerid)
+        // Input validation
+        if (name.length < 3) throw new Error("Name must be at least 3 characters long");
+        if (country.length !== 2) throw new Error("Country code must be exactly 2 characters long");
+        if (party.length !== 3) throw new Error("Party ID must be exactly 3 characters long");
 
-    console.log("Result:", list)
-})
+        const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
 
+        const tx = await hub.registerPartner(ethers.encodeBytes32String(name), ethers.toUtf8Bytes(country), ethers.toUtf8Bytes(party), {
+            value: hre.ethers.parseEther("1"),
+        });
+        const { id } = await getEventArguments(tx, "AddPartner");
 
-hubScope.task("getPartners", "Get list of partners")
-.setAction(async () => {
+        console.log("Partner registered, transaction:", tx.hash);
+        console.log("Partner ID:", id);
 
-    const {hub} = await loadContracts();
+        if (typeof config?.partners == "undefined")
+            config.partners = []
 
-    const list = await hub.getPartners()
+        config.partners.push({
+            name, country, party, id: Number(id)
+        })
 
-    console.log("Result:", formatPartners(list))
-})
-
-
-hubScope.task("me", "Get my profile in hub")
-.setAction(async () => {
-
-    const {hub} = await loadContracts();
-
-    const me = await hub.me()
-
-    console.log("Me:", formatPartner(me))
-})
-
-// TODO: deploymentId:"update" for add each partner where update is name of deploy
-hubScope.task("registerPartner", "Register new partner and deploy all modules" )
-.addParam("name")
-.addParam("countrycode")
-.addParam("partyid")
-.addParam("sudouserlogin")
-.addParam("sudouserpassword")
-.addParam("tgtoken")
-.setAction(async (args) => {
-    
-    const {hub,hubAddress, SMSMessageOracle, EmailMessageOracle} = await loadContracts();
-
-    var partnerid = 0;
+        await saveConfig("config", config)
+    });
 
 
-    const tx = await hub.registerPartner(
-        ethers.encodeBytes32String(args.name),
-        ethers.toUtf8Bytes(args.countrycode),
-        ethers.toUtf8Bytes(args.partyid), 
-        {
-            value:ethers.parseEther("2") 
+hubScope.task("add-partner-modules", "Add modules to partner")
+    .setAction(async (taskArgs, hre) => {
+        const config = await loadConfig("config")
+        const signer = await accountSelection(hre);
+        const partner_id = await partnerSelection();
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+        const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
+
+        const modules = [
+            "Location",
+            "LocationSearch",
+            "EVSE",
+            "Connector",
+            "MobileAppSettings",
+            "Cards",
+            "Balance",
+            "Tariff",
+            "UserSupportChat",
+            "User",
+            "UserGroups",
+            "UserAccess"
+        ]
+
+        for (let index = 0; index < modules.length; index++) {
+            const mod = modules[index];
+
+
+            const moduleAddress = await hub.getModule(mod, partner_id);
+
+            if (moduleAddress == hre.ethers.ZeroAddress) {
+
+
+                console.log(`Module "${mod}" not exist, try to deploy`);
+                var initialize = [partner_id, config.deployed.Hub];
+
+
+                if (mod == "Balance") {
+                    const currency = await currencySelection(hre);
+                    var initialize = [partner_id, config.deployed.Hub, currency];
+                }
+
+
+                const contractFactory = await hre.ethers.getContractFactory(mod);
+                const contractFactorySigner = contractFactory.connect(signer);
+                const module = await hre.upgrades.deployProxy(contractFactorySigner, initialize, { initializer: "initialize" });
+                const deployed = await module.waitForDeployment();
+
+
+
+                if (typeof deployed?.target != "undefined") {
+                    console.log(`Module "${mod}" success deployed to ${deployed.target}`)
+                    let txadd = await hub.addModule(mod, deployed.target)
+
+                    await txadd.wait()
+
+                    console.log(`Module "${mod}" success added to hub`)
+
+                }
+            } else {
+                console.log(`Module ${mod} already deployed`)
+            }
+
         }
-    );
+    });
+
+hubScope.task("add-module", "Adds a new module for a partner")
+    .addParam("name", "Module name")
+    .addParam("address", "Module contract address")
+    .setAction(async (taskArgs, hre) => {
+        const { name, address: moduleAddress } = taskArgs;
+        const config = await loadConfig("config")
+        const signer = await accountSelection(hre);
+        const partner_id = await partnerSelection();
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+        const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
+
+        if (!hre.ethers.isAddress(moduleAddress)) throw new Error("Invalid module address");
+
+        const exist = await hub.getModule(name, partner_id);
+
+        if (exist == hre.ethers.ZeroAddress) {
+
+            const tx = await hub.addModule(name, moduleAddress);
+            await tx.wait();
+
+            console.log("Module added, transaction:", tx.hash);
+        } else {
+            throw new Error(`Module ${name} already exist with address ${exist}`)
+        }
+
+    });
+
+hubScope.task("change-module-address", "Changes the address of an existing module")
+    .addParam("name", "Module name")
+    .addParam("address", "New module contract address")
+    .setAction(async (taskArgs, hre) => {
+        const { name, address: moduleAddress } = taskArgs;
+        const config = await loadConfig("config")
+        const signer = await accountSelection(hre);
+        const partner_id = await partnerSelection();
+
+        if (!hre.ethers.isAddress(moduleAddress)) throw new Error("Invalid module address");
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+        const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
+
+        const exist = await hub.getModule(name, partner_id);
+
+        if (exist != hre.ethers.ZeroAddress)
+            throw new Error(`Module ${name} does not exist`)
+
+        const tx = await hub.changeModuleAddress(name, moduleAddress);
+        await tx.wait();
+
+        console.log("Module address changed, transaction:", tx.hash);
+    });
+
+hubScope.task("get-partner-by-address", "Получает информацию о партнере по адресу кошелька")
+    .addParam("address", "Адрес кошелька партнера")
+    .setAction(async (taskArgs, hre) => {
+        const { address: partnerAddress } = taskArgs;
+        const config = await loadConfig("config")
+
+        if (!hre.ethers.isAddress(partnerAddress)) throw new Error("Неверный адрес партнера");
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+        const hub = await hre.ethers.getContractAt("Hub", config?.deployed?.Hub);
+        const partner = await hub.getPartnerByAddress(partnerAddress);
+
+        console.log(formatPartner(partner))
+    });
 
 
-    const result = await GetEventArgumentsByNameAsync(tx,"AddPartner")
-    partnerid = result.id;
+hubScope.task("get-partner-by-id", "Gets partner information by ID")
+    .addParam("id", "Partner ID", "number")
+    .setAction(async (taskArgs, hre) => {
+        const { id } = taskArgs;
 
-    console.log("Create partner with id ", partnerid)
+        const config = await loadConfig("config")
 
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
 
-    if(partnerid){
-        
-        const RevertCodes = await deployProxy("RevertCodes",[
-            partnerid,
-            hubAddress
-        ],"",false);
-        let addRevertCodes = await hub.addModule("RevertCodes", RevertCodes.target)
-        await addRevertCodes.wait()
-        console.log("RevertCodes deployed to:", RevertCodes.target);
+        const hub = await hre.ethers.getContractAt("Hub", config?.deployed?.Hub);
+        const partner = await hub.getPartner(id);
 
-        const User = await deployProxy("User",[
-            partnerid,
-            hubAddress
-        ],"",false);
-    
-        let addUser = await hub.addModule("User", User.target)
-        await addUser.wait()
-        await User.registerRevertCodes()
-        console.log("User deployed to:", User.target);
+        console.log(formatPartner(partner))
+    });
 
+hubScope.task("list-partners", "Lists all registered partners")
+    .setAction(async (taskArgs, hre) => {
 
-        const Auth = await deployProxy("Auth",[
-            partnerid,
-            hubAddress, 
-            ethers.toUtf8Bytes(args.tgtoken)
-        ],"",false);
-    
-        let addAuth = await hub.addModule("Auth", Auth.target)
-        await addAuth.wait()
-        await Auth.registerRevertCodes()
+        const config = await loadConfig("config")
 
-        console.log("Auth deployed to:", Auth.target);
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
 
-        await Auth.registerByPassword(ethers.encodeBytes32String(args.sudouserlogin), ethers.encodeBytes32String(args.sudouserpassword));
-        
-        let refillsms = await SMSMessageOracle.refill(Auth.target,{value:10n});
-        await refillsms.wait()
+        const hub = await hre.ethers.getContractAt("Hub", config?.deployed?.Hub);
+        const partners = await hub.getPartners();
 
-        let refillemeil = await EmailMessageOracle.refill(Auth.target,{value:10n});
-        await refillemeil.wait()
+        console.log("Registered partners:");
+        console.log(formatPartners(partners))
+    });
 
+// 8. Getting module address
+hubScope.task("get-module-address", "Gets module address by partner name and ID")
+    .addParam("name", "Module name")
+    .setAction(async (taskArgs, hre) => {
+        const { name } = taskArgs;
 
-        const UserGroups = await deployProxy("UserGroups",[partnerid,hubAddress],"",false);
-        let addUserGroups = await hub.addModule("UserGroups", UserGroups.target);
-        await addUserGroups.wait()
-        await UserGroups.registerRevertCodes()
-        console.log("UserGroups deployed to:", UserGroups.target);
+        const config = await loadConfig("config")
+        const partner_id = await partnerSelection();
 
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
 
-        // Tariff
-        
-        const Tariff = await deployProxy("Tariff",[partnerid,hubAddress],"",false);
-        
-        let addTariff = await hub.addModule("Tariff", Tariff.target);
-        await addTariff.wait();
-        await Tariff.registerRevertCodes()
-        console.log("Tariff deployed to:", Tariff.target);
-        
+        const hub = await hre.ethers.getContractAt("Hub", config?.deployed?.Hub);
+        const moduleAddress = await hub.getModule(name, partner_id);
 
-        const Location = await deployProxy("Location",[partnerid,hubAddress],"",false);
-        
-        let addLocation = await hub.addModule("Location", Location.target);
-        await addLocation.wait()
-        await Location.registerRevertCodes()
+        console.log(`Module address '${name}' for partner with ID ${partner_id}:`, moduleAddress);
+    });
 
-        console.log("Location deployed to:", Location.target);
+hubScope.task("list-partner-modules", "Lists all partner modules")
+    .addParam("partnerid", "Partner ID", "number")
+    .setAction(async (taskArgs, hre) => {
+        const { partnerid } = taskArgs;
+        const config = await loadConfig("config")
 
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
 
-        // LocationSearch
-        
-        const LocationSearch = await deployProxy("LocationSearch",[partnerid,hubAddress],"",false);
-    
-        let addLocationSearch = await hub.addModule("LocationSearch", LocationSearch.target);
-        await addLocationSearch.wait()
-        await LocationSearch.registerRevertCodes()
-        
-        console.log("LocationSearch deployed to:", LocationSearch.target);
+        const hub = await hre.ethers.getContractAt("Hub", config?.deployed?.Hub);
+        const modules = await hub.getPartnerModules(partnerid);
 
-        
-        // EVSE
-        
-        const EVSE = await deployProxy("EVSE",[partnerid,hubAddress],"",false);
-        
-        let addEVSE = await hub.addModule("EVSE", EVSE.target);
-        await addEVSE.wait()
-        await EVSE.registerRevertCodes()
-        
-        console.log("EVSE deployed to:", EVSE.target);
+        console.log(`Modules for partner with ID ${partnerid}:`, modules);
+    });
 
+hubScope.task("get-service", "Gets service address by name")
+    .addParam("name", "Service name")
+    .setAction(async (taskArgs, hre) => {
+        const { hub: hubAddress, name } = taskArgs;
 
-        //Connector
+        const config = await loadConfig("config")
 
-        const Connector = await deployProxy("Connector",[partnerid,hubAddress],"",false);
-        
-        let addConnector = await hub.addModule("Connector", Connector.target);
-        await addConnector.wait()
-        await Connector.registerRevertCodes()
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
 
-        console.log("Connector deployed to:", Connector.target);
+        const hub = await hre.ethers.getContractAt("Hub", config?.deployed?.Hub);
 
-        //SupportChat
+        const serviceAddress = await hub.getService(name);
 
-        const UserSupportChat = await deployProxy("UserSupportChat",[partnerid,hubAddress],"",false);
-
-        let addUserSupportChat = await hub.addModule("UserSupportChat", UserSupportChat.target);
-        await addUserSupportChat.wait()
-        await UserSupportChat.registerRevertCodes()
-
-        console.log("UserSupportChat deployed to:", UserSupportChat.target);
-
-
-        const MobileAppSettings = await deployProxy("MobileAppSettings",[partnerid,hubAddress],"",false);
-
-        let addMobileAppSettings = await hub.addModule("MobileAppSettings", MobileAppSettings.target);
-        await addMobileAppSettings.wait()
-
-
-        console.log("MobileAppSettings deployed to:", MobileAppSettings.target);
-
-
-        // UserAccess
-        const UserAccess = await deployProxy("UserAccess",[partnerid,hubAddress],"",false);
-        
-        let addUserAccess = await hub.addModule("UserAccess", UserAccess.target);
-        await addUserAccess.wait()
-        await UserAccess.registerRevertCodes()
-
-        console.log("UserAccess deployed to:", UserAccess.target);
-
-    }
-
-})
+        console.log(`Service Address '${name}':`, serviceAddress);
+    });

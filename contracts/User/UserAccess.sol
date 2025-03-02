@@ -64,8 +64,12 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
         for (uint i = 0; i < modules.length; i++) {
             address module_address = IHub(_hubContract).getModule(modules[i], partner_id);
             _setAccessLevelToModule(msg.sender,modules[i],AccessLevel.GOD);
-            _setAccessLevelToModule(module_address,modules[i],AccessLevel.FOURTH);
+            
             _groupSetAccessLevelToModule(1,modules[i],AccessLevel.GOD);
+
+            for (uint b = 0; b < modules.length; b++) {
+                _setAccessLevelToModule(module_address,modules[b],AccessLevel.GOD);
+            }   
         }
         __Ownable_init(msg.sender);
     }

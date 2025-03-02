@@ -15,11 +15,11 @@ interface ILocation is DataTypes, IBaseErrors {
      * @title Geographic Coordinates
      * @notice String-based latitude/longitude representation
      * @param latitude Decimal degree format ("41.40338")
-     * @param longtitude Decimal degree format ("2.17403")
+     * @param longitude Decimal degree format ("2.17403")
      */
     struct GeoLocationString {
         string latitude;
-        string longtitude;
+        string longitude;
     }
 
     /**

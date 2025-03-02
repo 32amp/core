@@ -6,7 +6,7 @@ const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 
 const {getEvseData} = require("./lib/evse_data");
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+const {getEventArguments} = require("../utils/utils");
 
 before(async function() {
     const accounts = await ethers.getSigners();
@@ -35,7 +35,7 @@ describe("EVSE", function(){
 
         const tx2 =  await this.contracts.EVSE.connect(this.adminUser).add(EVSEdata, 1);
 
-        let result = await GetEventArgumentsByNameAsync(tx2, "AddEVSE")
+        let result = await getEventArguments(tx2, "AddEVSE")
         expect(result.uid).to.equal(1)
         expect(result.partner_id).to.equal(1)
 
@@ -65,7 +65,7 @@ describe("EVSE", function(){
         expect(evse.meta.status_schedule.status).to.equal(EVSEmeta.status_schedule.status)
         expect(evse.meta.capabilities[0]).to.equal(EVSEmeta.capabilities[0])
         expect(evse.meta.coordinates.latitude).to.equal(EVSEmeta.coordinates.latitude)
-        expect(evse.meta.coordinates.longtitude).to.equal(EVSEmeta.coordinates.longtitude)
+        expect(evse.meta.coordinates.longitude).to.equal(EVSEmeta.coordinates.longitude)
         expect(evse.meta.parking_restrictions[0]).to.equal(EVSEmeta.parking_restrictions[0])
         expect(evse.meta.floor_level).to.equal(EVSEmeta.floor_level)
 
@@ -111,7 +111,7 @@ describe("EVSE", function(){
         expect(loc.evses[0].meta.status_schedule.status).to.equal(EVSEmeta.status_schedule.status)
         expect(loc.evses[0].meta.capabilities[0]).to.equal(EVSEmeta.capabilities[0])
         expect(loc.evses[0].meta.coordinates.latitude).to.equal(EVSEmeta.coordinates.latitude)
-        expect(loc.evses[0].meta.coordinates.longtitude).to.equal(EVSEmeta.coordinates.longtitude)
+        expect(loc.evses[0].meta.coordinates.longitude).to.equal(EVSEmeta.coordinates.longitude)
         expect(loc.evses[0].meta.parking_restrictions[0]).to.equal(EVSEmeta.parking_restrictions[0])
         expect(loc.evses[0].meta.floor_level).to.equal(EVSEmeta.floor_level)
 

@@ -6,7 +6,7 @@ const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 const {getEvseData} = require("./lib/evse_data");
 
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+const {getEventArguments} = require("../utils/utils");
 
 before(async function() {
     const accounts = await ethers.getSigners();
@@ -46,7 +46,7 @@ describe("Connector", function(){
     it("add", async function(){
         const tx2 =  await this.contracts.Connector.add( connector, 1);
 
-        let result = await GetEventArgumentsByNameAsync(tx2, "AddConnector")
+        let result = await getEventArguments(tx2, "AddConnector")
         expect(result.uid).to.equal(1)
         expect(result.partner_id).to.equal(1)
     })

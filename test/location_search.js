@@ -5,7 +5,7 @@ const { expect } = require('chai');
 
 const {deploy} = require("./lib/deploy");
 
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+const {getEventArguments} = require("../utils/utils");
 
 before(async function() {
     const accounts = await ethers.getSigners();
@@ -45,7 +45,7 @@ describe("LocationSearch", function(){
     
     it("addlocations", async function(){
         const fs = require('fs');
-        const coords = JSON.parse( fs.readFileSync(__dirname+"/../coords.json", 'utf8'))
+        const coords = JSON.parse( fs.readFileSync(__dirname+"/lib/coords.json", 'utf8'))
         const {location} = require("./lib/location_data")
 
         
@@ -54,16 +54,16 @@ describe("LocationSearch", function(){
             const loc = location;
 
             loc.coordinates.latitude = coord.lat;
-            loc.coordinates.longtitude = coord.lon;
+            loc.coordinates.longitude = coord.lon;
             
             let tx = await this.contracts.Location.connect(this.adminUser).addLocation(loc);
 
-            let result = await GetEventArgumentsByNameAsync(tx, "AddLocation")
+            let result = await getEventArguments(tx, "AddLocation")
             console.log("add location", index)
 
             let newLocation = await this.contracts.Location.getLocation(Number(result.uid));
             expect(newLocation[0].coordinates.latitude, "Location latitude "+result.uid).to.equal(ethers.parseEther(loc.coordinates.latitude))
-            expect(newLocation[0].coordinates.longtitude, "Location longtitude "+result.uid).to.equal(ethers.parseEther(loc.coordinates.longtitude))
+            expect(newLocation[0].coordinates.longitude, "Location longitude "+result.uid).to.equal(ethers.parseEther(loc.coordinates.longitude))
 
         }
     })

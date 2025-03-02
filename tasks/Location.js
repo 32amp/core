@@ -1,191 +1,386 @@
 const locationScope = scope("Location", "Tasks for Location module");
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
-const { loadContracts } = require("./helpers/load_contract")
-const { authByPassword } = require("./helpers/auth")
+const { loadConfig } = require("./helpers/configs")
+const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const inquirer = require("inquirer");
+const { getEventArguments, hex2string } = require("../utils/utils");
 
-locationScope.task("version", "Version module")
-.setAction(async () => {
-    try {
-        const {Location} = await loadContracts()
-        console.log("Location version:",await Location.getVersion())
-    } catch (error) {
-        console.log(error)
+// Helper function to initialize the Location contract
+async function getLocationContract(hre) {
+    const config = await loadConfig("config");
+    if (typeof config?.deployed?.Hub === "undefined") {
+        throw new Error("Hub not deployed");
     }
+    const signer = await accountSelection(hre);
+    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
+    const partner_id = await partnerSelection();
+    const exist = await hub.getModule("Location", partner_id);
+    if (exist === hre.ethers.ZeroAddress) {
+        throw new Error(`Module Location does not exist for partner_id ${partner_id}`);
+    }
+    const location = await hre.ethers.getContractAt("Location", exist, signer);
+    return { location, partner_id, signer };
+}
 
-})
-
-
-locationScope.task("getLocation", "Get info of location")
-.addParam("id")
-.setAction(async function(args){
-    const {Location} = await loadContracts()
-    const loc = await Location.getLocation(args.id);
-    printLocation(loc)
-})
-
-
-locationScope.task("inArea", "Get locations in area")
-.addParam("toprightlat")
-.addParam("toprightlong")
-.addParam("bottomleftlat")
-.addParam("bottomleftlong")
-.addParam("offset")
-.setAction(async function(args){
-    const {LocationSearch} = await loadContracts()
-    const locs = await LocationSearch.inArea({
-        publish: false, 
-        topRightLat:args.toprightlat,
-        topRightLong:args.toprightlong,
-        bottomLeftLat:args.bottomleftlat,
-        bottomLeftLong:args.bottomleftlong, 
-        offset:args.offset, 
-        connectors:[1,2,3,4,5,6,7,8], 
-        onlyFreeConnectors:false,
-        max_payment_by_kwt:0,
-        max_payment_buy_time:0,
-        favorite_evse:[]
+locationScope.task("version", "Get the version of the Location contract")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+        const version = await location.getVersion();
+        console.log(`Version: ${version}`);
     });
-    
 
-    for (let index = 0; index < locs[0].length; index++) {
-        const loc = locs[0][index];
+locationScope.task("add-location", "Add a new location")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
 
-        console.log("id:", loc.id, "lat:", ethers.formatEther(loc.coordinates.latitude), "lon:", ethers.formatEther(loc.coordinates.longtitude))
-        
-        
-    }
-})
+        // Enum choices
+        const parkingTypeChoices = [
+            { name: "None", value: 0 },
+            { name: "AlongMotorway", value: 1 },
+            { name: "ParkingGarage", value: 2 },
+            { name: "ParkingLot", value: 3 },
+            { name: "OnDriveway", value: 4 },
+            { name: "OnStreet", value: 5 },
+            { name: "UndergroundGarage", value: 6 }
+        ];
+        const facilityChoices = [
+            { name: "None", value: 0 },
+            { name: "Hotel", value: 1 },
+            { name: "Restaurant", value: 2 },
+            { name: "Cafe", value: 3 },
+            { name: "Mall", value: 4 },
+            { name: "Supermarket", value: 5 },
+            { name: "Sport", value: 6 },
+            { name: "RecreationArea", value: 7 },
+            { name: "Nature", value: 8 },
+            { name: "Museum", value: 9 },
+            { name: "BikeSharing", value: 10 },
+            { name: "BusStop", value: 11 },
+            { name: "TaxiStand", value: 12 },
+            { name: "TramStop", value: 13 },
+            { name: "MetroStation", value: 14 },
+            { name: "TrainStation", value: 15 },
+            { name: "Airport", value: 16 },
+            { name: "ParkingLot", value: 17 },
+            { name: "CarpoolParking", value: 18 },
+            { name: "FuelStation", value: 19 },
+            { name: "Wifi", value: 20 }
+        ];
 
+        // Prompt user
+        const questions = [
+            { type: "input", name: "name", message: "Enter location name:" },
+            { type: "input", name: "_address", message: "Enter address:" },
+            { type: "input", name: "city", message: "Enter city (max 32 bytes):" },
+            { type: "input", name: "postal_code", message: "Enter postal code (max 32 bytes):" },
+            { type: "input", name: "state", message: "Enter state (max 32 bytes):" },
+            { type: "input", name: "country", message: "Enter country (max 32 bytes):" },
+            { type: "input", name: "latitude", message: "Enter latitude (e.g., '41.40338'):" },
+            { type: "input", name: "longitude", message: "Enter longitude (e.g., '2.17403'):" },
+            { type: "list", name: "parking_type", message: "Select parking type:", choices: parkingTypeChoices },
+            { type: "checkbox", name: "facilities", message: "Select facilities:", choices: facilityChoices },
+            { type: "input", name: "time_zone", message: "Enter time zone (e.g., 'Europe/Berlin'):" },
+            { type: "confirm", name: "charging_when_closed", message: "Charging when closed?" },
+            { type: "confirm", name: "publish", message: "Publish location?" }
+        ];
 
+        const answers = await inquirer.prompt(questions);
 
+        // Convert strings to bytes32
+        const city = ethers.encodeBytes32String(answers.city);
+        const postal_code = ethers.encodeBytes32String(answers.postal_code);
+        const state = ethers.encodeBytes32String(answers.state);
+        const country = ethers.encodeBytes32String(answers.country);
 
+        // Construct Add struct
+        const add = {
+            name: answers.name,
+            _address: answers._address,
+            city,
+            postal_code,
+            state,
+            country,
+            coordinates: { latitude: answers.latitude, longitude: answers.longitude },
+            parking_type: answers.parking_type,
+            facilities: answers.facilities,
+            time_zone: answers.time_zone,
+            charging_when_closed: answers.charging_when_closed,
+            publish: answers.publish
+        };
 
-locationScope.task("addTestLocationsWithEVSE", "Add test locations with evse")
-.addParam("user")
-.addParam("password")
-.setAction(async (args) => {
-    const {getEvseData} = require("../test/lib/evse_data");
-
-    const {location,relatedLocation,image,direction,openingTimes} = require("../test/lib/location_data")
-    const {free_tariff,energy_mix} = require("../test/lib/tariff_data")
-
-    const {Location, Tariff, EVSE, Connector} = await loadContracts()
-    
-    const img = image;
-
-    const token = await authByPassword(args.user,args.password)
-
-    const fs = require('fs');
-    const coords = JSON.parse( fs.readFileSync(__dirname+"/../coords.json", 'utf8'))
-    
-
-    
-    for (let index = 0; index < coords.length; index++) {
-
-        const coord = coords[index];
-        const loc = location;
-
-        loc.coordinates.latitude = coord.lat;
-        loc.coordinates.longtitude = coord.lon;
-
-        
-        try {
-            let tx = await Location.addLocation(token, loc);
-
-            let result = await GetEventArgumentsByNameAsync(tx, "AddLocation")
-            console.log("add location", index)
-    
-            let tx2 = await Location.addRelatedLocation(token, result.uid, relatedLocation);
-            await tx2.wait()
-    
-            let tx3 = await Location.addImage(token, result.uid, img);
-            await tx3.wait()
-    
-            let tx4 = await Location.addDirection(token, result.uid, direction);
-            await tx4.wait()
-            
-            let tx5 = await Location.setOpeningTimes(token, result.uid, openingTimes);
-            await tx5.wait()
-
-
-        
-            let txtariff =  await Tariff.add(token, free_tariff);
-            let resulttariff = await GetEventArgumentsByNameAsync(txtariff, "AddTariff")
-
-
-            let txsetMinPrice = await Tariff.setMinPrice(token, resulttariff.uid, {
-                excl_vat:10,
-                incl_vat:12
-            })
-    
-            await txsetMinPrice.wait()
-
-            let txsetMaxPrice = await Tariff.setMaxPrice(token, resulttariff.uid, {
-                excl_vat:10,
-                incl_vat:12
-            })
-    
-            await txsetMaxPrice.wait()
-
-            let time = Date.now();
-            let txsetStartDateTime = await Tariff.setStartDateTime(token, resulttariff.uid, time)
-            
-            await txsetStartDateTime.wait()       
-
-            let endtime = new Date();
-            endtime.setDate(endtime.getDate() + 300);
-
-            let txsetEndDateTime = await Tariff.setEndDateTime(token, resulttariff.uid, endtime.getTime())
-
-            await txsetEndDateTime.wait()         
+        const tx = await location.addLocation(add);
+        const { uid } = await getEventArguments(tx, "AddLocation")
+        console.log(`Location added with id ${uid}. Transaction hash: ${tx.hash}`);
+    });
 
 
-            let txsetEnergyMix = await Tariff.setEnergyMix(token, resulttariff.uid, energy_mix)
-            await txsetEnergyMix.wait()
+locationScope.task("get-location", "Get location details")
+    .addParam("id", "Location ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+        const outLocation = await location.getLocation(taskArgs.id);
+        const loc = outLocation.location;
 
-            let {EVSEdata, EVSEmeta, image, connector} = getEvseData();
-            
-            let addEvse =  await EVSE.add(token, EVSEdata, result.uid);
+        // Enum mappings
+        const parkingTypeNames = ["None", "AlongMotorway", "ParkingGarage", "ParkingLot", "OnDriveway", "OnStreet", "UndergroundGarage"];
+        const facilityNames = ["None", "Hotel", "Restaurant", "Cafe", "Mall", "Supermarket", "Sport", "RecreationArea", "Nature", "Museum", "BikeSharing", "BusStop", "TaxiStand", "TramStop", "MetroStation", "TrainStation", "Airport", "ParkingLot", "CarpoolParking", "FuelStation", "Wifi"];
 
-            let resultEvse = await GetEventArgumentsByNameAsync(addEvse, "AddEVSE")
+        console.log("Location Details:");
+        console.log(`  UID: ${loc.uid}`);
+        console.log(`  Country Code: ${hex2string(loc.country_code)}`);
+        console.log(`  Party ID: ${hex2string(loc.party_id)}`);
+        console.log(`  Publish: ${loc.publish}`);
+        console.log(`  Publish Allowed To: ${loc.publish_allowed_to.join(", ")}`);
+        console.log(`  Name: ${loc.name}`);
+        console.log(`  Address: ${loc._address}`);
+        console.log(`  City: ${hex2string(loc.city)}`);
+        console.log(`  Postal Code: ${hex2string(loc.postal_code)}`);
+        console.log(`  State: ${hex2string(loc.state)}`);
+        console.log(`  Country: ${hex2string(loc.country)}`);
+        console.log(`  Coordinates: ${Number(loc.coordinates.latitude) / 1e7}, ${Number(loc.coordinates.longitude) / 1e7}`);
+        console.log(`  Parking Type: ${parkingTypeNames[loc.parking_type]}`);
+        console.log(`  Facilities: ${loc.facilities.map(f => facilityNames[f]).join(", ")}`);
+        console.log(`  Time Zone: ${loc.time_zone}`);
+        console.log(`  Charging When Closed: ${loc.charging_when_closed}`);
+        console.log(`  Last Updated: ${loc.last_updated}`);
 
+        console.log("\nRelated Locations:");
+        outLocation.related_locations.forEach((rl, i) => {
+            console.log(`  ${i + 1}: ${Number(rl.latitude) / 1e7}, ${Number(rl.longitude) / 1e7} - Names: ${rl.name.map(n => `${n.language}: ${n.text}`).join("; ")}`);
+        });
 
-            let txsetMeta = await EVSE.setMeta(token, resultEvse.uid, EVSEmeta)
-            await txsetMeta.wait()
+        console.log("\nImages:");
+        outLocation.images.forEach((img, i) => {
+            console.log(`  ${i + 1}: ${img.url} (Category: ${img.category}, Type: ${img._type})`);
+        });
 
-            let txaddImage = await EVSE.addImage(token, resultEvse.uid, image);
-            await txaddImage.wait()
+        console.log("\nOpening Times:");
+        console.log(`  24/7: ${outLocation.opening_times.twentyfourseven}`);
+        outLocation.opening_times.regular_hours.forEach((h, i) => {
+            console.log(`  Regular ${i + 1}: Day ${h.week_day}, ${h.period_begin} - ${h.period_end}`);
+        });
 
+        console.log("\nDirections:");
+        outLocation.directions.forEach((d, i) => {
+            console.log(`  ${i + 1}: ${d.language} - ${d.text}`);
+        });
 
-            let maxConnectors = Math.floor(Math.random() * 4);
+        console.log("\nEVSEs:");
+        outLocation.evses.forEach((e, i) => {
+            console.log(`  ${i + 1}: [EVSE Data]`); // Placeholder, as outEVSE struct is not fully specified
+        });
+    });
 
-            if(maxConnectors == 0)
-                maxConnectors = 1;
+locationScope.task("exist", "Check if location exists")
+    .addParam("id", "Location ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+        const exists = await location.exist(taskArgs.id);
+        console.log(`Location ${taskArgs.id} exists: ${exists}`);
+    });
 
-            for (let index = 0; index < maxConnectors; index++) {
+locationScope.task("add-related-location", "Add a related location")
+    .addParam("locationid", "Location ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
 
-                let conn = connector;
+        const questions = [
+            { type: "input", name: "latitude", message: "Enter latitude (decimal degrees):", validate: v => !isNaN(parseFloat(v)) || "Must be a number" },
+            { type: "input", name: "longitude", message: "Enter longitude (decimal degrees):", validate: v => !isNaN(parseFloat(v)) || "Must be a number" },
+            { type: "input", name: "numNames", message: "How many names to add?", validate: v => /^\d+$/.test(v) || "Must be a non-negative integer" }
+        ];
 
-                conn.standard = Math.floor(Math.random() * 7)
+        const answers = await inquirer.prompt(questions);
+        const latitude = hre.ethers.toBigInt(Math.floor(parseFloat(answers.latitude) * 1e7));
+        const longitude = hre.ethers.toBigInt(Math.floor(parseFloat(answers.longitude) * 1e7));
 
-                if(conn.standard == 0)
-                    conn.standard = 1;
-
-                let addConnector =  await Connector.add(token, conn, resultEvse.uid);
-
-                
-                let resultconn = await GetEventArgumentsByNameAsync(addConnector, "AddConnector")
-
-                await Connector.setTariffs(token, resultconn.uid, resulttariff.uid)
-                
-            }
-    
-        } catch (error) {
-            console.log(error)
+        const names = [];
+        for (let i = 0; i < parseInt(answers.numNames); i++) {
+            const nameAnswers = await inquirer.prompt([
+                { type: "input", name: "language", message: `Name ${i + 1} language:` },
+                { type: "input", name: "text", message: `Name ${i + 1} text:` }
+            ]);
+            names.push({ language: nameAnswers.language, text: nameAnswers.text });
         }
 
+        const add = { latitude, longitude: longitude, name: names };
+        const tx = await location.addRelatedLocation(taskArgs.locationid, add);
+        await tx.wait();
+        console.log(`Related location added. Transaction hash: ${tx.hash}`);
+    });
 
-    }
+
+locationScope.task("remove-related-location", "Remove a related location")
+    .addParam("locationid", "Location ID")
+    .addParam("relatedlocid", "Related location ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+        const tx = await location.removeRelatedLocation(taskArgs.locationid, taskArgs.relatedlocid);
+        await tx.wait();
+        console.log(`Related location removed. Transaction hash: ${tx.hash}`);
+    });
+
+locationScope.task("add-image", "Add an image to a location")
+    .addParam("locationid", "Location ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+
+        const imageCategoryChoices = [
+            { name: "None", value: 0 },
+            { name: "Charger", value: 1 },
+            { name: "Entrance", value: 2 },
+            { name: "Location", value: 3 },
+            { name: "Network", value: 4 },
+            { name: "Operator", value: 5 },
+            { name: "Other", value: 6 },
+            { name: "Owner", value: 7 }
+        ];
+        const imageTypeChoices = [
+            { name: "None", value: 0 },
+            { name: "JPG", value: 1 },
+            { name: "PNG", value: 2 },
+            { name: "GIF", value: 3 },
+            { name: "SVG", value: 4 }
+        ];
+
+        const questions = [
+            { type: "input", name: "url", message: "Enter image URL:" },
+            { type: "input", name: "ipfs_cid", message: "Enter IPFS CID:" },
+            { type: "list", name: "category", message: "Select image category:", choices: imageCategoryChoices },
+            { type: "list", name: "_type", message: "Select image type:", choices: imageTypeChoices },
+            { type: "input", name: "width", message: "Enter width:", validate: v => /^\d+$/.test(v) || "Must be an integer" },
+            { type: "input", name: "height", message: "Enter height:", validate: v => /^\d+$/.test(v) || "Must be an integer" }
+        ];
+
+        const answers = await inquirer.prompt(questions);
+        const add = {
+            url: answers.url,
+            ipfs_cid: answers.ipfs_cid,
+            category: answers.category,
+            _type: answers._type,
+            width: parseInt(answers.width),
+            height: parseInt(answers.height)
+        };
+
+        const tx = await location.addImage(taskArgs.locationid, add);
+        await tx.wait();
+        console.log(`Image added. Transaction hash: ${tx.hash}`);
+    });
+
+locationScope.task("remove-image", "Remove an image from a location")
+    .addParam("locationid", "Location ID")
+    .addParam("imageid", "Image ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+        const tx = await location.removeImage(taskArgs.locationid, taskArgs.imageid);
+        await tx.wait();
+        console.log(`Image removed. Transaction hash: ${tx.hash}`);
+    });
+
+locationScope.task("add-direction", "Add a direction to a location")
+    .addParam("locationid", "Location ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+
+        const questions = [
+            { type: "input", name: "language", message: "Enter language (e.g., 'en-US'):" },
+            { type: "input", name: "text", message: "Enter direction text:" }
+        ];
+
+        const answers = await inquirer.prompt(questions);
+        const add = { language: answers.language, text: answers.text };
+
+        const tx = await location.addDirection(taskArgs.locationid, add);
+        await tx.wait();
+        console.log(`Direction added. Transaction hash: ${tx.hash}`);
+    });
+
+locationScope.task("remove-direction", "Remove a direction from a location")
+    .addParam("locationid", "Location ID")
+    .addParam("directionid", "Direction ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+        const tx = await location.removeDirection(taskArgs.locationid, taskArgs.directionid);
+        await tx.wait();
+        console.log(`Direction removed. Transaction hash: ${tx.hash}`);
+    });
+
+locationScope.task("set-opening-times", "Set opening times for a location")
+    .addParam("locationid", "Location ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+
+        const initialQuestions = [
+            { type: "confirm", name: "twentyfourseven", message: "Open 24/7?" }
+        ];
+        const initialAnswers = await inquirer.prompt(initialQuestions);
+
+        let regular_hours = [];
+        let exceptional_openings = [];
+        let exceptional_closings = [];
+
+        if (!initialAnswers.twentyfourseven) {
+            const counts = await inquirer.prompt([
+                { type: "input", name: "numRegular", message: "Number of regular hours?", validate: v => /^\d+$/.test(v) || "Must be an integer" },
+                { type: "input", name: "numOpenings", message: "Number of exceptional openings?", validate: v => /^\d+$/.test(v) || "Must be an integer" },
+                { type: "input", name: "numClosings", message: "Number of exceptional closings?", validate: v => /^\d+$/.test(v) || "Must be an integer" }
+            ]);
+
+            for (let i = 0; i < parseInt(counts.numRegular); i++) {
+                const rh = await inquirer.prompt([
+                    { type: "input", name: "week_day", message: `Regular ${i + 1} weekday (0-6):`, validate: v => /^[0-6]$/.test(v) || "0-6 only" },
+                    { type: "input", name: "period_begin", message: `Regular ${i + 1} begin (HH:MM):` },
+                    { type: "input", name: "period_end", message: `Regular ${i + 1} end (HH:MM):` }
+                ]);
+                regular_hours.push({ week_day: parseInt(rh.week_day), period_begin: rh.period_begin, period_end: rh.period_end });
+            }
+
+            for (let i = 0; i < parseInt(counts.numOpenings); i++) {
+                const eo = await inquirer.prompt([
+                    { type: "input", name: "begin", message: `Opening ${i + 1} begin (timestamp):`, validate: v => /^\d+$/.test(v) || "Must be an integer" },
+                    { type: "input", name: "end", message: `Opening ${i + 1} end (timestamp):`, validate: v => /^\d+$/.test(v) || "Must be an integer" }
+                ]);
+                exceptional_openings.push({ begin: parseInt(eo.begin), end: parseInt(eo.end) });
+            }
+
+            for (let i = 0; i < parseInt(counts.numClosings); i++) {
+                const ec = await inquirer.prompt([
+                    { type: "input", name: "begin", message: `Closing ${i + 1} begin (timestamp):`, validate: v => /^\d+$/.test(v) || "Must be an integer" },
+                    { type: "input", name: "end", message: `Closing ${i + 1} end (timestamp):`, validate: v => /^\d+$/.test(v) || "Must be an integer" }
+                ]);
+                exceptional_closings.push({ begin: parseInt(ec.begin), end: parseInt(ec.end) });
+            }
+        }
+
+        const add = {
+            twentyfourseven: initialAnswers.twentyfourseven,
+            regular_hours,
+            exceptional_openings,
+            exceptional_closings
+        };
+
+        const tx = await location.setOpeningTimes(taskArgs.locationid, add);
+        await tx.wait();
+        console.log(`Opening times set. Transaction hash: ${tx.hash}`);
+    });
 
 
-})
+locationScope.task("add-evse", "Add an EVSE to a location")
+    .addParam("locationid", "Location ID")
+    .addParam("evseid", "EVSE ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+        const tx = await location.addEVSE(taskArgs.locationid, taskArgs.evseid);
+        await tx.wait();
+        console.log(`EVSE added. Transaction hash: ${tx.hash}`);
+    });
+
+
+locationScope.task("remove-evse", "Remove an EVSE from a location")
+    .addParam("locationid", "Location ID")
+    .addParam("evseid", "EVSE ID")
+    .setAction(async (taskArgs, hre) => {
+        const { location } = await getLocationContract(hre);
+        const tx = await location.removeEVSE(taskArgs.locationid, taskArgs.evseid);
+        await tx.wait();
+        console.log(`EVSE removed. Transaction hash: ${tx.hash}`);
+    });

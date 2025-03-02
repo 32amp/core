@@ -2,7 +2,7 @@
 const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 
-const {GetEventArgumentsByNameAsync} = require("../utils/IFBUtils");
+const {getEventArguments} = require("../utils/utils");
 
 before(async function() {
 
@@ -27,7 +27,7 @@ describe("Cards", function(){
         // Client call
         let addCardRequest = await this.contracts.Cards.connect(this.simpleUser).addCardRequest()
 
-        let retAddCardRequest = await GetEventArgumentsByNameAsync(addCardRequest,"AddCardRequest");
+        let retAddCardRequest = await getEventArguments(addCardRequest,"AddCardRequest");
         
 
         expect(retAddCardRequest.account).to.be.equal(this.simpleUser.address)
@@ -35,7 +35,7 @@ describe("Cards", function(){
 
         //Oracle with admin level access should response
         let addCardResponse = await this.contracts.Cards.connect(this.adminUser).addCardResponse(retAddCardRequest.account,retAddCardRequest.request_id, true,"success", "https://bank.com/endpoint/to/specific/user/for/add/card")
-        let retAddCardResponse = await GetEventArgumentsByNameAsync(addCardResponse,"AddCardResponse");
+        let retAddCardResponse = await getEventArguments(addCardResponse,"AddCardResponse");
     
 
         // this is response get client and if status is true open payment_endpoint url
@@ -59,7 +59,7 @@ describe("Cards", function(){
         )
 
         // Client get this event 
-        let retAddCard = await GetEventArgumentsByNameAsync(addCard,"AddCardSuccess");
+        let retAddCard = await getEventArguments(addCard,"AddCardSuccess");
 
         expect(retAddCard.account).to.be.equal(retAddCardRequest.account)
         expect(retAddCard.request_id).to.be.equal(retAddCardRequest.request_id)
@@ -97,7 +97,7 @@ describe("Cards", function(){
         let amount = "500"; // type is string because value should be encrypted
         let writeOffRequest = await this.contracts.Cards.connect(this.simpleUser).writeOffRequest(amount)
 
-        let retWriteOffRequest = await GetEventArgumentsByNameAsync(writeOffRequest, "WriteOffRequest")
+        let retWriteOffRequest = await getEventArguments(writeOffRequest, "WriteOffRequest")
 
         expect(retWriteOffRequest.account).to.be.equal(this.simpleUser.address)
         expect(retWriteOffRequest.request_id).to.be.equal(1)
@@ -116,7 +116,7 @@ describe("Cards", function(){
             amount
         )
 
-        let retWriteOffResponse = await GetEventArgumentsByNameAsync(writeOffResponse, "WriteOffResponse")
+        let retWriteOffResponse = await getEventArguments(writeOffResponse, "WriteOffResponse")
 
         expect(retWriteOffResponse.account).to.be.equal(retWriteOffRequest.account)
         expect(retWriteOffResponse.request_id).to.be.equal(retWriteOffRequest.request_id)

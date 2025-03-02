@@ -18,7 +18,7 @@ String-based latitude/longitude representation
 ```solidity
 struct GeoLocationString {
   string latitude;
-  string longtitude;
+  string longitude;
 }
 ```
 

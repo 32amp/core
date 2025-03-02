@@ -142,7 +142,6 @@ contract Balance is Initializable, IBalance {
         return _balances[account];
     }
 
-    // TODO: check user exist
     /**
      * @notice Transfers tokens between accounts
      * @param to Recipient address
@@ -151,6 +150,7 @@ contract Balance is Initializable, IBalance {
      * @custom:reverts "InvalidReceiver" for zero address
      */    
     function transfer(address to, uint256 value)  onlyUser() external {
+        _User().exist(to);
         _update(msg.sender, to, value);
     }
 
@@ -162,6 +162,7 @@ contract Balance is Initializable, IBalance {
      * @custom:reverts "AccessDeniedLevel:Four" if unauthorized
      */
     function transferFrom(address from, address to, uint256 value) onlyAdmin() external {
+        _User().exist(to);
         _update(from, to, value);
     }
 

@@ -397,7 +397,7 @@ _For complex locations with multiple access points_
 ```solidity
 struct AdditionalGeoLocation {
   int256 latitude;
-  int256 longtitude;
+  int256 longitude;
   struct DataTypes.DisplayText[] name;
 }
 ```
@@ -572,7 +572,7 @@ Geographic coordinates
 ```solidity
 struct GeoLocation {
   int256 latitude;
-  int256 longtitude;
+  int256 longitude;
 }
 ```
 
