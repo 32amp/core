@@ -4,20 +4,21 @@ const {deploy} = require("./lib/deploy");
 
 const {getEventArguments} = require("../utils/utils");
 
-before(async function() {
-
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0]
-    this.simpleUser = accounts[1]
-
-    this.contracts = await deploy({User:true,Balance: true})
-    await this.contracts.User.addUser(this.simpleUser.address);
-
-})
-
-
 
 describe("Balance", function (){
+
+    before(async function() {
+
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0]
+        this.simpleUser = accounts[1]
+
+        this.contracts = await deploy({User:true,Balance: true})
+        await this.contracts.User.addUser(this.simpleUser.address);
+        await this.contracts.User.addUser(this.owner.address);
+
+    })
+
     it("getCurrency", async function (){
         const currency = await this.contracts.Balance.getCurrency();
         

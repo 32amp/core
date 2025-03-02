@@ -4,24 +4,27 @@ const {deploy} = require("./lib/deploy");
 
 const {getEventArguments} = require("../utils/utils");
 
-before(async function() {
-
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0]
-    this.simpleUser = accounts[1]
-    this.adminUser = accounts[2]
-
-    this.contracts = await deploy({User:true,Balance: true, Cards: true})
-
-
-    await this.contracts.User.addUser(this.simpleUser.address);
-    await this.contracts.User.addUser(this.adminUser.address);
-    
-    await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Cards", 4);
-
-})
 
 describe("Cards", function(){
+
+
+    before(async function() {
+
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0]
+        this.simpleUser = accounts[1]
+        this.adminUser = accounts[2]
+
+        this.contracts = await deploy({User:true,Balance: true, Cards: true})
+
+
+        await this.contracts.User.addUser(this.simpleUser.address);
+        await this.contracts.User.addUser(this.adminUser.address);
+        
+        await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Cards", 4);
+
+    })
+
     it("addCard:process", async function(){
 
         // Client call

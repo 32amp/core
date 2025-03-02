@@ -8,25 +8,27 @@ const {deploy} = require("./lib/deploy");
 const {getEvseData} = require("./lib/evse_data");
 const {getEventArguments} = require("../utils/utils");
 
-before(async function() {
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0]
-    this.adminUser = accounts[1]
-
-    const {location} = require("./lib/location_data");
-
-    this.contracts = await deploy({User:true,Auth:true,Location:true,LocationSearch:true,EVSE:true})
-
-    const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Location", 4);
-    await tx.wait()
-
-    const tx2 =  await this.contracts.Location.connect(this.adminUser).addLocation(location);
-    await tx2.wait()
-})
-
-
 
 describe("EVSE", function(){
+
+    before(async function() {
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0]
+        this.adminUser = accounts[1]
+
+        const {location} = require("./lib/location_data");
+
+        this.contracts = await deploy({User:true,Auth:true,Location:true,LocationSearch:true,EVSE:true})
+
+        const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Location", 4);
+        await tx.wait()
+
+        const tx2 =  await this.contracts.Location.connect(this.adminUser).addLocation(location);
+        await tx2.wait()
+    })
+
+
+
     const {EVSEdata, EVSEmeta, image} = getEvseData();
 
     it("add", async function(){

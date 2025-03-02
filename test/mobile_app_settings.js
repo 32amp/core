@@ -1,32 +1,31 @@
 const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 
-before(async function() {
-    const tgtoken = "6421082813:AAHEX0kUk18YM3yhwecw37Pbfo6hnVTvAno";
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0]
-
-    this.config = {
-        privacy_policy: {
-            name_file: "private_policy.html",
-            ipfs_cid:"QmS4qShkCxVyrE1eCq15e6mikYHQvyqvH3wxp6kEoaTNco",
-            file_type:2
-        },
-        license_agreement: {
-            name_file: "license_agreement.html",
-            ipfs_cid:"QmS4qShkCxVyrE1eCq15e6mikYHQvyqvH3wxp6kEoaTNco",
-            file_type:2
-        },
-        technical_work: false,
-        support_phone: "+78125603524"
-    };
-
-    this.contracts = await deploy({User:true, MobileAppSettings:true})
-
-})
 
 describe("MobileAppSettings", function(){
 
+    before(async function() {
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0]
+    
+        this.config = {
+            privacy_policy: {
+                name_file: "private_policy.html",
+                ipfs_cid:"QmS4qShkCxVyrE1eCq15e6mikYHQvyqvH3wxp6kEoaTNco",
+                file_type:2
+            },
+            license_agreement: {
+                name_file: "license_agreement.html",
+                ipfs_cid:"QmS4qShkCxVyrE1eCq15e6mikYHQvyqvH3wxp6kEoaTNco",
+                file_type:2
+            },
+            technical_work: false,
+            support_phone: "+78125603524"
+        };
+    
+        this.contracts = await deploy({User:true, MobileAppSettings:true})
+    
+    })
 
     it("setConfig", async function(){
 

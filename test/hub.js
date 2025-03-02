@@ -4,16 +4,17 @@ const { expect } = require('chai');
 const {getEventArguments, createpayload} = require("../utils/utils");
 const {deploy} = require("./lib/deploy");
 
-before(async function() {
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0].address
-
-    this.contracts = await deploy({User:true})
-
-})
 
 describe("Hub", function(){
 
+
+    before(async function() {
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0].address
+
+        this.contracts = await deploy({User:true})
+
+    })
 
     it("getMe", async function(){
         const me = await this.contracts.Hub.me();

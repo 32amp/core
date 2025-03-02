@@ -4,23 +4,25 @@ const {getEventArguments} = require("../utils/utils");
 const {deploy} = require("./lib/deploy");
 
 
-before(async function() {
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0];
-    this.simpleUser = accounts[1];
-    this.adminUser = accounts[2];
-    this.contracts = await deploy({User:true, UserSupportChat: true})
-
-    await this.contracts.User.addUser(this.simpleUser.address);
-    await this.contracts.User.addUser(this.adminUser.address);
-
-    await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"UserSupportChat", 4);
-    
-})
 
 
 
 describe("UserSupportChat", function (){
+
+
+    before(async function() {
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0];
+        this.simpleUser = accounts[1];
+        this.adminUser = accounts[2];
+        this.contracts = await deploy({User:true, UserSupportChat: true})
+
+        await this.contracts.User.addUser(this.simpleUser.address);
+        await this.contracts.User.addUser(this.adminUser.address);
+
+        await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"UserSupportChat", 4);
+        
+    })
 
     const messages = [
         { text: "Здравствуйте! Что вы знаете о Ленине?", who: "user" },

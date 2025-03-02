@@ -5,15 +5,6 @@ const {deploy} = require("./lib/deploy");
 
 const {getEventArguments} = require("../utils/utils");
 
-before(async function() {
-
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0]
-    this.adminUser = accounts[1]
-
-    this.contracts = await deploy({User:true,Auth:true,Location:true, LocationSearch:true})
-
-})
 
 
 
@@ -21,6 +12,16 @@ before(async function() {
 
 describe("Locations", function(){
 
+    before(async function() {
+
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0]
+        this.adminUser = accounts[1]
+    
+        this.contracts = await deploy({User:true,Auth:true,Location:true, LocationSearch:true})
+    
+    })
+    
     const {location,relatedLocation,image,direction,openingTimes} = require("./lib/location_data")
 
     it("AddLocation", async function(){

@@ -3,21 +3,21 @@ const { expect } = require('chai');
 
 const {deploy} = require("./lib/deploy");
 
-before(async function() {
 
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0]
-    this.simpleUser = accounts[1]
-    this.contracts = await deploy({User:true})
-    await this.contracts.User.addUser(this.simpleUser.address)
-
-})
 
 
 
 describe("User", function(){
 
+    before(async function() {
 
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0]
+        this.simpleUser = accounts[1]
+        this.contracts = await deploy({User:true})
+        await this.contracts.User.addUser(this.simpleUser.address)
+    
+    })
 
     it("whoami", async function(){
         const whoami =  await this.contracts.User.connect(this.simpleUser).whoami();

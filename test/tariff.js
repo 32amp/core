@@ -3,19 +3,19 @@ const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 const {getEventArguments} = require("../utils/utils");
 
-before(async function() {
-
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0];
-    this.adminUser = accounts[0];
-    this.contracts = await deploy({User:true,Tariff:true})
-
-})
-
-
 
 
 describe("Tariff", function(){
+
+    before(async function() {
+
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0];
+        this.adminUser = accounts[0];
+        this.contracts = await deploy({User:true,Tariff:true})
+
+    })
+
     const {free_tariff,energy_mix} = require("./lib/tariff_data")
 
     it("addDefaultFreeTariff", async function(){

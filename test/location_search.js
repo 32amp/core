@@ -7,23 +7,23 @@ const {deploy} = require("./lib/deploy");
 
 const {getEventArguments} = require("../utils/utils");
 
-before(async function() {
-    const accounts = await ethers.getSigners();
-    
-    this.owner = accounts[0]
-    this.adminUser = accounts[1]
-
-    this.contracts = await deploy({User:true,Location:true, LocationSearch:true})
-
-    const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Location", 4);
-    await tx.wait()
-
-    
-})
-
-
 describe("LocationSearch", function(){
 
+    before(async function() {
+        const accounts = await ethers.getSigners();
+        
+        this.owner = accounts[0]
+        this.adminUser = accounts[1]
+    
+        this.contracts = await deploy({User:true,Location:true, LocationSearch:true})
+    
+        const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Location", 4);
+        await tx.wait()
+    
+        
+    })
+    
+    
 
     it("inArea all kirov zavod without locations", async function(){
 
@@ -59,7 +59,7 @@ describe("LocationSearch", function(){
             let tx = await this.contracts.Location.connect(this.adminUser).addLocation(loc);
 
             let result = await getEventArguments(tx, "AddLocation")
-            console.log("add location", index)
+            //console.log("add location", index)
 
             let newLocation = await this.contracts.Location.getLocation(Number(result.uid));
             expect(newLocation[0].coordinates.latitude, "Location latitude "+result.uid).to.equal(ethers.parseEther(loc.coordinates.latitude))

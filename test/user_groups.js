@@ -2,19 +2,22 @@
 const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 
-before(async function() {
-    
-    const accounts = await ethers.getSigners();
-    this.owner = accounts[0];
-    this.simpleUser = accounts[1];
-    this.contracts = await deploy({User:true,UserGroups:true})
-
-    await this.contracts.User.addUser(this.simpleUser.address);
-
-})
 
 
 describe("UserGroups", function(){
+
+
+    before(async function() {
+        
+        const accounts = await ethers.getSigners();
+        this.owner = accounts[0];
+        this.simpleUser = accounts[1];
+        this.contracts = await deploy({User:true,UserGroups:true})
+
+        await this.contracts.User.addUser(this.simpleUser.address);
+
+    })
+
     it("getMyGroups", async function(){
 
         await this.contracts.UserAccess.setAccessLevelToModule(this.simpleUser.address,"UserGroups", 4);

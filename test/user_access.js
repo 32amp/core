@@ -3,17 +3,18 @@ const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 
 
-before(async function() {
-
-    this.accounts = await ethers.getSigners();
-    this.contracts = await deploy({User:true,UserGroups:true})
-
-})
-
 
 
 
 describe("UserAccess", function(){
+
+
+    before(async function() {
+        this.accounts = await ethers.getSigners();
+        this.contracts = await deploy({User:true,UserGroups:true})
+    })
+
+
     it("sudo getMyModulesAccess", async function(){
 
         const accesModules =  await this.contracts.UserAccess.getMyModulesAccess();
