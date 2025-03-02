@@ -92,7 +92,9 @@ function printTopicInfo(topic) {
 function printMessageInfo(message, messageId) {
     console.log("=== Message Information ===");
     console.log(`Message ID: ${messageId}`);
+    console.log("+++++++++++++++++++++++++++");
     console.log(`Text: ${message.text}`);
+    console.log("+++++++++++++++++++++++++++");
     console.log(`Image IPFS Hash: ${message.image || "None"}`);
     console.log(`Reply To: ${message.reply_to === 0 ? "None" : message.reply_to}`);
     console.log(`Created At: ${new Date(Number(message.create_at) * 1000).toLocaleString()}`);
@@ -101,6 +103,19 @@ function printMessageInfo(message, messageId) {
     console.log("===========================");
 }
 
+/**
+ * Преобразует сообщение в читаемый формат
+ * @param {Object} message - Объект сообщения
+ * @param {number} messageId - ID сообщения
+ */
+function printMessageInfoLight(message, messageId) {
+    console.log(`\n\n+++ Message ID: ${messageId}`);
+    console.log("+++++++++++++++++++++++++++");
+    console.log(`>>> ${message.text}`);
+    console.log("+++++++++++++++++++++++++++");
+    console.log(`+++ Reply To: ${message.reply_to === 0 ? "None" : message.reply_to} | Created At: ${new Date(Number(message.create_at) * 1000).toLocaleString()} | Read: ${message.readed ? "Yes" : "No"} | Author: ${message.account}`);
+    console.log("+++++++++++++++++++++++++++");
+}
 
 // Helper function to initialize the UserSupportChat contract
 async function getUserSupportChatContract(hre) {
@@ -302,7 +317,7 @@ userSupportChatScope.task("get-my-topics", "Get topics created by the user")
         ]);
 
         const [topics, total] = await userSupportChat.getMyTopics(offset);
-        
+
         console.log("Total Topics:", total.toString());
         for (let index = 0; index < topics.length; index++) {
             const topic = topics[index];
@@ -350,11 +365,11 @@ userSupportChatScope.task("get-messages", "Get messages in a topic")
         ]);
 
         const [messages, total] = await userSupportChat.getMessages(topic_id, offset);
-        
+
         console.log("Total Messages:", total.toString());
-        for (let index = messages.length-1; index >= 0; index--) {
+        for (let index = messages.length - 1; index >= 0; index--) {
             const message = messages[index];
-            printMessageInfo(message.message,message.id);
+            printMessageInfo(message.message, message.id);
         }
     });
 
@@ -379,5 +394,135 @@ userSupportChatScope.task("get-message", "Get a specific message in a topic")
         ]);
 
         const message = await userSupportChat.getMessage(topic_id, message_id);
-        printMessageInfo(message,message_id);
+        printMessageInfo(message, message_id);
+    });
+
+
+userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
+    .addOptionalParam("topicid", "Topic ID for dialog")
+    .setAction(async (taskArgs, hre) => {
+        const { userSupportChat } = await getUserSupportChatContract(hre);
+
+        // Получаем список топиков пользователя
+        const [topics] = await userSupportChat.getMyTopics(0);
+
+        if (topics.length === 0) {
+            console.log("You have no topics to chat in.");
+            return;
+        }
+        var topic_id;
+
+        if (taskArgs.topicid) {
+            topic_id = taskArgs.topicid;
+        } else {
+            // Выбор топика из списка
+            const { topicid } = await inquirer.prompt([
+                {
+                    type: "list",
+                    name: "topicid",
+                    message: "Select a topic to chat in:",
+                    choices: topics.map((topic) => ({
+                        name: `Topic ID: ${topic.id} (Theme: ${getTopicThemeText(topic.topic.theme)})`,
+                        value: topic.id,
+                    })),
+                },
+            ]);
+
+            console.log(`You selected topic ID: ${topicid}`);
+            topic_id = topicid;
+        }
+
+
+        // Функция для обновления и отображения сообщений
+        const updateChat = async () => {
+            const [messages] = await userSupportChat.getMessages(topic_id, 0);
+
+            // Помечаем сообщения как прочитанные
+            const unreadIds = messages
+                .filter((msg) => !msg.message.readed)
+                .map((msg) => msg.id);
+
+            if (unreadIds.length > 0) {
+                await userSupportChat.setReadedMessages(topic_id, unreadIds);
+            }
+
+            // Выводим сообщения
+            console.log("\n=== Chat Messages ===");
+            for (let index = messages.length - 1; index >= 0; index--) {
+                const message = messages[index];
+                printMessageInfoLight(message.message, message.id);
+            }
+            console.log("=====================\n");
+        };
+
+        // Обновляем чат при старте
+        await updateChat();
+
+        // Слушаем событие Message
+        const filter = userSupportChat.filters.Message(topic_id);
+        userSupportChat.on(filter, async (topicId, messageId) => {
+            console.log(`\nNew message received! Message ID: ${messageId}`);
+            await updateChat();
+        });
+
+        // Интерактивный цикл для отправки сообщений
+        while (true) {
+            const { action } = await inquirer.prompt([
+                {
+                    type: "list",
+                    name: "action",
+                    message: "What would you like to do?",
+                    choices: [
+                        { name: "Send a message", value: "send" },
+                        { name: "Refresh chat", value: "refresh" },
+                        { name: "Exit chat", value: "exit" },
+                    ],
+                },
+            ]);
+
+            if (action === "exit") {
+                console.log("Exiting chat...");
+                break;
+            }
+
+            if (action === "refresh") {
+                await updateChat();
+                continue;
+            }
+
+            if (action === "send") {
+                const { text, image, reply_to } = await inquirer.prompt([
+                    {
+                        type: "input",
+                        name: "text",
+                        message: "Enter your message:",
+                        validate: (input) => input.length > 0 && input.length <= 1000,
+                    },
+                    {
+                        type: "input",
+                        name: "image",
+                        message: "Enter the IPFS hash of the image (leave empty if none):",
+                    },
+                    {
+                        type: "input",
+                        name: "reply_to",
+                        message: "Enter the message ID to reply to (0 for new message):",
+                        validate: (input) => !isNaN(input) && input >= 0,
+                    },
+                ]);
+
+                const message = {
+                    text,
+                    image,
+                    reply_to: parseInt(reply_to),
+                };
+
+                await userSupportChat.sendMessage(topic_id, message);
+                console.log("Message sent!");
+                await updateChat();
+            }
+        }
+
+        // Отписываемся от события при выходе
+        userSupportChat.off(filter);
     });
