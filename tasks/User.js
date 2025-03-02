@@ -1,24 +1,7 @@
 const userScope = scope("User", "Tasks for User module");
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
-const { loadConfig } = require("./helpers/configs")
+const { loadContract } = require("./helpers/load_contract");
 const inquirer = require("inquirer");
 
-// Helper function to initialize the User contract
-async function getUserContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("User", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module User does not exist for partner_id ${partner_id}`);
-    }
-    const user = await hre.ethers.getContractAt("User", exist, signer);
-    return { user, partner_id, signer };
-}
 
 // Function for displaying user information in a readable form
 function printUserInfo(userInfo) {
@@ -38,7 +21,7 @@ function printUserInfo(userInfo) {
 // Task to get the version of the User contract
 userScope.task("version", "Get the version of the User contract")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const version = await user.getVersion();
         console.log(`Contract version: ${version}`);
     });
@@ -47,7 +30,7 @@ userScope.task("version", "Get the version of the User contract")
 userScope.task("add-user", "Add a new user")
     .addParam("account", "The address of the user to add")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const tx = await user.addUser(taskArgs.account);
         await tx.wait();
         console.log(`User added with address: ${taskArgs.account}`);
@@ -56,7 +39,7 @@ userScope.task("add-user", "Add a new user")
 // Task to get the current user's information
 userScope.task("whoami", "Get the current user's information")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const userInfo = await user.whoami();
         console.log("Current user information:", printUserInfo(userInfo));
     });
@@ -65,7 +48,7 @@ userScope.task("whoami", "Get the current user's information")
 userScope.task("exist", "Check if a user exists")
     .addParam("account", "The address of the user to check")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         try {
             await user.exist(taskArgs.account);
 
@@ -80,7 +63,7 @@ userScope.task("exist", "Check if a user exists")
 userScope.task("get-user", "Get a user's information")
     .addParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const userInfo = await user.getUser(taskArgs.account);
         console.log("User information:", printUserInfo(userInfo));
     });
@@ -89,7 +72,7 @@ userScope.task("get-user", "Get a user's information")
 userScope.task("add-car", "Add a car for a user")
     .addParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const questions = [
             {
                 type: 'input',
@@ -124,7 +107,7 @@ userScope.task("remove-car", "Remove a car for a user")
     .addParam("account", "The address of the user")
     .addParam("index", "The index of the car to remove")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const tx = await user.removeCar(taskArgs.account, taskArgs.index);
         await tx.wait();
         console.log(`Car at index ${taskArgs.index} removed for user ${taskArgs.account}`);
@@ -134,7 +117,7 @@ userScope.task("remove-car", "Remove a car for a user")
 userScope.task("get-cars", "Get the list of cars for a user")
     .addParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const cars = await user.getCars(taskArgs.account);
         console.log("Cars:", cars);
     });
@@ -143,7 +126,7 @@ userScope.task("get-cars", "Get the list of cars for a user")
 userScope.task("update-company-info", "Update company information for a user")
     .addParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const questions = [
             {
                 type: 'input',
@@ -224,7 +207,7 @@ userScope.task("update-company-info", "Update company information for a user")
 userScope.task("get-company-info", "Get the company information for a user")
     .addParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
-        const { user } = await getUserContract(hre);
+        const { instance : user } = await loadContract("User",hre);
         const companyInfo = await user.getCompanyInfo(taskArgs.account);
 
 

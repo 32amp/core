@@ -1,31 +1,12 @@
 const balanceScope = scope("Balance", "Tasks for Balance module");
-const { loadConfig } = require("./helpers/configs")
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const { loadContract } = require("./helpers/load_contract");
 const inquirer = require("inquirer");
-
-
-// Helper function to initialize the Balance contract
-async function getBalanceContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("Balance", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module Balance does not exist for partner_id ${partner_id}`);
-    }
-    const balance = await hre.ethers.getContractAt("Balance", exist, signer);
-    return { balance, partner_id, signer };
-}
 
 
 
 balanceScope.task("version", "Get contract version")
     .setAction(async (_, hre) => {
-        const { balance } = await getBalanceContract(hre);
+        const { instance: balance } = await loadContract("Balance",hre);
         const version = await balance.getVersion();
         console.log(`Version: ${version}`);
     });
@@ -33,7 +14,7 @@ balanceScope.task("version", "Get contract version")
 balanceScope
     .task("total-supply", "Retrieves the total token supply")
     .setAction(async (_, hre) => {
-        const { balance } = await getBalanceContract(hre);
+        const { instance: balance } = await loadContract("Balance",hre);
         const total = await balance.totalSupply();
         console.log(`Total Supply: ${ethers.formatEther(total)}`);
     });
@@ -55,7 +36,7 @@ balanceScope
             account = answer.account;
         }
 
-        const { balance } = await getBalanceContract(hre);
+        const { instance: balance } = await loadContract("Balance",hre);
 
         try {
             const result = await balance.balanceOf(account);
@@ -109,7 +90,7 @@ balanceScope
             value = value || answers.value;
         }
 
-        const { balance } = await getBalanceContract(hre);
+        const { instance: balance } = await loadContract("Balance",hre);
         const tx = await balance.transfer(to, ethers.parseEther(value));
         await tx.wait();
         console.log(`Transfer successful. TX hash: ${tx.hash}`);
@@ -169,7 +150,7 @@ balanceScope
             value = value || answers.value;
         }
 
-        const { balance } = await getBalanceContract(hre);
+        const { instance: balance } = await loadContract("Balance",hre);
         const tx = await balance.transferFrom(from, to, ethers.parseEther(value));
         await tx.wait();
         console.log(`Transfer From successful. TX hash: ${tx.hash}`);
@@ -178,7 +159,7 @@ balanceScope
 balanceScope
     .task("get-currency", "Retrieves the currency ID associated with the contract")
     .setAction(async (_, hre) => {
-        const { balance } = await getBalanceContract(hre);
+        const { instance: balance } = await loadContract("Balance",hre);
         const currencyId = await balance.getCurrency();
         console.log(`Currency ID: ${currencyId.toString()}`);
     });
@@ -225,7 +206,7 @@ balanceScope
             amount = amount || answers.amount;
         }
 
-        const { balance } = await getBalanceContract(hre);
+        const { instance: balance } = await loadContract("Balance",hre);
         const tx = await balance.mint(account, ethers.parseEther(amount));
         await tx.wait();
         console.log(`Mint successful. TX hash: ${tx.hash}`);
@@ -272,7 +253,7 @@ balanceScope
             amount = amount || answers.amount;
         }
 
-        const { balance } = await getBalanceContract(hre);
+        const { instance: balance } = await loadContract("Balance",hre);
         const tx = await balance.burn(account, ethers.parseEther(amount));
         await tx.wait();
         console.log(`Burn successful. TX hash: ${tx.hash}`);

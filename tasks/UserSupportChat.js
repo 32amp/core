@@ -1,7 +1,6 @@
 const userSupportChatScope = scope("UserSupportChat", "Tasks for UserSupportChat module");
 const { getEventArguments } = require("../utils/utils");
-const { loadConfig } = require("./helpers/configs")
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const { loadContract } = require("./helpers/load_contract");
 const inquirer = require("inquirer");
 
 const TopicTheme = {
@@ -117,28 +116,12 @@ function printMessageInfoLight(message, messageId) {
     console.log("+++++++++++++++++++++++++++");
 }
 
-// Helper function to initialize the UserSupportChat contract
-async function getUserSupportChatContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("UserSupportChat", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module UserSupportChat does not exist for partner_id ${partner_id}`);
-    }
-    const userSupportChat = await hre.ethers.getContractAt("UserSupportChat", exist, signer);
-    return { userSupportChat, partner_id, signer };
-}
 
 
 // Task to get the contract version
 userSupportChatScope.task("version", "Get the version of the UserSupportChat contract")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
         const version = await userSupportChat.getVersion();
         console.log(`UserSupportChat Contract Version: ${version}`);
     });
@@ -146,7 +129,7 @@ userSupportChatScope.task("version", "Get the version of the UserSupportChat con
 // Task to create a new support topic
 userSupportChatScope.task("create-topic", "Create a new support topic")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { text_message, theme } = await inquirer.prompt([
             {
@@ -183,7 +166,7 @@ userSupportChatScope.task("create-topic", "Create a new support topic")
 // Task to send a message in a topic
 userSupportChatScope.task("send-message", "Send a message in a support topic")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { topic_id, text, image, reply_to } = await inquirer.prompt([
             {
@@ -232,7 +215,7 @@ userSupportChatScope.task("send-message", "Send a message in a support topic")
 // Task to set a rating for a topic
 userSupportChatScope.task("set-rating", "Set a rating for a support topic")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { topic_id, rating } = await inquirer.prompt([
             {
@@ -256,7 +239,7 @@ userSupportChatScope.task("set-rating", "Set a rating for a support topic")
 // Task to close a support topic
 userSupportChatScope.task("close-topic", "Close a support topic")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { topic_id } = await inquirer.prompt([
             {
@@ -280,7 +263,7 @@ userSupportChatScope.task("close-topic", "Close a support topic")
 // Task to mark messages as read
 userSupportChatScope.task("set-readed-messages", "Mark messages as read in a topic")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { topic_id, message_ids } = await inquirer.prompt([
             {
@@ -305,7 +288,7 @@ userSupportChatScope.task("set-readed-messages", "Mark messages as read in a top
 // Task to get user's topics
 userSupportChatScope.task("get-my-topics", "Get topics created by the user")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { offset } = await inquirer.prompt([
             {
@@ -329,7 +312,7 @@ userSupportChatScope.task("get-my-topics", "Get topics created by the user")
 // Task to get details of a specific topic
 userSupportChatScope.task("get-topic", "Get details of a specific topic")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { topic_id } = await inquirer.prompt([
             {
@@ -347,7 +330,7 @@ userSupportChatScope.task("get-topic", "Get details of a specific topic")
 // Task to get messages in a topic
 userSupportChatScope.task("get-messages", "Get messages in a topic")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { topic_id, offset } = await inquirer.prompt([
             {
@@ -376,7 +359,7 @@ userSupportChatScope.task("get-messages", "Get messages in a topic")
 // Task to get a specific message in a topic
 userSupportChatScope.task("get-message", "Get a specific message in a topic")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         const { topic_id, message_id } = await inquirer.prompt([
             {
@@ -401,7 +384,7 @@ userSupportChatScope.task("get-message", "Get a specific message in a topic")
 userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
     .addOptionalParam("topicid", "Topic ID for dialog")
     .setAction(async (taskArgs, hre) => {
-        const { userSupportChat } = await getUserSupportChatContract(hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
 
         // Получаем список топиков пользователя
         const [topics] = await userSupportChat.getMyTopics(0);

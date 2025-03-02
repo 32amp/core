@@ -1,27 +1,9 @@
 const evseScope = scope("EVSE", "Tasks for EVSE module");
-const { loadConfig } = require("./helpers/configs")
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const { loadContract } = require("./helpers/load_contract");
 const { DataTypes } = require("../helpers/Hub");
 const inquirer = require("inquirer");
 
 
-
-// Helper function to initialize the EVSE contract
-async function getEvseContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("EVSE", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module EVSE does not exist for partner_id ${partner_id}`);
-    }
-    const evse = await hre.ethers.getContractAt("EVSE", exist, signer);
-    return { evse, partner_id, signer };
-}
 
 function getEnumName(enumObj, value) {
     const keys = Object.keys(enumObj).filter(k => isNaN(k));
@@ -59,20 +41,20 @@ async function promptForArray(promptFunc, itemName) {
 
 evseScope.task("version", "Get contract version")
     .setAction(async (taskArgs, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance:evse } = await loadContract("EVSE",hre);
         console.log("Version: ", await evse.getVersion());
     });
 
 evseScope.task("exist", "Check if EVSE exists")
     .addParam("id", "EVSE ID")
     .setAction(async ({ id }, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance: evse } = await loadContract("EVSE",hre);
         console.log(`EVSE with id ${id} exist:`, await evse.exist(id));
     });
 
 evseScope.task("add", "Add new EVSE")
     .setAction(async (taskArgs, hre) => {
-        const { evse, partner_id, signer } = await getEvseContract(hre);
+        const { instance: evse, partner_id, signer } = await loadContract("EVSE",hre);
 
         const responses = await inquirer.prompt([
             {
@@ -137,7 +119,7 @@ evseScope.task("add", "Add new EVSE")
 evseScope.task("set-meta", "Set EVSE metadata")
     .addParam("evseid", "EVSE ID")
     .setAction(async ({ evseid: evse_id }, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance: evse } = await loadContract("EVSE",hre);
 
         const statusSchedule = await promptForArray(async () => {
             const response = await inquirer.prompt([
@@ -219,7 +201,7 @@ evseScope.task("set-meta", "Set EVSE metadata")
 evseScope.task("add-image", "Add image to EVSE")
     .addParam("evseid", "EVSE ID")
     .setAction(async ({ evseid:evse_id }, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance: evse } = await loadContract("EVSE",hre);
 
         const responses = await inquirer.prompt([
             {
@@ -266,7 +248,7 @@ evseScope.task("remove-image", "Remove image from EVSE")
     .addParam("evseid", "EVSE ID")
     .addParam("imageid", "Image ID")
     .setAction(async ({ evseid:evse_id, imageid:image_id }, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance: evse } = await loadContract("EVSE",hre);
         await evse.removeImage(evse_id, image_id);
         console.log(`Image ${image_id} removed from EVSE ${evse_id}`);
     });
@@ -275,7 +257,7 @@ evseScope.task("remove-image", "Remove image from EVSE")
 evseScope.task("set-status", "Set EVSE status")
     .addParam("evseid", "EVSE ID")
     .setAction(async ({ evseid:evse_id }, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance: evse } = await loadContract("EVSE",hre);
 
         const { status } = await inquirer.prompt(
             createEnumPrompt("status", "Select new status:", DataTypes.EVSEStatus)
@@ -290,7 +272,7 @@ evseScope.task("add-connector", "Add connector to EVSE")
     .addParam("evseid", "EVSE ID")
     .addParam("connectorid", "Connector ID")
     .setAction(async ({ evseid:evse_id, connectorid:connector_id }, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance: evse } = await loadContract("EVSE",hre);
         await evse.addConnector(evse_id, connector_id);
         console.log(`Connector ${connector_id} added to EVSE ${evse_id}`);
     });
@@ -300,7 +282,7 @@ evseScope.task("remove-connector", "Remove connector from EVSE")
     .addParam("evseid", "EVSE ID")
     .addParam("connectorid", "Connector ID")
     .setAction(async ({ evseid:evse_id, connectorid:connector_id }, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance: evse } = await loadContract("EVSE",hre);
         await evse.removeConnector(evse_id, connector_id);
         console.log(`Connector ${connector_id} removed from EVSE ${evse_id}`);
     });
@@ -309,7 +291,7 @@ evseScope.task("remove-connector", "Remove connector from EVSE")
 evseScope.task("get", "Get EVSE details")
     .addParam("id", "EVSE ID")
     .setAction(async ({ id }, hre) => {
-        const { evse } = await getEvseContract(hre);
+        const { instance: evse } = await loadContract("EVSE",hre);
         const details = await evse.get(id);
 
         const formatEVSE = (data) => ({

@@ -1,27 +1,7 @@
 const connectorScope = scope("Connector", "Tasks for Connector module");
-const { loadConfig } = require("./helpers/configs")
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const { loadContract } = require("./helpers/load_contract");
 const { DataTypes } = require("../helpers/Hub");
 const inquirer = require("inquirer");
-
-
-// Helper function to initialize the Connector contract
-async function getConnectorContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("Connector", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module Connector does not exist for partner_id ${partner_id}`);
-    }
-    const connector = await hre.ethers.getContractAt("Connector", exist, signer);
-    return { connector, partner_id, signer };
-}
-
 
 // Helper functions
 function mapEnum(type, value) {
@@ -87,7 +67,7 @@ async function promptConnectorParams() {
 
 connectorScope.task("version", "Get contract version")
     .setAction(async (_, hre) => {
-        const { connector } = await getConnectorContract(hre);
+        const { instance: connector } = await loadContract("Connector",hre);
         const version = await connector.getVersion();
         console.log(`Version: ${version}`);
     });
@@ -95,7 +75,7 @@ connectorScope.task("version", "Get contract version")
 connectorScope.task("add", "Add new connector")
     .addParam("evseid", "EVSE ID to attach connector")
     .setAction(async (taskArgs, hre) => {
-        const { connector, partner_id, signer } = await getConnectorContract(hre);
+        const { instance: connector, partner_id, signer } = await loadContract("Connector",hre);
         const answers = await promptConnectorParams();
 
         const connectorData = {
@@ -117,7 +97,7 @@ connectorScope.task("add", "Add new connector")
 connectorScope.task("get", "Get connector details")
     .addParam("id", "Connector ID")
     .setAction(async (taskArgs, hre) => {
-        const { connector } = await getConnectorContract(hre);
+        const { instance: connector } = await loadContract("Connector",hre);
         const result = await connector.get(taskArgs.id);
 
         console.log("\nConnector Details:");
@@ -146,7 +126,7 @@ connectorScope.task("set-tariffs", "Set connector tariffs")
     .addParam("id", "Connector ID")
     .addParam("tariff", "Tariff ID")
     .setAction(async (taskArgs, hre) => {
-        const { connector } = await getConnectorContract(hre);
+        const { instance: connector } = await loadContract("Connector",hre);
         const tx = await connector.setTariffs(taskArgs.id, taskArgs.tariff);
         console.log(`Updating tariffs in tx: ${tx.hash}`);
         const receipt = await tx.wait();
@@ -156,7 +136,7 @@ connectorScope.task("set-tariffs", "Set connector tariffs")
 connectorScope.task("exist", "Check connector existence")
     .addParam("id", "Connector ID")
     .setAction(async (taskArgs, hre) => {
-        const { connector } = await getConnectorContract(hre);
+        const { instance: connector } = await loadContract("Connector",hre);
         const exists = await connector.exist(taskArgs.id);
         console.log(`Connector ${taskArgs.id} exists: ${exists ? "Yes" : "No"}`);
     });

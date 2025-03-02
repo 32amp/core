@@ -1,31 +1,18 @@
 const cardsScope = scope("Cards", "Tasks for Cards module");
 const { getEventArguments } = require("../utils/utils");
-const { loadConfig } = require("./helpers/configs")
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
 const inquirer = require("inquirer");
+const { loadContract } = require("./helpers/load_contract");
 
-
-// Helper function to initialize the Cards contract
-async function getCardsContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("Cards", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module Cards does not exist for partner_id ${partner_id}`);
-    }
-    const cards = await hre.ethers.getContractAt("Cards", exist, signer);
-    return { cards, partner_id, signer };
-}
-
+cardsScope.task("version", "Get contract version")
+    .setAction(async (_, hre) => {
+        const { instance: cards } = await loadContract("Cards",hre);
+        const version = await cards.getVersion();
+        console.log(`Version: ${version}`);
+    });
 
 cardsScope.task("add-card-request", "Initiate card addition request")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const tx = await cards.addCardRequest();
         const eventArgs = await getEventArguments(tx, "AddCardRequest");
 
@@ -40,7 +27,7 @@ cardsScope.task("add-card-request", "Initiate card addition request")
 
 cardsScope.task("add-card-response", "Admin response to card request")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const answers = await inquirer.prompt([
             { name: 'account', message: 'User address:' },
             { name: 'request_id', message: 'Request ID:', type: 'number' },
@@ -72,7 +59,7 @@ cardsScope.task("add-card-response", "Admin response to card request")
 
 cardsScope.task("add-card", "Add card to user account (admin)")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const baseAnswers = await inquirer.prompt([
             { name: 'account', message: 'User address:' },
             { name: 'request_id', message: 'Request ID:', type: 'number' }
@@ -111,7 +98,7 @@ cardsScope.task("add-card", "Add card to user account (admin)")
 
 cardsScope.task("writeoff-request", "Initiate write-off request")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const answer = await inquirer.prompt({
             name: 'amount',
             message: 'Amount to write off (ETH):'
@@ -133,7 +120,7 @@ cardsScope.task("writeoff-request", "Initiate write-off request")
 
 cardsScope.task("writeoff-response", "Respond to write-off request")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const answers = await inquirer.prompt([
             { name: 'account', message: 'User address:' },
             { name: 'request_id', message: 'Request ID:', type: 'number' },
@@ -172,7 +159,7 @@ cardsScope.task("writeoff-response", "Respond to write-off request")
 
 cardsScope.task("set-auto-pay", "Configure autopay settings")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const answers = await inquirer.prompt([
             { name: 'amount', message: 'Amount in ETH:' },
             { name: 'monthly_limit', message: 'Monthly limit in ETH:' },
@@ -189,14 +176,14 @@ cardsScope.task("set-auto-pay", "Configure autopay settings")
 
 cardsScope.task("disable-auto-pay", "Disable autopay")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const tx = await cards.disableAutoPay();
         console.log(`Autopay disabled: ${tx.hash}`);
     });
 
 cardsScope.task("remove-card", "Remove user card")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const answer = await inquirer.prompt({
             name: 'index',
             message: 'Card index to remove:',
@@ -209,7 +196,7 @@ cardsScope.task("remove-card", "Remove user card")
 
 cardsScope.task("list-cards", "List user cards")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const answer = await inquirer.prompt({
             name: 'account',
             message: 'User address:'
@@ -221,7 +208,7 @@ cardsScope.task("list-cards", "List user cards")
 
 cardsScope.task("get-auto-pay", "Get autopay settings")
     .setAction(async (_, hre) => {
-        const { cards } = await getCardsContract(hre);
+        const { instance: cards } = await loadContract("Cards",hre);
         const answer = await inquirer.prompt({
             name: 'account',
             message: 'User address:'

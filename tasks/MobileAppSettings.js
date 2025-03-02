@@ -1,40 +1,22 @@
 const MobileAppSettingsScope = scope("MobileAppSettings", "Tasks for MobileAppSettings module");
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
-const { loadConfig } = require("./helpers/configs")
+const { loadContract } = require("./helpers/load_contract");
 const inquirer = require("inquirer");
 const fileTypes = [
     "None", "JSON", "HTML", "PDF", "CSV", "XLSX", "XLS",
     "DOC", "DOCX", "JPG", "PNG", "GIF", "SVG"
 ];
 
-// Helper function to initialize the MobileAppSettings contract
-async function getMobileAppSettingsContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("MobileAppSettings", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module MobileAppSettings does not exist for partner_id ${partner_id}`);
-    }
-    const mobileAppSettings = await hre.ethers.getContractAt("MobileAppSettings", exist, signer);
-    return { mobileAppSettings, partner_id, signer };
-}
-
 
 MobileAppSettingsScope.task("version", "Get the version of the MobileAppSettings contract")
     .setAction(async (taskArgs, hre) => {
-        const { mobileAppSettings } = await getMobileAppSettingsContract(hre);
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);
         const version = await mobileAppSettings.getVersion();
         console.log(`Version: ${version}`);
     });
 
 MobileAppSettingsScope.task("set-config", "Set the configuration for MobileAppSettings")
     .setAction(async (taskArgs, hre) => {
-        const { mobileAppSettings } = await getMobileAppSettingsContract(hre);
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);
 
         const questions = [
             {
@@ -111,7 +93,7 @@ MobileAppSettingsScope.task("set-config", "Set the configuration for MobileAppSe
 MobileAppSettingsScope.task("set-technical-work", "Set the technical work status")
     .addParam("status", "Technical work status (true/false)", undefined, types.boolean)
     .setAction(async (taskArgs, hre) => {
-        const { mobileAppSettings } = await getMobileAppSettingsContract(hre);
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);
         const tx = await mobileAppSettings.setTechnicalWork(taskArgs.status);
         console.log(`Transaction hash: ${tx.hash}`);
         await tx.wait();
@@ -120,7 +102,7 @@ MobileAppSettingsScope.task("set-technical-work", "Set the technical work status
 
 MobileAppSettingsScope.task("get-config", "Get the current configuration of MobileAppSettings")
     .setAction(async (taskArgs, hre) => {
-        const { mobileAppSettings } = await getMobileAppSettingsContract(hre);
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);
         const config = await mobileAppSettings.getConfig();
         console.log("Current Configuration:");
         console.log("Privacy Policy:");

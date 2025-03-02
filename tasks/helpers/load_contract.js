@@ -1,48 +1,30 @@
+const { loadConfig } = require("./configs")
+const { accountSelection, partnerSelection } = require("./promt_selection");
 
 
-
-module.exports.loadContracts = async function(modules = []){
-
-    const {network, ethers} = require("hardhat");
-
-    if(typeof network.config.networkid == "undefined")
-            throw("Please select network")
+// Helper function to initialize the Balance contract
+async function loadContract(contract,hre) {
+    const config = await loadConfig("config");
     
-    const config = require("../../hardhat.config");
-    
-    const accounts = await ethers.getSigners();
-
-    const deployed_addresses = require(`../../${network.name}_proxy_addresses.json`)
-    const output = {};
-
-    
-    output.hub = await ethers.getContractAt("Hub", deployed_addresses["Hub"], accounts[0])
-    const partnerid = await output.hub.getPartnerIdByAddress(accounts[0].address)
-
-    var partnerModules = await output.hub.getPartnerModules(partnerid)
-
-    if(modules.length)
-        partnerModules = modules;
-
-
-    for (let index = 0; index < partnerModules.length; index++) {
-        const module = partnerModules[index];
-
-        try {
-            let address = await output.hub.getModule(module, partnerid);
-            output[module] = await ethers.getContractAt(module, address, accounts[0])
-        } catch (error) {
-            console.error("Cannot load module", module, error)
-        }
-
+    if (typeof config?.deployed?.Hub === "undefined") {
+        throw new Error("Hub not deployed");
     }
 
-    output.SMSMessageOracle = await ethers.getContractAt("MessageOracle",deployed_addresses["MessageOracle#SMS"],accounts[0])
-    output.EmailMessageOracle = await ethers.getContractAt("MessageOracle",deployed_addresses["MessageOracle#Email"],accounts[0])
+    const signer = await accountSelection(hre);
+    
+    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
+    const partner_id = await partnerSelection();
 
-    output.hubAddress = deployed_addresses["Hub"]
-    output.config = config.networks[network.name]
+    const exist = await hub.getModule(contract, partner_id);
 
+    if (exist === hre.ethers.ZeroAddress) {
+        throw new Error(`Module ${contract} does not exist for partner_id ${partner_id}`);
+    }
 
-    return output;
+    const instance = await hre.ethers.getContractAt(contract, exist, signer);
+
+    return {instance, partner_id, signer }
 }
+
+
+module.exports.loadContract = loadContract;

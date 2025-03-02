@@ -1,30 +1,12 @@
 const userAccessScope = scope("UserAccess", "Tasks for UserAccess module");
-const { loadConfig } = require("./helpers/configs")
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const { loadContract } = require("./helpers/load_contract");
 const inquirer = require("inquirer");
 
-
-// Helper function to initialize the UserAccess contract
-async function getUserAccessContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("UserAccess", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module UserAccess does not exist for partner_id ${partner_id}`);
-    }
-    const userAccess = await hre.ethers.getContractAt("UserAccess", exist, signer);
-    return { userAccess, partner_id, signer };
-}
 
 userAccessScope
     .task("version", "Get contract version")
     .setAction(async (_, hre) => {
-        const { userAccess } = await getUserAccessContract(hre);
+        const { instance : userAccess } = await loadContract("UserAccess",hre);
         const version = await userAccess.getVersion();
         console.log(`UserAccess contract version: ${version}`);
     });
@@ -35,7 +17,7 @@ userAccessScope
     .addOptionalParam("module", "Module name")
     .addOptionalParam("accesslevel", "Access level (0-6)")
     .setAction(async (taskArgs, hre) => {
-        const { userAccess } = await getUserAccessContract(hre);
+        const { instance : userAccess } = await loadContract("UserAccess",hre);
         let { account, module, accesslevel } = taskArgs;
 
         if (!account || !module || !accesslevel) {
@@ -74,7 +56,7 @@ userAccessScope
     .addOptionalParam("account", "Target account address")
     .addOptionalParam("module", "Module name")
     .setAction(async (taskArgs, hre) => {
-        const { userAccess } = await getUserAccessContract(hre);
+        const { instance : userAccess } = await loadContract("UserAccess",hre);
         let { account, module } = taskArgs;
 
         if (!account || !module) {
@@ -96,7 +78,7 @@ userAccessScope
     .addOptionalParam("module", "Module name")
     .addOptionalParam("accesslevel", "Access level (0-6)")
     .setAction(async (taskArgs, hre) => {
-        const { userAccess } = await getUserAccessContract(hre);
+        const { instance : userAccess } = await loadContract("UserAccess",hre);
         let { objectid, account, module, accesslevel } = taskArgs;
 
         if (!objectid || !account || !module || !accesslevel) {
@@ -139,7 +121,7 @@ userAccessScope
     .addOptionalParam("module", "Module name")
     .addOptionalParam("level", "Required access level (0-6)")
     .setAction(async (taskArgs, hre) => {
-        const { userAccess } = await getUserAccessContract(hre);
+        const { instance : userAccess } = await loadContract("UserAccess",hre);
         let { account, module, level } = taskArgs;
 
         if (!account || !module || !level) {
@@ -167,7 +149,7 @@ userAccessScope
 userAccessScope
     .task("my-access", "Get current account's module access levels")
     .setAction(async (_, hre) => {
-        const { userAccess, signer } = await getUserAccessContract(hre);
+        const { instance : userAccess, signer } = await loadContract("UserAccess",hre);
         const [modules, levels] = await userAccess.getMyModulesAccess();
 
         console.log("Access levels for", await signer.getAddress());

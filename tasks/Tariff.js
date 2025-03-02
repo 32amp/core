@@ -1,27 +1,9 @@
 const tariffScope = scope("Tariff", "Tasks for Tariff module");
 const { getEventArguments } = require("../utils/utils");
 const { DataTypes } = require("../helpers/Hub");
-const { loadConfig } = require("./helpers/configs")
-const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const { loadContract } = require("./helpers/load_contract");
 const inquirer = require("inquirer");
 
-
-// Helper function to initialize the Tariff contract
-async function getTariffContract(hre) {
-    const config = await loadConfig("config");
-    if (typeof config?.deployed?.Hub === "undefined") {
-        throw new Error("Hub not deployed");
-    }
-    const signer = await accountSelection(hre);
-    const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
-    const exist = await hub.getModule("Tariff", partner_id);
-    if (exist === hre.ethers.ZeroAddress) {
-        throw new Error(`Module Tariff does not exist for partner_id ${partner_id}`);
-    }
-    const tariff = await hre.ethers.getContractAt("Tariff", exist, signer);
-    return { tariff, partner_id, signer };
-}
 
 function printTariffDetails(tariffDetails, isLight = false) {
     console.log("=== Tariff Details ===");
@@ -123,7 +105,7 @@ function printTariffDetails(tariffDetails, isLight = false) {
 // Task to get the version of the Tariff contract
 tariffScope.task("version", "Get the version of the Tariff contract")
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
         const version = await tariff.getVersion();
         console.log(`Tariff contract version: ${version}`);
     });
@@ -132,7 +114,7 @@ tariffScope.task("version", "Get the version of the Tariff contract")
 tariffScope.task("exist", "Check if a tariff exists")
     .addParam("id", "The tariff ID", undefined, types.int)
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
         const exists = await tariff.exist(taskArgs.id);
         console.log(`Tariff with ID ${taskArgs.id} exists: ${exists}`);
     });
@@ -140,7 +122,7 @@ tariffScope.task("exist", "Check if a tariff exists")
 // Task to add a new tariff
 tariffScope.task("add", "Add a new tariff")
     .setAction(async (taskArgs, hre) => {
-        const { tariff, partner_id, signer } = await getTariffContract(hre);
+        const { tariff, partner_id, signer } = await loadContract("Tariff",hre);
 
         // Запрос основных данных о тарифе
         const tariffQuestions = [
@@ -401,7 +383,7 @@ tariffScope.task("add", "Add a new tariff")
 tariffScope.task("set-min-price", "Set the minimum price for a tariff")
     .addParam("id", "The tariff ID", undefined, types.int)
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
 
         const questions = [
             {
@@ -433,7 +415,7 @@ tariffScope.task("set-min-price", "Set the minimum price for a tariff")
 tariffScope.task("set-max-price", "Set the maximum price for a tariff")
     .addParam("id", "The tariff ID", undefined, types.int)
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
 
         const questions = [
             {
@@ -465,7 +447,7 @@ tariffScope.task("set-max-price", "Set the maximum price for a tariff")
 tariffScope.task("set-start-date-time", "Set the start date and time for a tariff")
     .addParam("id", "The tariff ID", undefined, types.int)
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
 
         const questions = [
             {
@@ -486,7 +468,7 @@ tariffScope.task("set-start-date-time", "Set the start date and time for a tarif
 tariffScope.task("set-end-date-time", "Set the end date and time for a tariff")
     .addParam("id", "The tariff ID", undefined, types.int)
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
 
         const questions = [
             {
@@ -507,7 +489,7 @@ tariffScope.task("set-end-date-time", "Set the end date and time for a tariff")
 tariffScope.task("set-energy-mix", "Set the energy mix for a tariff")
     .addParam("id", "The tariff ID", undefined, types.int)
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
 
         // Запрос основных данных о EnergyMix
         const energyMixQuestions = [
@@ -531,7 +513,7 @@ tariffScope.task("set-energy-mix", "Set the energy mix for a tariff")
 
         const energyMixAnswers = await inquirer.prompt(energyMixQuestions);
 
-        // Запрос данных об источниках энергии (EnergySource)
+        
         const energySources = [];
         let addMoreSources = true;
 
@@ -553,7 +535,7 @@ tariffScope.task("set-energy-mix", "Set the energy mix for a tariff")
 
             const sourceAnswers = await inquirer.prompt(sourceQuestions);
 
-            // Преобразование строкового значения EnergySourceCategory в числовое
+            
             const sourceValue = DataTypes.EnergySourceCategory[sourceAnswers.source];
 
             energySources.push({
@@ -572,7 +554,7 @@ tariffScope.task("set-energy-mix", "Set the energy mix for a tariff")
             addMoreSources = addMore;
         }
 
-        // Запрос данных о воздействии на окружающую среду (EnvironmentalImpact)
+        
         const environmentalImpacts = [];
         let addMoreImpacts = true;
 
@@ -594,7 +576,7 @@ tariffScope.task("set-energy-mix", "Set the energy mix for a tariff")
 
             const impactAnswers = await inquirer.prompt(impactQuestions);
 
-            // Преобразование строкового значения EnvironmentalImpactCategory в числовое
+            
             const categoryValue = DataTypes.EnvironmentalImpactCategory[impactAnswers.category];
 
             environmentalImpacts.push({
@@ -613,7 +595,7 @@ tariffScope.task("set-energy-mix", "Set the energy mix for a tariff")
             addMoreImpacts = addMore;
         }
 
-        // Сбор всех данных о EnergyMix
+        
         const energyMix = {
             is_green_energy: energyMixAnswers.is_green_energy,
             energy_sources: energySources,
@@ -622,15 +604,17 @@ tariffScope.task("set-energy-mix", "Set the energy mix for a tariff")
             energy_product_name: energyMixAnswers.energy_product_name,
         };
 
-        // Вызов метода контракта
+        
         await tariff.setEnergyMix(taskArgs.id, energyMix);
         console.log(`Energy mix set for tariff ID ${taskArgs.id}`);
     });
+
+    
 // Task to get the full details of a tariff
 tariffScope.task("get", "Get the full details of a tariff")
     .addParam("id", "The tariff ID", undefined, types.int)
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
         const output = await tariff.get(taskArgs.id);
         printTariffDetails(output, false);
     });
@@ -639,7 +623,7 @@ tariffScope.task("get", "Get the full details of a tariff")
 tariffScope.task("get-light", "Get the light details of a tariff")
     .addParam("id", "The tariff ID", undefined, types.int)
     .setAction(async (taskArgs, hre) => {
-        const { tariff } = await getTariffContract(hre);
+        const { instance : tariff } = await loadContract("Tariff",hre);
         const outputLight = await tariff.getLight(taskArgs.id);
         printTariffDetails(outputLight, true);
     });
