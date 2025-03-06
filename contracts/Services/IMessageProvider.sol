@@ -53,6 +53,7 @@ interface IMessageProvider {
         uint256 date_expire;
         address account;
         address provider;
+        string aes256_key;
         bool provider_approved;
         bool revoked;
     }
@@ -178,14 +179,13 @@ interface IMessageProvider {
     
     /// @notice Handshake initiation
     /// @param handshake Unique handshake identifier
-    /// @param test_message Encryption validation payload
     /// @param account User address
-    event RequestUserHandshakeWithProvider(bytes32 indexed handshake, string test_message, address indexed account);
+    event RequestUserHandshakeWithProvider(bytes32 indexed handshake,  string aes_key, address indexed account);
     
     /// @notice Handshake resolution
     /// @param handshake Handshake identifier
     /// @param status Provider acceptance decision
-    event ResponseUserHandshakeWithProvider(bytes32 indexed handshake, bool status);
+    event ResponseUserHandshakeWithProvider(bytes32 indexed handshake, bool indexed status);
     
     /// @notice Handshake termination
     /// @param handshake Revoked handshake identifier
@@ -224,7 +224,7 @@ interface IMessageProvider {
     function withdraw() external;
     function registerProvider(Provider calldata provider) payable external;
     function getProvider(address provider) external view returns(ProviderData memory);
-    function requestUserHandshakeWithProvider(string calldata aes_key, string calldata test_message, address provider) external;
+    function requestUserHandshakeWithProvider(string calldata aes_key, address provider) external;
     function responseUserHandshakeWithProvider(bytes32 handshake, bool status) external;
     function revokeHandshake(bytes32 handshake)  external;
     function getHandshake(bytes32 handshake) external view returns(Handshake memory);

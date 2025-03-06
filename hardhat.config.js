@@ -14,6 +14,11 @@ module.exports = {
       networkid:544566,
       accounts: {mnemonic: mnemonic}
     },
+    local: {
+      url: "http://localhost:8546",
+      networkid:544566,
+      accounts: {mnemonic: mnemonic}
+    }
   },
   solidity: {
     version: "0.8.24",

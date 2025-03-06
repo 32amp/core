@@ -96,7 +96,6 @@ describe("MessageProvider", function () {
     describe("Handshake Management", function () {
         let handshakeHash;
         const aesKey = "test-aes-key";
-        const testMessage = "encrypted-test-message";
 
         beforeEach(async function () {
             // Register provider
@@ -106,7 +105,6 @@ describe("MessageProvider", function () {
             // Create handshake
             const tx = await service.connect(user).requestUserHandshakeWithProvider(
                 aesKey,
-                testMessage,
                 await provider.getAddress()
             );
             const receipt = await tx.wait();
@@ -120,6 +118,14 @@ describe("MessageProvider", function () {
 
             expect(handshake.provider).to.equal(await provider.getAddress());
         });
+
+        it("Check access to handshake for provider", async function () {
+
+            const handshake = await service.connect(provider).getHandshake(handshakeHash);
+
+            expect(handshake.provider).to.equal(await provider.getAddress());
+        });
+
 
         it("Should allow provider to approve handshake", async function () {
             await service.connect(provider).responseUserHandshakeWithProvider(handshakeHash, true);
@@ -158,7 +164,6 @@ describe("MessageProvider", function () {
             // Create and approve handshake
             const tx = await service.connect(user).requestUserHandshakeWithProvider(
                 "aes-key",
-                "test-message",
                 await provider.getAddress()
             );
             const receipt = await tx.wait();
@@ -216,7 +221,6 @@ describe("MessageProvider", function () {
             // Create and approve handshake
             const tx = await service.connect(user).requestUserHandshakeWithProvider(
                 "aes-key",
-                "test-message",
                 await provider.getAddress()
             );
             const receipt = await tx.wait();
@@ -270,7 +274,6 @@ describe("MessageProvider", function () {
             // Create and approve handshake
             const txx = await service.connect(user).requestUserHandshakeWithProvider(
                 "aes-key",
-                "test-message",
                 await provider.getAddress()
             );
 

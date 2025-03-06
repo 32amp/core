@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./IMessageProvider.sol";
-
+import "hardhat/console.sol";
 
 /**
  * @title Message Provider Contract
@@ -146,11 +146,10 @@ contract MessageProvider is IMessageProvider, Initializable, OwnableUpgradeable 
     /**
      * @notice Initiate a handshake request with provider
      * @param aes_key AES key encrypted with provider's public key
-     * @param test_message Test message encrypted with AES key
      * @param provider Target provider address
      * @dev Generates unique handshake hash using nonce
      */
-    function requestUserHandshakeWithProvider(string calldata aes_key, string calldata test_message, address provider) external {
+    function requestUserHandshakeWithProvider(string calldata aes_key, address provider) external {
         bytes32 handshake = keccak256(abi.encodePacked(provider, aes_key, msg.sender, nonces[msg.sender]++));
 
         if(providers[provider].deposit == 0)
@@ -163,11 +162,12 @@ contract MessageProvider is IMessageProvider, Initializable, OwnableUpgradeable 
             block.timestamp + 365 days,
             msg.sender,
             provider,
+            aes_key,
             false,
             false
         );
 
-        emit RequestUserHandshakeWithProvider(handshake, test_message, msg.sender);
+        emit RequestUserHandshakeWithProvider(handshake, aes_key, msg.sender);
     }
 
     /**
@@ -489,6 +489,10 @@ contract MessageProvider is IMessageProvider, Initializable, OwnableUpgradeable 
 
     function _handshakeAccess(bytes32 handshake) internal view {
         Handshake memory _handshake = handshakes[handshake];
+
+
+        console.logBytes32(handshake);
+        console.log(msg.sender);
 
         bool access = false;
 
