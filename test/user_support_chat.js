@@ -177,7 +177,8 @@ describe("UserSupportChat", function (){
     })
 
     it("setRating", async function(){
-        await this.contracts.UserSupportChat.connect(this.simpleUser).setRating(0,5)
+        let tx = await this.contracts.UserSupportChat.connect(this.simpleUser).setRating(0,5)
+        await tx.wait()
 
         const topic = await this.contracts.UserSupportChat.connect(this.simpleUser).getTopic(0);
 
@@ -196,7 +197,8 @@ describe("UserSupportChat", function (){
             
         }
 
-        await this.contracts.UserSupportChat.connect(this.simpleUser).setReadedMessages(0, readed)
+        let tx = await this.contracts.UserSupportChat.connect(this.simpleUser).setReadedMessages(0, readed)
+        await tx.wait()
 
         const topicMessages = await this.contracts.UserSupportChat.connect(this.simpleUser).getMessages(0, 0);
         

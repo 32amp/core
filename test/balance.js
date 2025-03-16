@@ -32,7 +32,8 @@ describe("Balance", function (){
     })
 
     it("mint,balanceOf", async function(){
-        await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("100"))
+        let tx = await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("100"))
+        await tx.wait()
         
         const totalSupply = await this.contracts.Balance.totalSupply();
         
@@ -44,7 +45,8 @@ describe("Balance", function (){
     })
 
     it("transfer", async function(){
-        await this.contracts.Balance.connect(this.simpleUser).transfer(this.owner.address, ethers.parseEther("10"))
+        let tx = await this.contracts.Balance.connect(this.simpleUser).transfer(this.owner.address, ethers.parseEther("10"))
+        await tx.wait()
 
         const balance = await this.contracts.Balance.balanceOf(this.owner.address);
 
@@ -56,8 +58,8 @@ describe("Balance", function (){
     })
 
     it("transferFrom", async function(){
-        await this.contracts.Balance.transferFrom(this.simpleUser.address,this.owner.address, ethers.parseEther("90"))
-
+        let tx = await this.contracts.Balance.transferFrom(this.simpleUser.address,this.owner.address, ethers.parseEther("90"))
+        await tx.wait()
 
         const balance = await this.contracts.Balance.balanceOf(this.owner.address);
 

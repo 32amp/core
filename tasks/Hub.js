@@ -11,9 +11,6 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
         const config = await loadConfig("config")
         const signer = await accountSelection(hre);
 
-        if (typeof config?.deployed?.MessageProvider == "undefined")
-            throw new Error("MessageProvider not deployed")
-
         if (typeof config?.deployed?.Currencies == "undefined")
             throw new Error("Currencies not deployed")
 
@@ -22,10 +19,6 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
 
 
         const servicesArray = [
-            {
-                name: "MessageProvider",
-                contract_address: config.deployed.MessageProvider
-            },
             {
                 name: "Currencies",
                 contract_address: config.deployed.Currencies
