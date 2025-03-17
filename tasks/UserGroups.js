@@ -12,6 +12,24 @@ userGroupsScope.task("version", "Get the version of the UserGroups contract")
         console.log(`UserGroups contract version: ${version}`);
     });
 
+// Task to upgrade of the UserGroups contract
+userGroupsScope
+    .task("upgrade", "Upgrade of the UserGroups contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance } = await loadContract("UserGroups", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("UserGroups")
+            const deploy = await upgrades.upgradeProxy(instance.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
 // Task to add a new group
 userGroupsScope.task("add-group", "Add a new group to the UserGroups contract")
     .setAction(async (taskArgs, hre) => {

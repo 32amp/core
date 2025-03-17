@@ -41,6 +41,26 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
         return deployed.target;
     });
 
+// Task to upgrade of the Hub contract
+hubScope.task("upgrade", "Upgrade of the Hub contract")
+    .setAction(async (taskArgs, hre) => {
+        const config = await loadConfig("config")
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Hub")
+            const deploy = await upgrades.upgradeProxy(typeof config?.deployed?.Hub, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
 hubScope.task("register-partner", "Registers a new partner")
     .addParam("name", "Partner name (minimum 3 characters)")
     .addParam("country", "Country code (2 characters)")

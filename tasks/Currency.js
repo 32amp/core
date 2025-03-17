@@ -32,6 +32,31 @@ currencyScope.task("deploy", "Deploys a Currencies contract")
         return deployed.target;
     });
 
+
+// Task to upgrade of the Currency contract
+currencyScope.task("upgrade", "Upgrade of the Currency contract")
+    .setAction(async (taskArgs, hre) => {
+        // Load the configuration to get the deployed contract address
+        const config = await loadConfig("config");
+        const currenciesAddress = config.deployed.Currencies;
+
+        if (!currenciesAddress) {
+            throw new Error("Currencies contract not deployed");
+        }
+
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Currency")
+            const deploy = await upgrades.upgradeProxy(currenciesAddress, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });    
+
 // Task to add a new currency
 currencyScope
     .task("add", "Add a new currency")

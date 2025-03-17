@@ -27,7 +27,7 @@ userScope.task("version", "Get the version of the User contract")
         console.log(`Contract version: ${version} with address ${user.target}`);
     });
 
-// Task to get the version of the User contract
+// Task to upgrade of the User contract
 userScope.task("upgrade", "Upgrade of the User contract")
     .setAction(async (taskArgs, hre) => {
         const { instance: user } = await loadContract("User", hre);

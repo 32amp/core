@@ -14,6 +14,23 @@ MobileAppSettingsScope.task("version", "Get the version of the MobileAppSettings
         console.log(`Version: ${version}`);
     });
 
+// Task to upgrade of the MobileAppSettings contract
+MobileAppSettingsScope.task("upgrade", "Upgrade of the MobileAppSettings contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("MobileAppSettings")
+            const deploy = await upgrades.upgradeProxy(mobileAppSettings.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
 MobileAppSettingsScope.task("set-config", "Set the configuration for MobileAppSettings")
     .setAction(async (taskArgs, hre) => {
         const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);

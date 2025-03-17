@@ -45,6 +45,24 @@ evseScope.task("version", "Get contract version")
         console.log("Version: ", await evse.getVersion());
     });
 
+// Task to upgrade of the EVSE contract
+evseScope.task("upgrade", "Upgrade of the EVSE contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance: evse } = await loadContract("EVSE", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("EVSE")
+            const deploy = await upgrades.upgradeProxy(evse.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
+
 evseScope.task("exist", "Check if EVSE exists")
     .addParam("id", "EVSE ID")
     .setAction(async ({ id }, hre) => {

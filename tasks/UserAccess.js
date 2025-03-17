@@ -11,6 +11,24 @@ userAccessScope
         console.log(`UserAccess contract version: ${version}`);
     });
 
+// Task to upgrade of the UserAccess contract
+userAccessScope
+    .task("upgrade", "Upgrade of the UserAccess contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance: userAccess } = await loadContract("UserAccess", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("UserAccess")
+            const deploy = await upgrades.upgradeProxy(userAccess.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
 userAccessScope
     .task("set-module-access", "Set access level for account in module")
     .addOptionalParam("account", "Target account address")

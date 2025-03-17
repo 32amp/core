@@ -11,6 +11,24 @@ locationScope.task("version", "Get the version of the Location contract")
         console.log(`Version: ${version}`);
     });
 
+// Task to upgrade of the Location contract
+locationScope.task("upgrade", "Upgrade of the Location contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance: location } = await loadContract("Location", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Location")
+            const deploy = await upgrades.upgradeProxy(location.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
+
 locationScope.task("add-location", "Add a new location")
     .setAction(async (taskArgs, hre) => {
         const { instance: location } = await loadContract("Location",hre);

@@ -126,6 +126,24 @@ userSupportChatScope.task("version", "Get the version of the UserSupportChat con
         console.log(`UserSupportChat Contract Version: ${version}`);
     });
 
+// Task to upgrade of the UserSupportChat contract
+userSupportChatScope
+    .task("upgrade", "Upgrade of the UserSupportChat contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance } = await loadContract("UserSupportChat", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("UserSupportChat")
+            const deploy = await upgrades.upgradeProxy(instance.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
 // Task to create a new support topic
 userSupportChatScope.task("create-topic", "Create a new support topic")
     .setAction(async (taskArgs, hre) => {

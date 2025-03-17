@@ -10,6 +10,24 @@ cardsScope.task("version", "Get contract version")
         console.log(`Version: ${version}`);
     });
 
+// Task to upgrade of the Cards contract
+cardsScope.task("upgrade", "Upgrade of the Cards contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance: cards } = await loadContract("Cards", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Cards")
+            const deploy = await upgrades.upgradeProxy(cards.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+
+    });
+
+
 cardsScope.task("add-card-request", "Initiate card addition request")
     .setAction(async (_, hre) => {
         const { instance: cards } = await loadContract("Cards",hre);

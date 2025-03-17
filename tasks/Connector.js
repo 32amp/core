@@ -72,6 +72,23 @@ connectorScope.task("version", "Get contract version")
         console.log(`Version: ${version}`);
     });
 
+// Task to upgrade of the Connector contract
+connectorScope.task("upgrade", "Upgrade of the Connector contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance: connector } = await loadContract("Connector", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Connector")
+            const deploy = await upgrades.upgradeProxy(connector.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
 connectorScope.task("add", "Add new connector")
     .addParam("evseid", "EVSE ID to attach connector")
     .setAction(async (taskArgs, hre) => {

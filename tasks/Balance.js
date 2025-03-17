@@ -11,6 +11,24 @@ balanceScope.task("version", "Get contract version")
         console.log(`Version: ${version}`);
     });
 
+// Task to upgrade of the Balance contract
+balanceScope.task("upgrade", "Upgrade of the Balance contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance: balance } = await loadContract("Balance", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Balance")
+            const deploy = await upgrades.upgradeProxy(balance.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+
+    });
+
+
 balanceScope
     .task("total-supply", "Retrieves the total token supply")
     .setAction(async (_, hre) => {

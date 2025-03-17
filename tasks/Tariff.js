@@ -110,6 +110,23 @@ tariffScope.task("version", "Get the version of the Tariff contract")
         console.log(`Tariff contract version: ${version}`);
     });
 
+// Task to upgrade of the Tariff contract
+tariffScope.task("upgrade", "Upgrade of the Tariff contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance: tariff } = await loadContract("Tariff", hre);
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Tariff")
+            const deploy = await upgrades.upgradeProxy(tariff.target, contractFactory)
+
+            await deploy.waitForDeployment()
+            console.log("Success upgrade")
+        } catch (error) {
+            console.log("Failed upgrade: ", error)
+        }
+        
+    });
+
 // Task to check if a tariff exists
 tariffScope.task("exist", "Check if a tariff exists")
     .addParam("id", "The tariff ID", undefined, types.int)
