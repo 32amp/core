@@ -11,11 +11,11 @@ module.exports.deploy = async function(modules, showlog = false) {
         console.log("Deploying Contracts...");
     }
 
-    const Currencies = await deployProxy("Currencies", [], "", false);
+    const Currencies = await deployProxy("Currencies", []);
     retmodules.Hub = await deployProxy("Hub", [[{
         name: "Currencies",
         contract_address: Currencies.target
-    }]], "", false);
+    }]]);
 
     if (showlog) console.log("Hub deployed to:", retmodules.Hub.target);
 
@@ -32,7 +32,7 @@ module.exports.deploy = async function(modules, showlog = false) {
     
     const deployModule = async (moduleName, additionalArgs = []) => {
         if (typeof modules?.[moduleName] !== "undefined") {
-            retmodules[moduleName] = await deployProxy(moduleName, [partner.id, retmodules.Hub.target, ...additionalArgs], "", false);
+            retmodules[moduleName] = await deployProxy(moduleName, [partner.id, retmodules.Hub.target, ...additionalArgs]);
             const tx = await retmodules.Hub.addModule(moduleName, retmodules[moduleName].target);
             await tx.wait();
             if (showlog) console.log(`${moduleName} deployed to:`, retmodules[moduleName].target);
@@ -53,7 +53,7 @@ module.exports.deploy = async function(modules, showlog = false) {
     await deployModule("Balance", [1]);
     await deployModule("Cards");
 
-    retmodules.UserAccess = await deployProxy("UserAccess", [partner.id, retmodules.Hub.target], "", false);
+    retmodules.UserAccess = await deployProxy("UserAccess", [partner.id, retmodules.Hub.target]);
     const tx11 = await retmodules.Hub.addModule("UserAccess", retmodules.UserAccess.target);
     await tx11.wait();
 

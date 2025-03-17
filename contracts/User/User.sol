@@ -50,6 +50,12 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
+
+    modifier onlyAdmin() {
+        _UserAccess().checkAccessModule( msg.sender, "User", uint(IUserAccess.AccessLevel.FOURTH));
+        _;
+    }
+
     /**
      * @notice Initializes the contract with Hub connection
      * @param _partner_id Partner ID from Hub registry
@@ -66,9 +72,12 @@ contract User is IUser, Initializable, OwnableUpgradeable {
      * @notice Adds a new user to the system
      * @param account Address of the user to add
      * @return uint256 New user ID
-     * @custom:reverts OnlyOwner If caller is not the contract owner
+     * @custom:reverts onlyAdmin If caller is not the contract owner
      */
-    function addUser(address account) onlyOwner external returns (uint256) {
+    function addUser(address account) onlyAdmin external returns (uint256) {
+
+        if ( users[account].last_updated != 0) 
+            revert AlreadyExist("User");
 
         usersIndex++;
 
@@ -143,9 +152,9 @@ contract User is IUser, Initializable, OwnableUpgradeable {
      * @notice Sets user phone number
      * @param account Address of the user to update
      * @param phone Phone number to set
-     * @custom:reverts OnlyOwner If caller is not the contract owner
+     * @custom:reverts onlyAdmin If caller is not the contract owner
      */    
-    function setPhone(address account, string calldata phone) onlyOwner external{
+    function setPhone(address account, string calldata phone) onlyAdmin external{
         users[account].phone = phone;
     }
 
@@ -153,9 +162,9 @@ contract User is IUser, Initializable, OwnableUpgradeable {
      * @notice Sets user email address
      * @param account Address of the user to update
      * @param email Email address to set
-     * @custom:reverts OnlyOwner If caller is not the contract owner
+     * @custom:reverts onlyAdmin If caller is not the contract owner
      */    
-    function setEmail(address account, string calldata email) onlyOwner external{
+    function setEmail(address account, string calldata email) onlyAdmin external{
         users[account].email = email;
     }
 

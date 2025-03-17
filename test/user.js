@@ -15,12 +15,15 @@ describe("User", function(){
         this.owner = accounts[0]
         this.simpleUser = accounts[1]
         this.contracts = await deploy({User:true})
-        await this.contracts.User.addUser(this.simpleUser.address)
+        let tx = await this.contracts.User.addUser(this.simpleUser.address)
+        await tx.wait()
     
     })
 
     it("whoami", async function(){
         const whoami =  await this.contracts.User.connect(this.simpleUser).whoami();
+
+        
 
         expect(whoami.enable).to.equal(true);
         expect(whoami.user_type).to.equal(0);
@@ -65,7 +68,7 @@ describe("User", function(){
     })
 
     it("updateCompanyInfo", async function(){
-        await this.contracts.User.connect(this.simpleUser).updateCompanyInfo( ethers.ZeroAddress, {
+        let tx = await this.contracts.User.connect(this.simpleUser).updateCompanyInfo( ethers.ZeroAddress, {
             name: "Portal",
             description: "Wow",
             inn:"1212",
@@ -78,6 +81,8 @@ describe("User", function(){
             bank_inn: "51442456",
             bank_kpp_account: "787878"
         })
+
+        await tx.wait()
 
         let info = await this.contracts.User.connect(this.simpleUser).getCompanyInfo(ethers.ZeroAddress)
         
