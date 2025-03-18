@@ -1,9 +1,26 @@
+const { accountSelection } = require("./helpers/promt_selection");
+const inquirer = require("inquirer");
+
+
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
     const accounts = await hre.ethers.getSigners();
   
     for (const account of accounts) {
       console.log(account.address);
     }
+});
+
+
+task("sign-message", "Sign message", async (taskArgs, hre) => {
+
+    const signer = await accountSelection(hre);
+    const answer = await inquirer.prompt([{
+      type: "input",
+      name: "message",
+      message: "Enter message:",
+    }]);
+
+    console.log("Sign message:",await signer.signMessage(answer.message))
 });
 
 task("getBalance", "get address balance")
