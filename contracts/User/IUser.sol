@@ -94,6 +94,9 @@ interface IUser is IBaseErrors {
     function addCar(address account, CarData calldata car_data) external;
     function removeCar(address account, uint _index) external;
     function getCars(address account) external view returns(CarData[] memory);
+    function updateBaseData( address account, string calldata first_name, string calldata last_name, string calldata language_code) external;
+    function setPhone(address account, string calldata phone) external;
+    function setEmail(address account, string calldata email) external;
     function updateCompanyInfo(address account, Company calldata company_data) external;
     function getCompanyInfo(address account) external view returns(Company memory);
 }
