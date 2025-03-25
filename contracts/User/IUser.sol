@@ -97,6 +97,7 @@ interface IUser is IBaseErrors {
     function updateBaseData( address account, string calldata first_name, string calldata last_name, string calldata language_code) external;
     function setPhone(address account, string calldata phone) external;
     function setEmail(address account, string calldata email) external;
+    function setTgId(address account, string calldata tg_id) external;
     function updateCompanyInfo(address account, Company calldata company_data) external;
     function getCompanyInfo(address account) external view returns(Company memory);
 }

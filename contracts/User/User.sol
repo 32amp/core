@@ -168,6 +168,16 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         users[account].email = email;
     }
 
+        /**
+     * @notice Sets user tg_id
+     * @param account Address of the user to update
+     * @param tg_id Telegram id to set
+     * @custom:reverts onlyAdmin If caller is not the contract owner
+     */    
+    function setTgId(address account, string calldata tg_id) onlyAdmin external{
+        users[account].tg_id = tg_id;
+    }
+
     /**
      * @notice Updates user profile data
      * @param account Address of the user to update
