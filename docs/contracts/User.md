@@ -68,6 +68,12 @@ Returns the current contract version
 | ---- | ---- | ----------- |
 | [0] | string | string Contract version identifier |
 
+### onlyAdmin
+
+```solidity
+modifier onlyAdmin()
+```
+
 ### initialize
 
 ```solidity
@@ -205,6 +211,21 @@ Sets user email address
 | ---- | ---- | ----------- |
 | account | address | Address of the user to update |
 | email | string | Email address to set |
+
+### setTgId
+
+```solidity
+function setTgId(address account, string tg_id) external
+```
+
+Sets user tg_id
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| account | address | Address of the user to update |
+| tg_id | string | Telegram id to set |
 
 ### updateBaseData
 

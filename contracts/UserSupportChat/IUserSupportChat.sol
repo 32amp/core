@@ -61,8 +61,8 @@ interface IUserSupportChat is IBaseErrors {
     /**
      * @title Message Input Structure
      * @notice Data required to create new messages
-     * @param text Message content (max 1000 characters)
-     * @param image IPFS hash of attached image
+     * @param text Encrypted Message content (max 1000 characters)
+     * @param image Encrypted IPFS hash of attached image
      * @param reply_to ID of message being replied to (0 for new)
      */
     struct InputMessage {
@@ -74,8 +74,8 @@ interface IUserSupportChat is IBaseErrors {
     /**
      * @title User Message Structure
      * @notice Complete message metadata and content
-     * @param text Message content
-     * @param image IPFS hash of attached media
+     * @param text Encrypted message content 
+     * @param image Encrypted IPFS hash of attached media
      * @param reply_to Reference to previous message
      * @param create_at UNIX timestamp of creation
      * @param readed Read status indicator

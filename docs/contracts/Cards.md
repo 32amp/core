@@ -93,6 +93,14 @@ modifier onlyAdmin()
 
 Access control modifier requiring FOURTH level privileges
 
+### onlyUser
+
+```solidity
+modifier onlyUser()
+```
+
+Access control modifier requiring for check user exist
+
 ### addCardRequest
 
 ```solidity
@@ -122,7 +130,7 @@ Responds to a card addition request
 ### addCard
 
 ```solidity
-function addCard(address account, uint256 request_id, struct ICards.Card card) external
+function addCard(address account, uint256 request_id, struct ICards.CardInfo card) external
 ```
 
 Adds a new card for a user
@@ -133,7 +141,7 @@ Adds a new card for a user
 | ---- | ---- | ----------- |
 | account | address | User address |
 | request_id | uint256 |  |
-| card | struct ICards.Card | Card data structure |
+| card | struct ICards.CardInfo | CardInfo data structure |
 
 ### setAutoPaySettings
 
@@ -162,7 +170,7 @@ Disables autopay for a user
 ### removeCard
 
 ```solidity
-function removeCard(uint256 _index) external
+function removeCard(bytes32 card_id) external
 ```
 
 Removes a card by index
@@ -171,7 +179,7 @@ Removes a card by index
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| _index | uint256 | Card index to remove |
+| card_id | bytes32 | Card id to remove |
 
 ### writeOffRequest
 
@@ -190,7 +198,7 @@ Initiates a write-off request
 ### writeOffResponse
 
 ```solidity
-function writeOffResponse(address account, uint256 request_id, string card_id, uint256 error_code, bool status, string message, string amount) external
+function writeOffResponse(address account, uint256 request_id, bytes32 card_id, uint256 error_code, bool status, string message, string amount) external
 ```
 
 Responds to a write-off request
@@ -201,19 +209,19 @@ Responds to a write-off request
 | ---- | ---- | ----------- |
 | account | address | User address |
 | request_id | uint256 | Request ID |
-| card_id | string | Card ID used for write-off |
+| card_id | bytes32 | Card ID used for write-off |
 | error_code | uint256 | Response code from bank |
 | status | bool | Response status |
 | message | string | Response message |
 | amount | string | Write-off amount |
 
-### _getPrimaryCard
+### getPrimaryCard
 
 ```solidity
-function _getPrimaryCard(address account) internal view returns (string)
+function getPrimaryCard(address account) public view returns (struct ICards.Card)
 ```
 
-_Retrieves the primary card index for a user_
+_Retrieves the primary card for a user_
 
 #### Parameters
 
@@ -225,7 +233,7 @@ _Retrieves the primary card index for a user_
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | string | uint256 Index of the primary card |
+| [0] | struct ICards.Card | Card of the primary card |
 
 ### getCards
 
@@ -266,4 +274,10 @@ Retrieves user autopay settings
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | struct ICards.AutopaySettings | AutopaySettings Autopay configuration |
+
+### _checkCardExist
+
+```solidity
+function _checkCardExist(address account, bytes32 card_id) internal view returns (bool)
+```
 

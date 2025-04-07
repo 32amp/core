@@ -99,6 +99,14 @@ _Checks topic existence and user permissions_
 | ---- | ---- | ----------- |
 | topic_id | uint256 | ID of the topic to access |
 
+### onlyUser
+
+```solidity
+modifier onlyUser()
+```
+
+Access control modifier requiring for check user exist
+
 ### createTopic
 
 ```solidity

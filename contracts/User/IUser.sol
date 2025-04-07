@@ -17,12 +17,12 @@ interface IUser is IBaseErrors {
     /**
      * @dev Struct representing a user.
      * @param id The unique identifier for the user.
-     * @param tg_id The Telegram ID of the user.
-     * @param phone The phone number of the user.
-     * @param email The email address of the user.
-     * @param first_name The first name of the user.
-     * @param last_name The last name of the user.
-     * @param language_code The language code preferred by the user (e.g., "en", "ru").
+     * @param tg_id Encrypted the Telegram ID of the user.
+     * @param phone Encrypted the phone number of the user.
+     * @param email Encrypted the email address of the user.
+     * @param first_name Encrypted the first name of the user.
+     * @param last_name Encrypted the last name of the user.
+     * @param language_code Encrypted the language code preferred by the user (e.g., "en", "ru").
      * @param user_type The type of the user (either DEFAULT or COMPANY).
      * @param enable A boolean indicating whether the user account is enabled.
      * @param last_updated The timestamp of the last update to the user's information.
@@ -42,17 +42,17 @@ interface IUser is IBaseErrors {
 
     /**
      * @dev Struct representing company-specific information for a user.
-     * @param name The name of the company.
-     * @param description A brief description of the company.
-     * @param inn The Taxpayer Identification Number (INN) of the company.
-     * @param kpp The Tax Registration Reason Code (KPP) of the company.
-     * @param ogrn The Primary State Registration Number (OGRN) of the company.
-     * @param bank_account The bank account number of the company.
-     * @param bank_name The name of the bank where the company has an account.
-     * @param bank_bik The Bank Identifier Code (BIK) of the company's bank.
-     * @param bank_corr_account The correspondent account number of the company's bank.
-     * @param bank_inn The INN of the company's bank.
-     * @param bank_kpp_account The KPP associated with the company's bank account.
+     * @param name Encrypted the name of the company.
+     * @param description Encrypted a brief description of the company.
+     * @param inn Encrypted the Taxpayer Identification Number (INN) of the company.
+     * @param kpp Encrypted the Tax Registration Reason Code (KPP) of the company.
+     * @param ogrn Encrypted the Primary State Registration Number (OGRN) of the company.
+     * @param bank_account Encrypted the bank account number of the company.
+     * @param bank_name Encrypted the name of the bank where the company has an account.
+     * @param bank_bik Encrypted the Bank Identifier Code (BIK) of the company's bank.
+     * @param bank_corr_account Encrypted the correspondent account number of the company's bank.
+     * @param bank_inn Encrypted the INN of the company's bank.
+     * @param bank_kpp_account Encrypted the KPP associated with the company's bank account.
      */
     struct Company {
         string name;
@@ -70,8 +70,8 @@ interface IUser is IBaseErrors {
 
     /**
      * @dev Struct representing data related to a car owned by a user.
-     * @param brand The brand of the car (e.g., "Toyota").
-     * @param model The model of the car (e.g., "Camry").
+     * @param brand Encrypted the brand of the car (e.g., "Toyota").
+     * @param model Encrypted the model of the car (e.g., "Camry").
      * @param connectors An array of connector types supported by the car (e.g., charging connectors).
      */
     struct CarData {

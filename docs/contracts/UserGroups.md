@@ -85,6 +85,14 @@ Returns contract version
 | ---- | ---- | ----------- |
 | [0] | string | string Constant version identifier |
 
+### onlyUser
+
+```solidity
+modifier onlyUser()
+```
+
+Access control modifier requiring for check user exist
+
 ### addGroup
 
 ```solidity

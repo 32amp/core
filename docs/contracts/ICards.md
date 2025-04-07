@@ -36,13 +36,13 @@ Emitted when an admin responds to a card addition request
 | account | address | Address of the user who made the request |
 | request_id | uint256 | Unique identifier for the request |
 | status | bool | Response status (true for success, false for failure) |
-| message | string | Response message or error details |
-| payment_endpoint | string | URL for payment processing (if applicable) |
+| message | string | Encrypted response message or error details |
+| payment_endpoint | string | Encrypted URL for payment processing (if applicable) |
 
 ### AddCardSuccess
 
 ```solidity
-event AddCardSuccess(address account, uint256 request_id, uint256 card_id)
+event AddCardSuccess(address account, uint256 request_id, bytes32 card_id)
 ```
 
 Emitted when a card is successfully added to a user's account
@@ -53,12 +53,12 @@ Emitted when a card is successfully added to a user's account
 | ---- | ---- | ----------- |
 | account | address | Address of the user |
 | request_id | uint256 |  |
-| card_id | uint256 | Index of the newly added card |
+| card_id | bytes32 | Index of the newly added card |
 
 ### WriteOffRequest
 
 ```solidity
-event WriteOffRequest(address account, uint256 request_id, string card_id, string amount)
+event WriteOffRequest(address account, uint256 request_id, bytes32 card_id, string amount)
 ```
 
 Emitted when a user initiates a write-off request
@@ -69,13 +69,13 @@ Emitted when a user initiates a write-off request
 | ---- | ---- | ----------- |
 | account | address | Address of the user |
 | request_id | uint256 | Unique identifier for the request |
-| card_id | string | Id of the card used for the write-off |
-| amount | string | Amount to be written off |
+| card_id | bytes32 | Id of the card used for the write-off |
+| amount | string | Encrypted amount to be written off |
 
 ### WriteOffResponse
 
 ```solidity
-event WriteOffResponse(address account, uint256 request_id, string card_id, uint256 error_code, bool status, string message, string amount)
+event WriteOffResponse(address account, uint256 request_id, bytes32 card_id, uint256 error_code, bool status, string message, string amount)
 ```
 
 Emitted when an admin responds to a write-off request
@@ -86,13 +86,13 @@ Emitted when an admin responds to a write-off request
 | ---- | ---- | ----------- |
 | account | address | Address of the user |
 | request_id | uint256 | Unique identifier for the request |
-| card_id | string | Index of the card used for the write-off |
+| card_id | bytes32 | Index of the card used for the write-off |
 | error_code | uint256 | Response code from bank |
 | status | bool | Response status (true for success, false for failure) |
-| message | string | Response message or error details |
-| amount | string | Amount written off |
+| message | string | Encrypted response message or error details |
+| amount | string | Encrypted amount written off |
 
-### Card
+### CardInfo
 
 Contains details of a user's payment card
 
@@ -102,12 +102,24 @@ Contains details of a user's payment card
 | ---- | ---- | ----------- |
 
 ```solidity
-struct Card {
+struct CardInfo {
   string rebill_id;
   string provider;
-  string card_id;
-  string card_number;
+  string card_type;
+  string expire_year;
+  string expire_month;
+  string first6;
+  string last4;
+}
+```
+
+### Card
+
+```solidity
+struct Card {
+  bytes32 id;
   bool is_primary;
+  struct ICards.CardInfo card;
 }
 ```
 
@@ -150,7 +162,7 @@ function addCardResponse(address account, uint256 request_id, bool status, strin
 ### addCard
 
 ```solidity
-function addCard(address account, uint256 request_id, struct ICards.Card card) external
+function addCard(address account, uint256 request_id, struct ICards.CardInfo card) external
 ```
 
 ### setAutoPaySettings
@@ -168,13 +180,19 @@ function disableAutoPay() external
 ### removeCard
 
 ```solidity
-function removeCard(uint256 _index) external
+function removeCard(bytes32 card_id) external
 ```
 
 ### getCards
 
 ```solidity
 function getCards(address account) external view returns (struct ICards.Card[])
+```
+
+### getPrimaryCard
+
+```solidity
+function getPrimaryCard(address account) external view returns (struct ICards.Card)
 ```
 
 ### getAutoPaymentSettings
@@ -192,6 +210,6 @@ function writeOffRequest(string amount) external
 ### writeOffResponse
 
 ```solidity
-function writeOffResponse(address account, uint256 request_id, string card_id, uint256 error_code, bool status, string message, string amount) external
+function writeOffResponse(address account, uint256 request_id, bytes32 card_id, uint256 error_code, bool status, string message, string amount) external
 ```
 

@@ -27,7 +27,7 @@ _Struct representing a user._
 ```solidity
 struct User {
   uint256 id;
-  uint256 tg_id;
+  string tg_id;
   string phone;
   string email;
   string first_name;
@@ -113,6 +113,12 @@ function addUser(address account) external returns (uint256)
 function whoami() external view returns (struct IUser.User)
 ```
 
+### exist
+
+```solidity
+function exist(address account) external view
+```
+
 ### getUser
 
 ```solidity
@@ -135,6 +141,30 @@ function removeCar(address account, uint256 _index) external
 
 ```solidity
 function getCars(address account) external view returns (struct IUser.CarData[])
+```
+
+### updateBaseData
+
+```solidity
+function updateBaseData(address account, string first_name, string last_name, string language_code) external
+```
+
+### setPhone
+
+```solidity
+function setPhone(address account, string phone) external
+```
+
+### setEmail
+
+```solidity
+function setEmail(address account, string email) external
+```
+
+### setTgId
+
+```solidity
+function setTgId(address account, string tg_id) external
 ```
 
 ### updateCompanyInfo

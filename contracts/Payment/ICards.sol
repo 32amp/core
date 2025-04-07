@@ -24,8 +24,8 @@ interface ICards is IBaseErrors {
      * @param account Address of the user who made the request
      * @param request_id Unique identifier for the request
      * @param status Response status (true for success, false for failure)
-     * @param message Response message or error details
-     * @param payment_endpoint URL for payment processing (if applicable)
+     * @param message Encrypted response message or error details
+     * @param payment_endpoint Encrypted URL for payment processing (if applicable)
      */
     event AddCardResponse(
         address indexed account,
@@ -51,7 +51,7 @@ interface ICards is IBaseErrors {
      * @param account Address of the user
      * @param request_id Unique identifier for the request
      * @param card_id Id of the card used for the write-off
-     * @param amount Amount to be written off
+     * @param amount Encrypted amount to be written off
      */
     event WriteOffRequest(
         address indexed account,
@@ -67,8 +67,8 @@ interface ICards is IBaseErrors {
      * @param card_id Index of the card used for the write-off
      * @param error_code Response code from bank
      * @param status Response status (true for success, false for failure)
-     * @param message Response message or error details
-     * @param amount Amount written off
+     * @param message Encrypted response message or error details
+     * @param amount Encrypted amount written off
      */
     event WriteOffResponse(
         address indexed account,
@@ -76,18 +76,20 @@ interface ICards is IBaseErrors {
         bytes32 card_id,
         uint256 indexed error_code,
         bool status,
-        string message,
+        string message, 
         string amount
     );
 
     /**
      * @title Card Data Structure
      * @notice Contains details of a user's payment card
-     * @param session_id Session identifier for the card
-     * @param rebill_id Rebill identifier for recurring payments
-     * @param provider Payment provider name
-     * @param card_id Unique identifier for the card
-     * @param card_number Masked or partial card number
+     * @param rebill_id Encrypted rebill identifier for recurring payments
+     * @param provider Encrypted payment provider name
+     * @param card_type Encrypted type of card
+     * @param expire_year Encrypted expire of year
+     * @param expire_month Encrypted exire of month
+     * @param first6 Encrypted first 6 number 
+     * @param last4 Encrypted last 4 number
      * @param is_primary Flag indicating if the card is the primary payment method
      */
     struct CardInfo {

@@ -62,14 +62,6 @@ mapping(address => uint256) _balances
 
 _Account balances storage_
 
-### _transfers
-
-```solidity
-mapping(uint256 => struct IBalance.TransferData) _transfers
-```
-
-_Transfer history storage_
-
 ### initialize
 
 ```solidity
@@ -101,6 +93,14 @@ modifier onlyAdmin()
 ```
 
 Access control modifier requiring FOURTH level privileges
+
+### onlyUser
+
+```solidity
+modifier onlyUser()
+```
+
+Access control modifier requiring for check user exist
 
 ### getCurrency
 
