@@ -582,6 +582,7 @@ userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
                     image: "e:" + encryptImage,
                     reply_to: parseInt(reply_to),
                 };
+                
                 try {
                     await userSupportChat.sendMessage(topic_id, message);
                     console.log("Message sent!");
