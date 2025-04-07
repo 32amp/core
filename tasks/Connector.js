@@ -67,7 +67,7 @@ async function promptConnectorParams() {
 
 connectorScope.task("version", "Get contract version")
     .setAction(async (_, hre) => {
-        const { instance: connector } = await loadContract("Connector",hre);
+        const { instance: connector } = await loadContract("Connector", hre);
         const version = await connector.getVersion();
         console.log(`Version: ${version}`);
     });
@@ -86,13 +86,13 @@ connectorScope.task("upgrade", "Upgrade of the Connector contract")
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
+
     });
 
 connectorScope.task("add", "Add new connector")
     .addParam("evseid", "EVSE ID to attach connector")
     .setAction(async (taskArgs, hre) => {
-        const { instance: connector, partner_id, signer } = await loadContract("Connector",hre);
+        const { instance: connector, partner_id, signer } = await loadContract("Connector", hre);
         const answers = await promptConnectorParams();
 
         const connectorData = {
@@ -105,55 +105,82 @@ connectorScope.task("add", "Add new connector")
             terms_and_conditions_url: answers.terms_and_conditions_url
         };
 
-        const tx = await connector.add(connectorData, taskArgs.evseid);
-        console.log(`Transaction hash: ${tx.hash}`);
-        await tx.wait();
-        console.log(`Connector added to EVSE ${taskArgs.evseid} by ${signer.address}`);
+
+
+        try {
+            const tx = await connector.add(connectorData, taskArgs.evseid);
+            console.log(`Transaction hash: ${tx.hash}`);
+            await tx.wait();
+            console.log(`Connector added to EVSE ${taskArgs.evseid} by ${signer.address}`);
+        } catch (error) {
+            const decodedError = connector.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 connectorScope.task("get", "Get connector details")
     .addParam("id", "Connector ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: connector } = await loadContract("Connector",hre);
-        const result = await connector.get(taskArgs.id);
+        const { instance: connector } = await loadContract("Connector", hre);
 
-        console.log("\nConnector Details:");
-        console.log(`- ID: ${result.id}`);
-        console.log(`- Last Updated: ${new Date(Number(result.last_updated) * 1000).toISOString()}`);
-        console.log(`- Status: ${reverseMapEnum("ConnectorStatus", result.status)}`);
+        try {
 
-        console.log("\nTechnical Specifications:");
-        console.log(`- Type: ${reverseMapEnum("ConnectorTypes", result.connector.standard)}`);
-        console.log(`- Format: ${reverseMapEnum("ConnectorFormat", result.connector.format)}`);
-        console.log(`- Power Type: ${reverseMapEnum("PowerType", result.connector.power_type)}`);
-        console.log(`- Max Voltage: ${result.connector.max_voltage}V`);
-        console.log(`- Max Amperage: ${result.connector.max_amperage}A`);
-        console.log(`- Max Power: ${result.connector.max_electric_power}W`);
-        console.log(`- Terms URL: ${result.connector.terms_and_conditions_url}`);
+            const result = await connector.get(taskArgs.id);
 
-        console.log("\nAssociated Tariff:");
-        if (Number(result.tariff.id) === 0) {
-            console.log("- No tariff assigned");
-        } else {
-            console.log(`- Tariff ID: ${result.tariff.id}`);
+            console.log("\nConnector Details:");
+            console.log(`- ID: ${result.id}`);
+            console.log(`- Last Updated: ${new Date(Number(result.last_updated) * 1000).toISOString()}`);
+            console.log(`- Status: ${reverseMapEnum("ConnectorStatus", result.status)}`);
+
+            console.log("\nTechnical Specifications:");
+            console.log(`- Type: ${reverseMapEnum("ConnectorTypes", result.connector.standard)}`);
+            console.log(`- Format: ${reverseMapEnum("ConnectorFormat", result.connector.format)}`);
+            console.log(`- Power Type: ${reverseMapEnum("PowerType", result.connector.power_type)}`);
+            console.log(`- Max Voltage: ${result.connector.max_voltage}V`);
+            console.log(`- Max Amperage: ${result.connector.max_amperage}A`);
+            console.log(`- Max Power: ${result.connector.max_electric_power}W`);
+            console.log(`- Terms URL: ${result.connector.terms_and_conditions_url}`);
+
+            console.log("\nAssociated Tariff:");
+            if (Number(result.tariff.id) === 0) {
+                console.log("- No tariff assigned");
+            } else {
+                console.log(`- Tariff ID: ${result.tariff.id}`);
+            }
+
+        } catch (error) {
+            const decodedError = connector.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
         }
+
     });
 
 connectorScope.task("set-tariffs", "Set connector tariffs")
     .addParam("id", "Connector ID")
     .addParam("tariff", "Tariff ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: connector } = await loadContract("Connector",hre);
-        const tx = await connector.setTariffs(taskArgs.id, taskArgs.tariff);
-        console.log(`Updating tariffs in tx: ${tx.hash}`);
-        const receipt = await tx.wait();
-        console.log(`Tariffs updated in block ${receipt.blockNumber}`);
+
+        const { instance: connector } = await loadContract("Connector", hre);
+        try {
+            const tx = await connector.setTariffs(taskArgs.id, taskArgs.tariff);
+            console.log(`Updating tariffs in tx: ${tx.hash}`);
+            const receipt = await tx.wait();
+            console.log(`Tariffs updated in block ${receipt.blockNumber}`);
+        } catch (error) {
+            const decodedError = connector.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 connectorScope.task("exist", "Check connector existence")
     .addParam("id", "Connector ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: connector } = await loadContract("Connector",hre);
-        const exists = await connector.exist(taskArgs.id);
-        console.log(`Connector ${taskArgs.id} exists: ${exists ? "Yes" : "No"}`);
+        const { instance: connector } = await loadContract("Connector", hre);
+        try {
+            const exists = await connector.exist(taskArgs.id);
+            console.log(`Connector ${taskArgs.id} exists: ${exists ? "Yes" : "No"}`);
+        } catch (error) {
+            const decodedError = connector.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
