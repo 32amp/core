@@ -1,12 +1,14 @@
 const inquirer = require("inquirer");
 const { loadConfig } = require("./configs")
+const {loadAdditionalAccounts} = require("./manage_additional_accounts")
 
 async function accountSelection(hre) {
     const signers = await hre.ethers.getSigners();
     if (!signers.length) throw new Error("No accounts available");
+    const additionalAccounts = await loadAdditionalAccounts(hre)
 
     const addressMap = await Promise.all(
-        signers.map(async (signer, index) => ({
+        signers.concat(additionalAccounts).map(async (signer, index) => ({
             name: `${index + 1}. ${await signer.getAddress()}`,
             value: signer
         }))

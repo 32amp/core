@@ -43,7 +43,7 @@ interface ICards is IBaseErrors {
     event AddCardSuccess(
         address indexed account,
         uint256 indexed request_id,
-        uint256 card_id
+        bytes32 card_id
     );
 
     /**
@@ -56,7 +56,7 @@ interface ICards is IBaseErrors {
     event WriteOffRequest(
         address indexed account,
         uint256 request_id,
-        string card_id,
+        bytes32 card_id,
         string amount
     );
 
@@ -73,7 +73,7 @@ interface ICards is IBaseErrors {
     event WriteOffResponse(
         address indexed account,
         uint256 request_id,
-        string card_id,
+        bytes32 card_id,
         uint256 indexed error_code,
         bool status,
         string message,
@@ -90,12 +90,20 @@ interface ICards is IBaseErrors {
      * @param card_number Masked or partial card number
      * @param is_primary Flag indicating if the card is the primary payment method
      */
-    struct Card {
+    struct CardInfo {
         string rebill_id;
         string provider;
-        string card_id;
-        string card_number;
+        string card_type;
+        string expire_year;
+        string expire_month;
+        string first6;
+        string last4;
+    }
+
+    struct Card {
+        bytes32 id;
         bool is_primary;
+        CardInfo card;
     }
 
     /**
@@ -116,12 +124,13 @@ interface ICards is IBaseErrors {
     function getVersion() external pure returns(string memory);
     function addCardRequest() external;
     function addCardResponse(address account, uint256 request_id, bool status, string calldata message, string calldata paymentEndpoint) external;
-    function addCard(address account, uint256 request_id, Card calldata card) external;
+    function addCard(address account, uint256 request_id, CardInfo calldata card) external;
     function setAutoPaySettings(uint256 amount, uint256 monthly_limit, uint256 threshold) external;
     function disableAutoPay() external;
-    function removeCard(uint _index) external;
+    function removeCard(bytes32 card_id) external;
     function getCards(address account) external view returns(Card[] memory);
+    function getPrimaryCard(address account) external view returns(Card memory);
     function getAutoPaymentSettings(address account) external view returns(AutopaySettings memory);
     function writeOffRequest(string calldata amount) external;
-    function writeOffResponse(address account, uint256 request_id, string calldata card_id, uint256 error_code, bool status, string calldata message, string calldata amount )  external;
+    function writeOffResponse(address account, uint256 request_id, bytes32 card_id, uint256 error_code, bool status, string calldata message, string calldata amount )  external;
 }

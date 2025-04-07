@@ -7,6 +7,8 @@ import "../User/IUserAccess.sol";
 import "../User/IUser.sol";
 import "./ICards.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Cards Management Contract
  * @notice Handles user payment cards and autopay settings
@@ -109,20 +111,30 @@ contract Cards is ICards, Initializable {
     /**
      * @notice Adds a new card for a user
      * @param account User address
-     * @param card Card data structure
+     * @param card CardInfo data structure
      * @custom:reverts "AccessDeniedLevel:Four" if unauthorized
      * @custom:emits AddCardSuccess On successful card addition
      */
-    function addCard(address account, uint256 request_id, Card calldata card) onlyAdmin() external {
+    function addCard(address account, uint256 request_id, CardInfo calldata card) onlyAdmin() external {
+        bytes32 id = keccak256(abi.encode(card));
+
+        if(_checkCardExist(account,id))
+            revert AlreadyExist("Card");
 
         if(cards[account].length > 0)
             for (uint i = 0; i < cards[account].length; i++) {
                 cards[account][i].is_primary = false;
             }
 
-        cards[account].push(card);
+        Card memory newcard;
+
+        newcard.id = id;
+        newcard.card = card;
+        newcard.is_primary = true;
+
+        cards[account].push(newcard);
         
-        emit AddCardSuccess(account, request_id, cards[account].length);
+        emit AddCardSuccess(account, request_id, id);
     }
 
     /**
@@ -149,13 +161,24 @@ contract Cards is ICards, Initializable {
     
     /**
      * @notice Removes a card by index
-     * @param _index Card index to remove
+     * @param card_id Card id to remove
      * @custom:reverts "ObjectNotFound:Card" if invalid index
      */    
-    function removeCard(uint _index) onlyUser() external {
+    function removeCard(bytes32 card_id) onlyUser() external {
 
 
-        if (_index >= cards[msg.sender].length) {
+        uint256 _index = 999;
+
+        for (uint i = 0; i < cards[msg.sender].length; i++) {
+            if(cards[msg.sender][i].id == card_id){
+                _index = i;
+                break;
+            }
+            
+        }
+
+
+        if (_index == 999) {
             revert ObjectNotFound("Card", _index);
         }
 
@@ -187,9 +210,9 @@ contract Cards is ICards, Initializable {
 
         write_off_request_id[msg.sender]++;
 
-        string memory card_id = _getPrimaryCard(msg.sender);
+        Card memory card = getPrimaryCard(msg.sender);
 
-        emit WriteOffRequest(msg.sender, write_off_request_id[msg.sender], card_id, amount);
+        emit WriteOffRequest(msg.sender, write_off_request_id[msg.sender], card.id, amount);
     }
 
     /**
@@ -204,23 +227,26 @@ contract Cards is ICards, Initializable {
      * @custom:reverts "AccessDeniedLevel:Four" if unauthorized
      * @custom:emits WriteOffResponse On response submission
      */
-    function writeOffResponse(address account, uint256 request_id, string calldata card_id, uint256 error_code, bool status, string calldata message, string calldata amount ) onlyAdmin()  external {
+    function writeOffResponse(address account, uint256 request_id, bytes32 card_id, uint256 error_code, bool status, string calldata message, string calldata amount ) onlyAdmin()  external {
         emit WriteOffResponse(account, request_id, card_id, error_code, status, message, amount);
     }
 
     /**
-     * @dev Retrieves the primary card index for a user
+     * @dev Retrieves the primary card for a user
      * @param account User address
-     * @return uint256 Index of the primary card
+     * @return Card of the primary card
      */    
-    function _getPrimaryCard(address account) internal view returns(string memory){
+    function getPrimaryCard(address account) public view returns(Card memory){
         for (uint i = 0; i < cards[account].length; i++) {
             
             if(cards[account][i].is_primary){
-                return cards[account][i].card_id;
+                return cards[account][i];
             }
         }
-        return "";
+
+        Card memory empty;
+
+        return empty; 
     }
 
     /**
@@ -239,5 +265,16 @@ contract Cards is ICards, Initializable {
      */    
     function getAutoPaymentSettings(address account) external view returns(AutopaySettings memory){
         return autopay_settings[account];
+    }
+
+    function _checkCardExist(address account, bytes32 card_id) internal view returns (bool) {
+        for (uint i = 0; i < cards[account].length; i++) {
+            Card memory card = cards[account][i];
+
+            if(card.id == card_id){
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -1,7 +1,10 @@
 const cardsScope = scope("Cards", "Tasks for Cards module");
 const { getEventArguments } = require("../utils/utils");
 const inquirer = require("inquirer");
+const { loadConfig } = require("./helpers/configs")
 const { loadContract } = require("./helpers/load_contract");
+const { encryptAESGCM } = require("./helpers/encrypt_aes");
+const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
 
 cardsScope.task("version", "Get contract version")
     .setAction(async (_, hre) => {
@@ -27,6 +30,29 @@ cardsScope.task("upgrade", "Upgrade of the Cards contract")
 
     });
 
+// Task to deploy of the Cards contract
+cardsScope.task("deploy", "Deploy of the Cards contract")
+    .setAction(async (taskArgs, hre) => {
+        const config = await loadConfig("config")
+        const signer = await accountSelection(hre);
+        const partner_id = await partnerSelection();
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Cards")
+            const contractFactorySigner = contractFactory.connect(signer);
+            const deploy = await upgrades.deployProxy(contractFactorySigner, [partner_id,config.deployed.Hub], { initializer: "initialize" })
+
+            const deployed = await deploy.waitForDeployment()
+            console.log("Success deploy with address:", deployed.target)
+        } catch (error) {
+            console.log("Failed deploy: ", error)
+        }
+
+    });
+
 
 cardsScope.task("add-card-request", "Initiate card addition request")
     .setAction(async (_, hre) => {
@@ -35,6 +61,7 @@ cardsScope.task("add-card-request", "Initiate card addition request")
         const eventArgs = await getEventArguments(tx, "AddCardRequest");
 
         console.log(`AddCardRequest tx hash: ${tx.hash}`);
+
         if (eventArgs) {
             console.log("AddCardRequest event:", {
                 account: eventArgs.account,
@@ -86,9 +113,9 @@ cardsScope.task("add-card", "Add card to user account (admin)")
         const cardAnswers = await inquirer.prompt([
             { name: 'rebill_id', message: 'Rebill ID:' },
             { name: 'provider', message: 'Provider name:' },
-            { name: 'card_id', message: 'Card ID:' },
+            { name: 'card_type', message: 'Card type:' },
             { name: 'card_number', message: 'Masked card number:' },
-            { name: 'is_primary', message: 'Set as primary?', type: 'confirm' }
+            { name: 'expire_date', message: 'Expire Date:' },
         ]);
 
         const tx = await cards.addCard(
@@ -97,9 +124,9 @@ cardsScope.task("add-card", "Add card to user account (admin)")
             {
                 rebill_id: cardAnswers.rebill_id,
                 provider: cardAnswers.provider,
-                card_id: cardAnswers.card_id,
+                card_type: cardAnswers.card_type,
                 card_number: cardAnswers.card_number,
-                is_primary: cardAnswers.is_primary
+                expire_date: cardAnswers.expire_date
             }
         );
         const eventArgs = await getEventArguments(tx, "AddCardSuccess");
@@ -117,12 +144,20 @@ cardsScope.task("add-card", "Add card to user account (admin)")
 cardsScope.task("writeoff-request", "Initiate write-off request")
     .setAction(async (_, hre) => {
         const { instance: cards } = await loadContract("Cards",hre);
-        const answer = await inquirer.prompt({
-            name: 'amount',
-            message: 'Amount to write off (ETH):'
-        });
+        const answer = await inquirer.prompt([
+            {
+                name: 'amount',
+                message: 'Amount to write off (ETH):'
+            },
+            {
+                name: 'aeskey',
+                message: 'Aes key:'
+            },
+        ]);
 
-        const tx = await cards.writeOffRequest(answer.amount);
+        const amount = await encryptAESGCM(answer.amount, answer.aeskey)
+
+        const tx = await cards.writeOffRequest("e:"+amount);
         const eventArgs = await getEventArguments(tx, "WriteOffRequest");
 
         console.log(`WriteOff requested: ${tx.hash}`);
@@ -204,12 +239,17 @@ cardsScope.task("remove-card", "Remove user card")
         const { instance: cards } = await loadContract("Cards",hre);
         const answer = await inquirer.prompt({
             name: 'index',
-            message: 'Card index to remove:',
-            type: 'number'
+            message: 'Card id to remove:',
+            type: 'string'
         });
+        try {
+            const tx = await cards.removeCard(answer.index);
+            console.log(`Card removed: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = cards.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
 
-        const tx = await cards.removeCard(answer.index);
-        console.log(`Card removed: ${tx.hash}`);
     });
 
 cardsScope.task("list-cards", "List user cards")

@@ -39,7 +39,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
      * @return string Contract version identifier
      */
     function getVersion() external pure returns(string memory) {
-        return "1.0";
+        return "1.1";
     }
 
     /**
@@ -123,12 +123,6 @@ contract User is IUser, Initializable, OwnableUpgradeable {
      */    
     function getUser(address account) external view returns (IUser.User memory) {
         exist(account);
-
-        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
-
-        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
-        }
 
         return users[account];
     }
@@ -286,12 +280,6 @@ contract User is IUser, Initializable, OwnableUpgradeable {
             return user_cars[msg.sender];
         }
             
-        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
-
-        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
-        }
-
         exist(account);
     
         return user_cars[account];
@@ -340,12 +328,6 @@ contract User is IUser, Initializable, OwnableUpgradeable {
             exist(msg.sender);
             return user_company_data[msg.sender];
         }
-
-        uint access_level = _UserAccess().getModuleAccessLevel("User", msg.sender);
-
-        if(access_level <= uint(IUserAccess.AccessLevel.FIRST)){
-            revert AccessDeniedLevel("User", uint8(IUserAccess.AccessLevel.FIRST));
-        }    
 
         exist(account);
         

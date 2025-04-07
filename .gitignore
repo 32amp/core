@@ -21,6 +21,8 @@ configs/
 forapp.app
 contracts/MobileApp/
 
+
+additional_keys/
 ignition/deployments
 .openzeppelin/
 test.js

@@ -215,7 +215,7 @@ hubScope.task("change-module-address", "Changes the address of an existing modul
 
         const exist = await hub.getModule(name, partner_id);
 
-        if (exist != hre.ethers.ZeroAddress)
+        if (exist == hre.ethers.ZeroAddress)
             throw new Error(`Module ${name} does not exist`)
 
         const tx = await hub.changeModuleAddress(name, moduleAddress);

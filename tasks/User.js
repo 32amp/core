@@ -1,5 +1,7 @@
 const userScope = scope("User", "Tasks for User module");
 const { loadContract } = require("./helpers/load_contract");
+const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const { loadConfig } = require("./helpers/configs");
 const inquirer = require("inquirer");
 
 
@@ -25,6 +27,29 @@ userScope.task("version", "Get the version of the User contract")
         const version = await user.getVersion();
 
         console.log(`Contract version: ${version} with address ${user.target}`);
+    });
+
+// Task to deploy of the User contract
+userScope.task("deploy", "Deploy of the User contract")
+    .setAction(async (taskArgs, hre) => {
+        const config = await loadConfig("config")
+        const signer = await accountSelection(hre);
+        const partner_id = await partnerSelection();
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+        try {
+            const contractFactory = await ethers.getContractFactory("User")
+            const contractFactorySigner = contractFactory.connect(signer);
+            const deploy = await upgrades.deployProxy(contractFactorySigner, [partner_id,config.deployed.Hub], { initializer: "initialize" })
+
+            const deployed = await deploy.waitForDeployment()
+            console.log("Success deploy with address:", deployed.target)
+        } catch (error) {
+            console.log("Failed deploy: ", error)
+        }
+
     });
 
 // Task to upgrade of the User contract
@@ -90,8 +115,17 @@ userScope.task("get-user", "Get a user's information")
     .addParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
         const { instance: user } = await loadContract("User", hre);
-        const userInfo = await user.getUser(taskArgs.account);
-        console.log("User information:", printUserInfo(userInfo));
+
+        console.log("User address: ", user.target)
+
+        try {
+            const userInfo = await user.getUser(taskArgs.account);
+            console.log("User information:", printUserInfo(userInfo));
+        } catch (error) {
+            const decodedError = user.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
     });
 
 // Task to add a car for a user

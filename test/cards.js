@@ -55,9 +55,11 @@ describe("Cards", function(){
             {
                 rebill_id:"1214",
                 provider:"bank.com",
-                card_id:"1214",
-                card_number:"2202***5678",
-                is_primary:true,
+                first6:"220256",
+                last4:"4400",
+                card_type: "Visa",
+                expire_month: "12",
+                expire_year: "35",
             }
         )
 
@@ -66,7 +68,7 @@ describe("Cards", function(){
 
         expect(retAddCard.account).to.be.equal(retAddCardRequest.account)
         expect(retAddCard.request_id).to.be.equal(retAddCardRequest.request_id)
-        expect(retAddCard.card_id).to.be.equal(1)
+        expect(retAddCard.card_id).to.be.equal('0x2acad051a6b0b602338e92cb90386e183fd193be432de0346c313c5807306e5a')
     })
 
     it("setAutoPaySettings, getAutoPaymentSettings, disableAutoPay", async function(){
@@ -104,7 +106,7 @@ describe("Cards", function(){
 
         expect(retWriteOffRequest.account).to.be.equal(this.simpleUser.address)
         expect(retWriteOffRequest.request_id).to.be.equal(1)
-        expect(retWriteOffRequest.card_id).to.be.equal("1214")
+        expect(retWriteOffRequest.card_id).to.be.equal("0x2acad051a6b0b602338e92cb90386e183fd193be432de0346c313c5807306e5a")
         expect(retWriteOffRequest.amount).to.be.equal(amount)
 
         // Oracle try to write off money from card and if sucess or failed response calling writeOffResponse
@@ -124,6 +126,7 @@ describe("Cards", function(){
         expect(retWriteOffResponse.account).to.be.equal(retWriteOffRequest.account)
         expect(retWriteOffResponse.request_id).to.be.equal(retWriteOffRequest.request_id)
         expect(retWriteOffResponse.card_id).to.be.equal(retWriteOffRequest.card_id)
+
         expect(retWriteOffResponse.error_code).to.be.equal(0)
         expect(retWriteOffResponse.status).to.be.equal(true)
         expect(retWriteOffResponse.message).to.be.equal("success")
@@ -137,16 +140,16 @@ describe("Cards", function(){
         
 
         expect(cards.length).to.be.equal(1);
-        expect(cards[0].rebill_id).to.be.equal("1214");
-        expect(cards[0].provider).to.be.equal("bank.com");
-        expect(cards[0].card_id).to.be.equal("1214");
-        expect(cards[0].card_number).to.be.equal("2202***5678");
+        expect(cards[0].card.rebill_id).to.be.equal("1214");
+        expect(cards[0].card.provider).to.be.equal("bank.com");
+        expect(cards[0].id).to.be.equal("0x2acad051a6b0b602338e92cb90386e183fd193be432de0346c313c5807306e5a");
+        expect(cards[0].card.first6).to.be.equal("220256");
         expect(cards[0].is_primary).to.be.equal(true);
         
     })
 
     it("removeCard", async function(){
-        let removeCard = await this.contracts.Cards.connect(this.simpleUser).removeCard(0); // index of user card
+        let removeCard = await this.contracts.Cards.connect(this.simpleUser).removeCard("0x2acad051a6b0b602338e92cb90386e183fd193be432de0346c313c5807306e5a"); // index of user card
         await removeCard.wait()
 
         let cards = await this.contracts.Cards.getCards(this.simpleUser.address)

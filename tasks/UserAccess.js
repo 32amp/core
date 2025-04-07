@@ -6,7 +6,7 @@ const inquirer = require("inquirer");
 userAccessScope
     .task("version", "Get contract version")
     .setAction(async (_, hre) => {
-        const { instance : userAccess } = await loadContract("UserAccess",hre);
+        const { instance: userAccess } = await loadContract("UserAccess", hre);
         const version = await userAccess.getVersion();
         console.log(`UserAccess contract version: ${version}`);
     });
@@ -26,7 +26,7 @@ userAccessScope
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
+
     });
 
 userAccessScope
@@ -35,7 +35,7 @@ userAccessScope
     .addOptionalParam("module", "Module name")
     .addOptionalParam("accesslevel", "Access level (0-6)")
     .setAction(async (taskArgs, hre) => {
-        const { instance : userAccess } = await loadContract("UserAccess",hre);
+        const { instance: userAccess } = await loadContract("UserAccess", hre);
         let { account, module, accesslevel } = taskArgs;
 
         if (!account || !module || !accesslevel) {
@@ -74,7 +74,7 @@ userAccessScope
     .addOptionalParam("account", "Target account address")
     .addOptionalParam("module", "Module name")
     .setAction(async (taskArgs, hre) => {
-        const { instance : userAccess } = await loadContract("UserAccess",hre);
+        const { instance: userAccess } = await loadContract("UserAccess", hre);
         let { account, module } = taskArgs;
 
         if (!account || !module) {
@@ -96,7 +96,7 @@ userAccessScope
     .addOptionalParam("module", "Module name")
     .addOptionalParam("accesslevel", "Access level (0-6)")
     .setAction(async (taskArgs, hre) => {
-        const { instance : userAccess } = await loadContract("UserAccess",hre);
+        const { instance: userAccess } = await loadContract("UserAccess", hre);
         let { objectid, account, module, accesslevel } = taskArgs;
 
         if (!objectid || !account || !module || !accesslevel) {
@@ -139,7 +139,7 @@ userAccessScope
     .addOptionalParam("module", "Module name")
     .addOptionalParam("level", "Required access level (0-6)")
     .setAction(async (taskArgs, hre) => {
-        const { instance : userAccess } = await loadContract("UserAccess",hre);
+        const { instance: userAccess } = await loadContract("UserAccess", hre);
         let { account, module, level } = taskArgs;
 
         if (!account || !module || !level) {
@@ -160,14 +160,15 @@ userAccessScope
             await userAccess.checkAccessModule(account, module, level);
             console.log(`Access granted to ${account} for ${module} at level ${level}`);
         } catch (error) {
-            console.log(`Access denied: ${error.reason}`);
+            const decodedError = userAccess.interface.parseError(error.data);
+            console.log(`Access denied: `, decodedError);
         }
     });
 
 userAccessScope
     .task("my-access", "Get current account's module access levels")
     .setAction(async (_, hre) => {
-        const { instance : userAccess, signer } = await loadContract("UserAccess",hre);
+        const { instance: userAccess, signer } = await loadContract("UserAccess", hre);
         const [modules, levels] = await userAccess.getMyModulesAccess();
 
         console.log("Access levels for", await signer.getAddress());

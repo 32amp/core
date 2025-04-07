@@ -1,4 +1,5 @@
 const { accountSelection } = require("./helpers/promt_selection");
+const { savePrivateKey } = require("./helpers/manage_additional_accounts");
 const inquirer = require("inquirer");
 
 
@@ -9,6 +10,20 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
       console.log(account.address);
     }
 });
+
+task("add-account", "Add new account in list from private key", async(args, hre) => {
+  const answer = await inquirer.prompt([{
+    type: "input",
+    name: "private_key",
+    message: "Enter private key:",
+  }]);
+
+  const signer = new hre.ethers.Wallet(answer.private_key, hre.provider);
+
+  await savePrivateKey(signer.address, answer.private_key)
+
+  console.log("Add new account with address:", signer.address)
+})
 
 
 task("sign-message", "Sign message", async (taskArgs, hre) => {
