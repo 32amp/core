@@ -27,7 +27,7 @@ userGroupsScope
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
+
     });
 
 // Task to add a new group
@@ -44,14 +44,19 @@ userGroupsScope.task("add-group", "Add a new group to the UserGroups contract")
             }
         ]);
 
-        const tx = await instance.addGroup(answers.name);
-        console.log(`Transaction hash: ${tx.hash}`);
+        try {
+            const tx = await instance.addGroup(answers.name);
+            console.log(`Transaction hash: ${tx.hash}`);
 
-        const eventArgs = await getEventArguments(tx, "GroupAdded", 1);
-        if (eventArgs) {
-            console.log(`Group added with ID: ${eventArgs.id}, Name: ${eventArgs.name}`);
-        } else {
-            console.log("Group added, but no event was emitted.");
+            const eventArgs = await getEventArguments(tx, "GroupAdded", 1);
+            if (eventArgs) {
+                console.log(`Group added with ID: ${eventArgs.id}, Name: ${eventArgs.name}`);
+            } else {
+                console.log("Group added, but no event was emitted.");
+            }
+        } catch (error) {
+            const decodedError = instance.interface.parseError(error.data);
+            console.log(`Access denied: `, decodedError);
         }
     });
 
