@@ -286,3 +286,20 @@ userScope.task("get-company-info", "Get the company information for a user")
 
 
     });
+
+userScope.task("decode-error", "Decode error for contract")
+    .setAction(async (taskArgs, hre) => {
+        const { instance } = await loadContract("User", hre);
+        const questions = [
+            {
+                type: 'input',
+                name: 'error',
+                message: 'Enter error data in hex:'
+            }
+        ];
+        const answers = await inquirer.prompt(questions);
+        
+        const decodedError = instance.interface.parseError(answers.error);
+        console.log("Decoded error:", decodedError);
+        
+    })
