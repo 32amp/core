@@ -145,7 +145,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     /**
      * @notice Sets user phone number
      * @param account Address of the user to update
-     * @param phone Phone number to set
+     * @param phone Encrypted phone number to set
      * @custom:reverts onlyAdmin If caller is not the contract owner
      */    
     function setPhone(address account, string calldata phone) onlyAdmin external{
@@ -155,7 +155,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     /**
      * @notice Sets user email address
      * @param account Address of the user to update
-     * @param email Email address to set
+     * @param email Encrypted email address to set
      * @custom:reverts onlyAdmin If caller is not the contract owner
      */    
     function setEmail(address account, string calldata email) onlyAdmin external{
@@ -165,7 +165,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         /**
      * @notice Sets user tg_id
      * @param account Address of the user to update
-     * @param tg_id Telegram id to set
+     * @param tg_id Encrypted telegram id to set
      * @custom:reverts onlyAdmin If caller is not the contract owner
      */    
     function setTgId(address account, string calldata tg_id) onlyAdmin external{
@@ -175,9 +175,9 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     /**
      * @notice Updates user profile data
      * @param account Address of the user to update
-     * @param first_name User's first name
-     * @param last_name User's last name
-     * @param language_code Preferred language code
+     * @param first_name Encrypted user's first name
+     * @param last_name Encrypted user's last name
+     * @param language_code Encrypted preferred language code
      * @custom:reverts AccessDeniedLevel If caller lacks sufficient access
      */    
     function updateBaseData( address account, string calldata first_name, string calldata last_name, string calldata language_code) external {

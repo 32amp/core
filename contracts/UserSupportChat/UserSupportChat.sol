@@ -108,7 +108,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     
     /**
      * @notice Creates a new support topic
-     * @param _text_message Initial message content
+     * @param _text_message Encrypted initial message content
      * @param theme Category/type of the support topic
      * @custom:emits CreateTopic On successful creation
      * @custom:emits UserTopicEvent For user notification

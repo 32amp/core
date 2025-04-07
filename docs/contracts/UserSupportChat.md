@@ -119,7 +119,7 @@ Creates a new support topic
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| _text_message | string | Initial message content |
+| _text_message | string | Encrypted initial message content |
 | theme | enum IUserSupportChat.TopicTheme | Category/type of the support topic |
 
 ### sendMessage

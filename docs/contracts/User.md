@@ -195,7 +195,7 @@ Sets user phone number
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | account | address | Address of the user to update |
-| phone | string | Phone number to set |
+| phone | string | Encrypted phone number to set |
 
 ### setEmail
 
@@ -210,7 +210,7 @@ Sets user email address
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | account | address | Address of the user to update |
-| email | string | Email address to set |
+| email | string | Encrypted email address to set |
 
 ### setTgId
 
@@ -225,7 +225,7 @@ Sets user tg_id
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | account | address | Address of the user to update |
-| tg_id | string | Telegram id to set |
+| tg_id | string | Encrypted telegram id to set |
 
 ### updateBaseData
 
@@ -240,9 +240,9 @@ Updates user profile data
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | account | address | Address of the user to update |
-| first_name | string | User's first name |
-| last_name | string | User's last name |
-| language_code | string | Preferred language code |
+| first_name | string | Encrypted user's first name |
+| last_name | string | Encrypted user's last name |
+| language_code | string | Encrypted preferred language code |
 
 ### addCar
 
