@@ -42,7 +42,7 @@ userScope.task("deploy", "Deploy of the User contract")
         try {
             const contractFactory = await ethers.getContractFactory("User")
             const contractFactorySigner = contractFactory.connect(signer);
-            const deploy = await upgrades.deployProxy(contractFactorySigner, [partner_id,config.deployed.Hub], { initializer: "initialize" })
+            const deploy = await upgrades.deployProxy(contractFactorySigner, [partner_id, config.deployed.Hub], { initializer: "initialize" })
 
             const deployed = await deploy.waitForDeployment()
             console.log("Success deploy with address:", deployed.target)
@@ -91,8 +91,14 @@ userScope.task("add-user", "Add a new user")
 userScope.task("whoami", "Get the current user's information")
     .setAction(async (taskArgs, hre) => {
         const { instance: user } = await loadContract("User", hre);
-        const userInfo = await user.whoami();
-        console.log("Current user information:", printUserInfo(userInfo));
+        try {
+            const userInfo = await user.whoami();
+            console.log("Current user information:", printUserInfo(userInfo));
+        } catch (error) {
+            const decodedError = user.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
     });
 
 // Task to check if a user exists
@@ -130,7 +136,7 @@ userScope.task("get-user", "Get a user's information")
 
 // Task to add a car for a user
 userScope.task("add-car", "Add a car for a user")
-    .addParam("account", "The address of the user")
+    .addOptionalParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
         const { instance: user } = await loadContract("User", hre);
         const questions = [
@@ -157,6 +163,7 @@ userScope.task("add-car", "Add a car for a user")
             model: answers.model,
             connectors: connectors
         };
+
         try {
             const tx = await user.addCar(taskArgs.account, carData);
             await tx.wait();
@@ -164,7 +171,7 @@ userScope.task("add-car", "Add a car for a user")
         } catch (error) {
             const decodedError = user.interface.parseError(error.data);
             console.log("Decoded error:", decodedError);
-            
+
         }
 
     });
@@ -175,9 +182,17 @@ userScope.task("remove-car", "Remove a car for a user")
     .addParam("index", "The index of the car to remove")
     .setAction(async (taskArgs, hre) => {
         const { instance: user } = await loadContract("User", hre);
-        const tx = await user.removeCar(taskArgs.account, taskArgs.index);
-        await tx.wait();
-        console.log(`Car at index ${taskArgs.index} removed for user ${taskArgs.account}`);
+        try {
+
+            const tx = await user.removeCar(taskArgs.account, taskArgs.index);
+            await tx.wait();
+            console.log(`Car at index ${taskArgs.index} removed for user ${taskArgs.account}`);
+        } catch (error) {
+            const decodedError = user.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
+
     });
 
 // Task to get the list of cars for a user
@@ -185,8 +200,14 @@ userScope.task("get-cars", "Get the list of cars for a user")
     .addParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
         const { instance: user } = await loadContract("User", hre);
-        const cars = await user.getCars(taskArgs.account);
-        console.log("Cars:", cars);
+        try {
+            const cars = await user.getCars(taskArgs.account);
+            console.log("Cars:", cars);
+        } catch (error) {
+            const decodedError = user.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
     });
 
 // Task to update company information for a user
@@ -265,9 +286,16 @@ userScope.task("update-company-info", "Update company information for a user")
             bank_inn: answers.bank_inn,
             bank_kpp_account: answers.bank_kpp_account
         };
-        const tx = await user.updateCompanyInfo(taskArgs.account, companyData);
-        await tx.wait();
-        console.log(`Company information updated for user ${taskArgs.account}`);
+
+        try {
+            const tx = await user.updateCompanyInfo(taskArgs.account, companyData);
+            await tx.wait();
+            console.log(`Company information updated for user ${taskArgs.account}`);
+        } catch (error) {
+            const decodedError = user.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
     });
 
 // Task to get company information for a user
@@ -275,21 +303,29 @@ userScope.task("get-company-info", "Get the company information for a user")
     .addParam("account", "The address of the user")
     .setAction(async (taskArgs, hre) => {
         const { instance: user } = await loadContract("User", hre);
-        const companyInfo = await user.getCompanyInfo(taskArgs.account);
 
+        try {
 
-        console.log("Company information:")
-        console.log(`   Name: ${companyInfo.name}`)
-        console.log(`   Description: ${companyInfo.description}`)
-        console.log(`   INN: ${companyInfo.inn}`)
-        console.log(`   KPP: ${companyInfo.kpp}`)
-        console.log(`   OGRN: ${companyInfo.ogrn}`)
-        console.log(`   Bank account: ${companyInfo.bank_account}`)
-        console.log(`   Bank name: ${companyInfo.bank_name}`)
-        console.log(`   Bank bik: ${companyInfo.bank_bik}`)
-        console.log(`   Bank corr account: ${companyInfo.bank_corr_account}`)
-        console.log(`   Bank inn: ${companyInfo.bank_inn}`)
-        console.log(`   Bank kpp account: ${companyInfo.bank_kpp_account}`)
+            const companyInfo = await user.getCompanyInfo(taskArgs.account);
+
+            console.log("Company information:")
+            console.log(`   Name: ${companyInfo.name}`)
+            console.log(`   Description: ${companyInfo.description}`)
+            console.log(`   INN: ${companyInfo.inn}`)
+            console.log(`   KPP: ${companyInfo.kpp}`)
+            console.log(`   OGRN: ${companyInfo.ogrn}`)
+            console.log(`   Bank account: ${companyInfo.bank_account}`)
+            console.log(`   Bank name: ${companyInfo.bank_name}`)
+            console.log(`   Bank bik: ${companyInfo.bank_bik}`)
+            console.log(`   Bank corr account: ${companyInfo.bank_corr_account}`)
+            console.log(`   Bank inn: ${companyInfo.bank_inn}`)
+            console.log(`   Bank kpp account: ${companyInfo.bank_kpp_account}`)
+
+        } catch (error) {
+            const decodedError = user.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
 
 
     });
