@@ -9,7 +9,7 @@ const fileTypes = [
 
 MobileAppSettingsScope.task("version", "Get the version of the MobileAppSettings contract")
     .setAction(async (taskArgs, hre) => {
-        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings", hre);
         const version = await mobileAppSettings.getVersion();
         console.log(`Version: ${version}`);
     });
@@ -28,12 +28,12 @@ MobileAppSettingsScope.task("upgrade", "Upgrade of the MobileAppSettings contrac
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
+
     });
 
 MobileAppSettingsScope.task("set-config", "Set the configuration for MobileAppSettings")
     .setAction(async (taskArgs, hre) => {
-        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings", hre);
 
         const questions = [
             {
@@ -100,26 +100,36 @@ MobileAppSettingsScope.task("set-config", "Set the configuration for MobileAppSe
             support_phone: answers.support_phone
         };
 
-        
-        const tx = await mobileAppSettings.setConfig(config);
-        console.log(`Transaction hash: ${tx.hash}`);
-        await tx.wait();
-        console.log("Config set successfully");
+        try {
+            const tx = await mobileAppSettings.setConfig(config);
+            console.log(`Transaction hash: ${tx.hash}`);
+            await tx.wait();
+            console.log("Config set successfully");
+        } catch (error) {
+            const decodedError = mobileAppSettings.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 MobileAppSettingsScope.task("set-technical-work", "Set the technical work status")
     .addParam("status", "Technical work status (true/false)", undefined, types.boolean)
     .setAction(async (taskArgs, hre) => {
-        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);
-        const tx = await mobileAppSettings.setTechnicalWork(taskArgs.status);
-        console.log(`Transaction hash: ${tx.hash}`);
-        await tx.wait();
-        console.log("Technical work status set successfully");
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings", hre);
+        
+        try {
+            const tx = await mobileAppSettings.setTechnicalWork(taskArgs.status);
+            console.log(`Transaction hash: ${tx.hash}`);
+            await tx.wait();
+            console.log("Technical work status set successfully");
+        } catch (error) {
+            const decodedError = mobileAppSettings.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 MobileAppSettingsScope.task("get-config", "Get the current configuration of MobileAppSettings")
     .setAction(async (taskArgs, hre) => {
-        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings",hre);
+        const { instance: mobileAppSettings } = await loadContract("MobileAppSettings", hre);
         const config = await mobileAppSettings.getConfig();
         console.log("Current Configuration:");
         console.log("Privacy Policy:");
