@@ -157,9 +157,16 @@ userScope.task("add-car", "Add a car for a user")
             model: answers.model,
             connectors: connectors
         };
-        const tx = await user.addCar(taskArgs.account, carData);
-        await tx.wait();
-        console.log(`Car added for user ${taskArgs.account}`);
+        try {
+            const tx = await user.addCar(taskArgs.account, carData);
+            await tx.wait();
+            console.log(`Car added for user ${taskArgs.account}`);
+        } catch (error) {
+            const decodedError = user.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+            
+        }
+
     });
 
 // Task to remove a car for a user
