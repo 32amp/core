@@ -6,7 +6,7 @@ const { getEventArguments, hex2string } = require("../utils/utils");
 
 locationScope.task("version", "Get the version of the Location contract")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
+        const { instance: location } = await loadContract("Location", hre);
         const version = await location.getVersion();
         console.log(`Version: ${version}`);
     });
@@ -25,13 +25,13 @@ locationScope.task("upgrade", "Upgrade of the Location contract")
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
+
     });
 
 
 locationScope.task("add-location", "Add a new location")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
+        const { instance: location } = await loadContract("Location", hre);
 
         // Enum choices
         const parkingTypeChoices = [
@@ -108,16 +108,22 @@ locationScope.task("add-location", "Add a new location")
             publish: answers.publish
         };
 
-        const tx = await location.addLocation(add);
-        const { uid } = await getEventArguments(tx, "AddLocation")
-        console.log(`Location added with id ${uid}. Transaction hash: ${tx.hash}`);
+        try {
+            const tx = await location.addLocation(add);
+            const { uid } = await getEventArguments(tx, "AddLocation")
+            console.log(`Location added with id ${uid}. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
     });
 
 
 locationScope.task("get-location", "Get location details")
     .addParam("id", "Location ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
+        const { instance: location } = await loadContract("Location", hre);
         const outLocation = await location.getLocation(taskArgs.id);
         const loc = outLocation.location;
 
@@ -174,7 +180,7 @@ locationScope.task("get-location", "Get location details")
 locationScope.task("exist", "Check if location exists")
     .addParam("id", "Location ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
+        const { instance: location } = await loadContract("Location", hre);
         const exists = await location.exist(taskArgs.id);
         console.log(`Location ${taskArgs.id} exists: ${exists}`);
     });
@@ -182,7 +188,7 @@ locationScope.task("exist", "Check if location exists")
 locationScope.task("add-related-location", "Add a related location")
     .addParam("locationid", "Location ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
+        const { instance: location } = await loadContract("Location", hre);
 
         const questions = [
             { type: "input", name: "latitude", message: "Enter latitude (decimal degrees):", validate: v => !isNaN(parseFloat(v)) || "Must be a number" },
@@ -203,10 +209,16 @@ locationScope.task("add-related-location", "Add a related location")
             names.push({ language: nameAnswers.language, text: nameAnswers.text });
         }
 
-        const add = { latitude, longitude: longitude, name: names };
-        const tx = await location.addRelatedLocation(taskArgs.locationid, add);
-        await tx.wait();
-        console.log(`Related location added. Transaction hash: ${tx.hash}`);
+        try {
+            const add = { latitude, longitude: longitude, name: names };
+            const tx = await location.addRelatedLocation(taskArgs.locationid, add);
+            await tx.wait();
+            console.log(`Related location added. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
     });
 
 
@@ -214,16 +226,22 @@ locationScope.task("remove-related-location", "Remove a related location")
     .addParam("locationid", "Location ID")
     .addParam("relatedlocid", "Related location ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
-        const tx = await location.removeRelatedLocation(taskArgs.locationid, taskArgs.relatedlocid);
-        await tx.wait();
-        console.log(`Related location removed. Transaction hash: ${tx.hash}`);
+        const { instance: location } = await loadContract("Location", hre);
+
+        try {
+            const tx = await location.removeRelatedLocation(taskArgs.locationid, taskArgs.relatedlocid);
+            await tx.wait();
+            console.log(`Related location removed. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 locationScope.task("add-image", "Add an image to a location")
     .addParam("locationid", "Location ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
+        const { instance: location } = await loadContract("Location", hre);
 
         const imageCategoryChoices = [
             { name: "None", value: 0 },
@@ -262,53 +280,76 @@ locationScope.task("add-image", "Add an image to a location")
             height: parseInt(answers.height)
         };
 
-        const tx = await location.addImage(taskArgs.locationid, add);
-        await tx.wait();
-        console.log(`Image added. Transaction hash: ${tx.hash}`);
+        try {
+            const tx = await location.addImage(taskArgs.locationid, add);
+            await tx.wait();
+            console.log(`Image added. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 locationScope.task("remove-image", "Remove an image from a location")
     .addParam("locationid", "Location ID")
     .addParam("imageid", "Image ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
-        const tx = await location.removeImage(taskArgs.locationid, taskArgs.imageid);
-        await tx.wait();
-        console.log(`Image removed. Transaction hash: ${tx.hash}`);
+        const { instance: location } = await loadContract("Location", hre);
+
+        try {
+            const tx = await location.removeImage(taskArgs.locationid, taskArgs.imageid);
+            await tx.wait();
+            console.log(`Image removed. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 locationScope.task("add-direction", "Add a direction to a location")
     .addParam("locationid", "Location ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
+        const { instance: location } = await loadContract("Location", hre);
 
         const questions = [
             { type: "input", name: "language", message: "Enter language (e.g., 'en-US'):" },
             { type: "input", name: "text", message: "Enter direction text:" }
         ];
 
+
         const answers = await inquirer.prompt(questions);
         const add = { language: answers.language, text: answers.text };
 
-        const tx = await location.addDirection(taskArgs.locationid, add);
-        await tx.wait();
-        console.log(`Direction added. Transaction hash: ${tx.hash}`);
+        try {
+            const tx = await location.addDirection(taskArgs.locationid, add);
+            await tx.wait();
+            console.log(`Direction added. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 locationScope.task("remove-direction", "Remove a direction from a location")
     .addParam("locationid", "Location ID")
     .addParam("directionid", "Direction ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
-        const tx = await location.removeDirection(taskArgs.locationid, taskArgs.directionid);
-        await tx.wait();
-        console.log(`Direction removed. Transaction hash: ${tx.hash}`);
+        const { instance: location } = await loadContract("Location", hre);
+
+        try {
+            const tx = await location.removeDirection(taskArgs.locationid, taskArgs.directionid);
+            await tx.wait();
+            console.log(`Direction removed. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 locationScope.task("set-opening-times", "Set opening times for a location")
     .addParam("locationid", "Location ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
+        const { instance: location } = await loadContract("Location", hre);
 
         const initialQuestions = [
             { type: "confirm", name: "twentyfourseven", message: "Open 24/7?" }
@@ -359,9 +400,14 @@ locationScope.task("set-opening-times", "Set opening times for a location")
             exceptional_closings
         };
 
-        const tx = await location.setOpeningTimes(taskArgs.locationid, add);
-        await tx.wait();
-        console.log(`Opening times set. Transaction hash: ${tx.hash}`);
+        try {
+            const tx = await location.setOpeningTimes(taskArgs.locationid, add);
+            await tx.wait();
+            console.log(`Opening times set. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 
@@ -369,10 +415,16 @@ locationScope.task("add-evse", "Add an EVSE to a location")
     .addParam("locationid", "Location ID")
     .addParam("evseid", "EVSE ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
-        const tx = await location.addEVSE(taskArgs.locationid, taskArgs.evseid);
-        await tx.wait();
-        console.log(`EVSE added. Transaction hash: ${tx.hash}`);
+        const { instance: location } = await loadContract("Location", hre);
+
+        try {
+            const tx = await location.addEVSE(taskArgs.locationid, taskArgs.evseid);
+            await tx.wait();
+            console.log(`EVSE added. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 
@@ -380,8 +432,14 @@ locationScope.task("remove-evse", "Remove an EVSE from a location")
     .addParam("locationid", "Location ID")
     .addParam("evseid", "EVSE ID")
     .setAction(async (taskArgs, hre) => {
-        const { instance: location } = await loadContract("Location",hre);
-        const tx = await location.removeEVSE(taskArgs.locationid, taskArgs.evseid);
-        await tx.wait();
-        console.log(`EVSE removed. Transaction hash: ${tx.hash}`);
+        const { instance: location } = await loadContract("Location", hre);
+        
+        try {
+            const tx = await location.removeEVSE(taskArgs.locationid, taskArgs.evseid);
+            await tx.wait();
+            console.log(`EVSE removed. Transaction hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = location.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
