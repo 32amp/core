@@ -1,6 +1,7 @@
 const { accountSelection } = require("./helpers/promt_selection");
 const { savePrivateKey } = require("./helpers/manage_additional_accounts");
 const inquirer = require("inquirer");
+const { default: Choices } = require("inquirer/lib/objects/choices");
 
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
@@ -70,3 +71,78 @@ task("transferETH", "Send ETH from zero account to address")
   }
 
 })
+
+
+task("decode-error", "Decode error for contract")
+    .setAction(async (taskArgs, hre) => {
+        
+        const questions = [
+            {
+                type: 'input',
+                name: 'error',
+                message: 'Enter error data in hex:'
+            },
+            {
+              type: "list",
+              name: "module",
+              message: "Select contract",
+              choices: [
+                {
+                  name: "Hub",
+                  value: "Hub"
+                },
+                {
+                  name: "Location",
+                  value: "Location"
+                },
+                {
+                  name: "EVSE",
+                  value: "EVSE"
+                },
+                {
+                  name: "Connector",
+                  value: "Connector"
+                },
+                {
+                  name: "MobileAppSettings",
+                  value: "MobileAppSettings"
+                },
+                {
+                  name: "Balance",
+                  value: "Balance"
+                },
+                {
+                  name: "Cards",
+                  value: "Cards"
+                },
+                {
+                  name: "Tariff",
+                  value: "Tariff"
+                },
+                {
+                  name: "User",
+                  value: "User"
+                },
+                {
+                  name: "UserAccess",
+                  value: "UserAccess"
+                },
+                {
+                  name: "UserGroups",
+                  value: "UserGroups"
+                },
+                {
+                  name: "UserSupportChat",
+                  value: "UserSupportChat"
+                }
+              ]
+            }
+        ];
+
+        const answers = await inquirer.prompt(questions);
+        const instance = await hre.ethers.getContractAt(answers.module, hre.ethers.ZeroAddress)
+        
+        const decodedError = instance.interface.parseError(answers.error);
+        console.log("Decoded error:", decodedError);
+        
+    })
