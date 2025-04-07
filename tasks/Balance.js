@@ -142,6 +142,17 @@ balanceScope
         const tx = await balance.transfer(to, ethers.parseEther(value));
         await tx.wait();
         console.log(`Transfer successful. TX hash: ${tx.hash}`);
+
+
+        try {
+            const { instance: balance } = await loadContract("Balance",hre);
+            const tx = await balance.transfer(to, ethers.parseEther(value));
+            await tx.wait();
+            console.log(`Transfer successful. TX hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = balance.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 balanceScope
@@ -198,10 +209,17 @@ balanceScope
             value = value || answers.value;
         }
 
-        const { instance: balance } = await loadContract("Balance",hre);
-        const tx = await balance.transferFrom(from, to, ethers.parseEther(value));
-        await tx.wait();
-        console.log(`Transfer From successful. TX hash: ${tx.hash}`);
+
+
+        try {
+            const { instance: balance } = await loadContract("Balance",hre);
+            const tx = await balance.transferFrom(from, to, ethers.parseEther(value));
+            await tx.wait();
+            console.log(`Transfer From successful. TX hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = balance.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 balanceScope
@@ -254,10 +272,17 @@ balanceScope
             amount = amount || answers.amount;
         }
 
-        const { instance: balance } = await loadContract("Balance",hre);
-        const tx = await balance.mint(account, ethers.parseEther(amount));
-        await tx.wait();
-        console.log(`Mint successful. TX hash: ${tx.hash}`);
+
+
+        try {
+            const { instance: balance } = await loadContract("Balance",hre);
+            const tx = await balance.mint(account, ethers.parseEther(amount));
+            await tx.wait();
+            console.log(`Mint successful. TX hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = balance.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 balanceScope
@@ -301,8 +326,15 @@ balanceScope
             amount = amount || answers.amount;
         }
 
-        const { instance: balance } = await loadContract("Balance",hre);
-        const tx = await balance.burn(account, ethers.parseEther(amount));
-        await tx.wait();
-        console.log(`Burn successful. TX hash: ${tx.hash}`);
+
+
+        try {
+            const { instance: balance } = await loadContract("Balance",hre);
+            const tx = await balance.burn(account, ethers.parseEther(amount));
+            await tx.wait();
+            console.log(`Burn successful. TX hash: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = balance.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });    
