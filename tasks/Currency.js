@@ -54,8 +54,8 @@ currencyScope.task("upgrade", "Upgrade of the Currency contract")
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
-    });    
+
+    });
 
 // Task to add a new currency
 currencyScope
@@ -87,12 +87,17 @@ currencyScope
             numeric_code: taskArgs.numericcode,
             minor_unit: taskArgs.minorunit,
         };
-        
-        // Send the transaction to add the currency
-        const tx = await currencies.add(currency);
-        console.log(`Transaction hash: ${tx.hash}`);
-        await tx.wait();
-        console.log("Currency added successfully");
+
+        try {
+            // Send the transaction to add the currency
+            const tx = await currencies.add(currency);
+            console.log(`Transaction hash: ${tx.hash}`);
+            await tx.wait();
+            console.log("Currency added successfully");
+        } catch (error) {
+            const decodedError = currencies.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 // Task to get currency details by ID
@@ -108,15 +113,23 @@ currencyScope
         }
 
         const currencies = await hre.ethers.getContractAt("Currencies", currenciesAddress);
-        const currency = await currencies.get(taskArgs.id);
 
-        console.log("Currency details:");
-        console.log(`Country: ${currency.country}`);
-        console.log(`Currency: ${currency.currency}`);
-        console.log(`Alphabetic Code: ${currency.alphabetic_code}`);
-        console.log(`Symbol: ${currency.symbol}`);
-        console.log(`Numeric Code: ${currency.numeric_code.toString()}`);
-        console.log(`Minor Unit: ${currency.minor_unit.toString()}`);
+
+
+        try {
+            const currency = await currencies.get(taskArgs.id);
+
+            console.log("Currency details:");
+            console.log(`Country: ${currency.country}`);
+            console.log(`Currency: ${currency.currency}`);
+            console.log(`Alphabetic Code: ${currency.alphabetic_code}`);
+            console.log(`Symbol: ${currency.symbol}`);
+            console.log(`Numeric Code: ${currency.numeric_code.toString()}`);
+            console.log(`Minor Unit: ${currency.minor_unit.toString()}`);
+        } catch (error) {
+            const decodedError = currencies.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 // Task to check if a currency exists by ID
