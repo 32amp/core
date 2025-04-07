@@ -1,6 +1,9 @@
 const balanceScope = scope("Balance", "Tasks for Balance module");
 const { loadContract } = require("./helpers/load_contract");
+const { accountSelection, partnerSelection, currencySelection } = require("./helpers/promt_selection");
+const { loadConfig } = require("./helpers/configs");
 const inquirer = require("inquirer");
+
 
 
 
@@ -27,6 +30,33 @@ balanceScope.task("upgrade", "Upgrade of the Balance contract")
         }
 
     });
+
+
+// Task to deploy of the Balance contract
+balanceScope
+    .task("deploy", "Deploy of the Balance contract")
+    .setAction(async (taskArgs, hre) => {
+        const config = await loadConfig("config")
+        const signer = await accountSelection(hre);
+        const partner_id = await partnerSelection();
+        const currency = await currencySelection(hre);
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+        try {
+            const contractFactory = await ethers.getContractFactory("Balance")
+            const contractFactorySigner = contractFactory.connect(signer);
+            const deploy = await upgrades.deployProxy(contractFactorySigner, [partner_id,config.deployed.Hub, currency], { initializer: "initialize" })
+
+            const deployed = await deploy.waitForDeployment()
+            console.log("Success deploy with address:", deployed.target)
+        } catch (error) {
+            console.log("Failed deploy: ", error)
+        }
+
+    });
+
 
 
 balanceScope

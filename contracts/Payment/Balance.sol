@@ -39,8 +39,6 @@ contract Balance is Initializable, IBalance {
     /// @dev Account balances storage
     mapping(address => uint256) _balances;
     
-    /// @dev Transfer history storage
-    mapping(uint256 => TransferData) _transfers;
 
     /**
      * @notice Initializes contract with currency configuration
@@ -196,14 +194,7 @@ contract Balance is Initializable, IBalance {
             }
         }
 
-        _transfer_ids++;
-
-
-        _transfers[_transfer_ids].from = from;
-        _transfers[_transfer_ids].to = to;
-        _transfers[_transfer_ids].value = value;
-
-        emit Transfer(from, to, _transfer_ids);
+        emit Transfer(from, to, value, _balances[from], _balances[to]);
     }
 
     /// @dev Internal minting implementation    

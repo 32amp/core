@@ -28,12 +28,16 @@ interface IBalance is IBaseErrors {
      * @notice Emitted when tokens are transferred between accounts
      * @param from Address of the sender (address(0) for mint operations)
      * @param to Address of the recipient (address(0) for burn operations)
-     * @param transfer_id Unique identifier for the transfer
+     * @param amount Amount to transfer
+     * @param from_amount Current amount from account
+     * @param to_amount Current amount to account
      */
     event Transfer(
         address indexed from,
         address indexed to,
-        uint256 indexed transfer_id
+        uint256 amount,
+        uint256 from_amount,
+        uint256 to_amount 
     );
 
     function totalSupply() external view returns (uint256);
