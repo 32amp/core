@@ -60,13 +60,18 @@ userAccessScope
             ({ account, module, accesslevel } = answers);
         }
 
-        const tx = await userAccess.setAccessLevelToModule(
-            account,
-            module,
-            accesslevel
-        );
-        await tx.wait();
-        console.log(`Access level set in transaction: ${tx.hash}`);
+        try {
+            const tx = await userAccess.setAccessLevelToModule(
+                account,
+                module,
+                accesslevel
+            );
+            await tx.wait();
+            console.log(`Access level set in transaction: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = userAccess.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 userAccessScope
@@ -123,14 +128,20 @@ userAccessScope
         }
 
         const objectBytes32 = hre.ethers.encodeBytes32String(objectid);
-        const tx = await userAccess.setAccessLevelToModuleObject(
-            objectBytes32,
-            account,
-            module,
-            accesslevel
-        );
-        await tx.wait();
-        console.log(`Object access set in transaction: ${tx.hash}`);
+        
+        try {
+            const tx = await userAccess.setAccessLevelToModuleObject(
+                objectBytes32,
+                account,
+                module,
+                accesslevel
+            );
+            await tx.wait();
+            console.log(`Object access set in transaction: ${tx.hash}`);
+        } catch (error) {
+            const decodedError = userAccess.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 userAccessScope
