@@ -172,7 +172,7 @@ userAccessScope
             console.log(`Access granted to ${account} for ${module} at level ${level}`);
         } catch (error) {
             const decodedError = userAccess.interface.parseError(error.data);
-            console.log(`Access denied: `, decodedError);
+            console.log(`Error: `, decodedError);
         }
     });
 

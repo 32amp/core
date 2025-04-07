@@ -56,7 +56,7 @@ userGroupsScope.task("add-group", "Add a new group to the UserGroups contract")
             }
         } catch (error) {
             const decodedError = instance.interface.parseError(error.data);
-            console.log(`Access denied: `, decodedError);
+            console.log(`Error: `, decodedError);
         }
     });
 

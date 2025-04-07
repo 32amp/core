@@ -1,6 +1,7 @@
 const userSupportChatScope = scope("UserSupportChat", "Tasks for UserSupportChat module");
 const { getEventArguments } = require("../utils/utils");
 const { loadContract } = require("./helpers/load_contract");
+const { decryptAESGCM, encryptAESGCM } = require("./helpers/aes")
 const inquirer = require("inquirer");
 
 const TopicTheme = {
@@ -88,11 +89,11 @@ function printTopicInfo(topic) {
  * @param {Object} message - Объект сообщения
  * @param {number} messageId - ID сообщения
  */
-function printMessageInfo(message, messageId) {
+async function printMessageInfo(message, messageId, aes_key) {
     console.log("=== Message Information ===");
     console.log(`Message ID: ${messageId}`);
     console.log("+++++++++++++++++++++++++++");
-    console.log(`Text: ${message.text}`);
+    console.log(`Text: ${await decryptAESGCM(message.text.replace("e:", ""), aes_key)}`);
     console.log("+++++++++++++++++++++++++++");
     console.log(`Image IPFS Hash: ${message.image || "None"}`);
     console.log(`Reply To: ${message.reply_to === 0 ? "None" : message.reply_to}`);
@@ -107,10 +108,11 @@ function printMessageInfo(message, messageId) {
  * @param {Object} message - Объект сообщения
  * @param {number} messageId - ID сообщения
  */
-function printMessageInfoLight(message, messageId) {
+async function printMessageInfoLight(message, messageId, aes_key) {
+
     console.log(`\n\n+++ Message ID: ${messageId}`);
     console.log("+++++++++++++++++++++++++++");
-    console.log(`>>> ${message.text}`);
+    console.log(`>>> ${await decryptAESGCM(message.text.replace("e:", ""), aes_key)}`);
     console.log("+++++++++++++++++++++++++++");
     console.log(`+++ Reply To: ${message.reply_to === 0 ? "None" : message.reply_to} | Created At: ${new Date(Number(message.create_at) * 1000).toLocaleString()} | Read: ${message.readed ? "Yes" : "No"} | Author: ${message.account}`);
     console.log("+++++++++++++++++++++++++++");
@@ -149,7 +151,7 @@ userSupportChatScope.task("create-topic", "Create a new support topic")
     .setAction(async (taskArgs, hre) => {
         const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
-        const { text_message, theme } = await inquirer.prompt([
+        const { text_message, theme, aeskey } = await inquirer.prompt([
             {
                 type: "input",
                 name: "text_message",
@@ -162,12 +164,18 @@ userSupportChatScope.task("create-topic", "Create a new support topic")
                 message: "Select the topic theme:",
                 choices: Object.keys(TopicTheme),
             },
+            {
+                type: "input",
+                name: "aeskey",
+                message: "Input AES key for decrypt message"
+            }
         ]);
 
         try {
 
             console.log(text_message, TopicTheme[theme])
-            const tx = await userSupportChat.createTopic(text_message, TopicTheme[theme]);
+            const encryptMessage = await encryptAESGCM(text_message, aeskey)
+            const tx = await userSupportChat.createTopic("e:" + encryptMessage, TopicTheme[theme]);
             const eventArgs = await getEventArguments(tx, "CreateTopic", 1);
 
             if (eventArgs) {
@@ -186,7 +194,7 @@ userSupportChatScope.task("send-message", "Send a message in a support topic")
     .setAction(async (taskArgs, hre) => {
         const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
-        const { topic_id, text, image, reply_to } = await inquirer.prompt([
+        const { topic_id, text, image, reply_to, aeskey } = await inquirer.prompt([
             {
                 type: "input",
                 name: "topic_id",
@@ -210,11 +218,19 @@ userSupportChatScope.task("send-message", "Send a message in a support topic")
                 message: "Enter the message ID to reply to (0 for new message):",
                 validate: (input) => !isNaN(input) && input >= 0,
             },
+            {
+                type: "input",
+                name: "aeskey",
+                message: "Input AES key for decrypt message"
+            }
         ]);
 
+        const encryptMessage = await encryptAESGCM(text, aeskey)
+        const encryptImage = await encryptAESGCM(image, aeskey)
+
         const message = {
-            text,
-            image,
+            text: "e:" + encryptMessage,
+            image: "e:" + encryptImage,
             reply_to: parseInt(reply_to),
         };
 
@@ -230,7 +246,7 @@ userSupportChatScope.task("send-message", "Send a message in a support topic")
             }
         } catch (error) {
             const decodedError = userSupportChat.interface.parseError(error.data);
-            console.log(`Access denied: `, decodedError);
+            console.log(`Error: `, decodedError);
         }
     });
 
@@ -260,7 +276,7 @@ userSupportChatScope.task("set-rating", "Set a rating for a support topic")
             console.log("Rating set successfully.");
         } catch (error) {
             const decodedError = userSupportChat.interface.parseError(error.data);
-            console.log(`Access denied: `, decodedError);
+            console.log(`Error: `, decodedError);
         }
 
     });
@@ -291,7 +307,7 @@ userSupportChatScope.task("close-topic", "Close a support topic")
             }
         } catch (error) {
             const decodedError = userSupportChat.interface.parseError(error.data);
-            console.log(`Access denied: `, decodedError);
+            console.log(`Error: `, decodedError);
         }
     });
 
@@ -324,7 +340,7 @@ userSupportChatScope.task("set-readed-messages", "Mark messages as read in a top
             console.log("Messages marked as read successfully.");
         } catch (error) {
             const decodedError = userSupportChat.interface.parseError(error.data);
-            console.log(`Access denied: `, decodedError);
+            console.log(`Error: `, decodedError);
         }
     });
 
@@ -375,7 +391,7 @@ userSupportChatScope.task("get-messages", "Get messages in a topic")
     .setAction(async (taskArgs, hre) => {
         const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
-        const { topic_id, offset } = await inquirer.prompt([
+        const { topic_id, offset, aeskey } = await inquirer.prompt([
             {
                 type: "input",
                 name: "topic_id",
@@ -388,6 +404,11 @@ userSupportChatScope.task("get-messages", "Get messages in a topic")
                 message: "Enter the offset for pagination:",
                 validate: (input) => !isNaN(input) && input >= 0,
             },
+            {
+                type: "input",
+                name: "aeskey",
+                message: "Input AES key for decrypt message"
+            }
         ]);
 
         const [messages, total] = await userSupportChat.getMessages(topic_id, offset);
@@ -395,7 +416,7 @@ userSupportChatScope.task("get-messages", "Get messages in a topic")
         console.log("Total Messages:", total.toString());
         for (let index = messages.length - 1; index >= 0; index--) {
             const message = messages[index];
-            printMessageInfo(message.message, message.id);
+            await printMessageInfo(message.message, message.id, aeskey);
         }
     });
 
@@ -404,7 +425,7 @@ userSupportChatScope.task("get-message", "Get a specific message in a topic")
     .setAction(async (taskArgs, hre) => {
         const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
-        const { topic_id, message_id } = await inquirer.prompt([
+        const { topic_id, message_id, aeskey } = await inquirer.prompt([
             {
                 type: "input",
                 name: "topic_id",
@@ -417,32 +438,42 @@ userSupportChatScope.task("get-message", "Get a specific message in a topic")
                 message: "Enter the message ID:",
                 validate: (input) => !isNaN(input) && input > 0,
             },
+            {
+                type: "input",
+                name: "aeskey",
+                message: "Input AES key for decrypt message"
+            }
         ]);
 
         const message = await userSupportChat.getMessage(topic_id, message_id);
-        printMessageInfo(message, message_id);
+        await printMessageInfo(message, message_id, aeskey);
     });
 
 
 userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
     .addOptionalParam("topicid", "Topic ID for dialog")
+    .addOptionalParam("aeskey", "Topic ID for dialog")
     .setAction(async (taskArgs, hre) => {
         const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
-        // Получаем список топиков пользователя
-        const [topics] = await userSupportChat.getMyTopics(0);
 
-        if (topics.length === 0) {
-            console.log("You have no topics to chat in.");
-            return;
-        }
         var topic_id;
+        var aes_key;
 
         if (taskArgs.topicid) {
+
             topic_id = taskArgs.topicid;
+            aes_key = taskArgs.aeskey;
         } else {
+             // Получаем список топиков пользователя
+             const [topics] = await userSupportChat.getMyTopics(0);
+
+             if (topics.length === 0) {
+                 console.log("You have no topics to chat in.");
+                 return;
+             }
             // Выбор топика из списка
-            const { topicid } = await inquirer.prompt([
+            const { topicid, aeskey } = await inquirer.prompt([
                 {
                     type: "list",
                     name: "topicid",
@@ -452,10 +483,16 @@ userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
                         value: topic.id,
                     })),
                 },
+                {
+                    type: "input",
+                    name: "aeskey",
+                    message: "Input AES key for encrypt and decrypt message"
+                }
             ]);
 
             console.log(`You selected topic ID: ${topicid}`);
             topic_id = topicid;
+            aes_key = aeskey;
         }
 
 
@@ -476,7 +513,7 @@ userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
             console.log("\n=== Chat Messages ===");
             for (let index = messages.length - 1; index >= 0; index--) {
                 const message = messages[index];
-                printMessageInfoLight(message.message, message.id);
+                await printMessageInfoLight(message.message, message.id, aes_key);
             }
             console.log("=====================\n");
         };
@@ -537,9 +574,12 @@ userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
                     },
                 ]);
 
+                const encryptMessage = await encryptAESGCM(text, aes_key)
+                const encryptImage = await encryptAESGCM(image, aes_key)
+        
                 const message = {
-                    text,
-                    image,
+                    text: "e:" + encryptMessage,
+                    image: "e:" + encryptImage,
                     reply_to: parseInt(reply_to),
                 };
                 try {

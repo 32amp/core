@@ -3,7 +3,7 @@ const { getEventArguments } = require("../utils/utils");
 const inquirer = require("inquirer");
 const { loadConfig } = require("./helpers/configs")
 const { loadContract } = require("./helpers/load_contract");
-const { encryptAESGCM } = require("./helpers/encrypt_aes");
+const { encryptAESGCM } = require("./helpers/aes");
 const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
 
 cardsScope.task("version", "Get contract version")
