@@ -41,7 +41,7 @@ async function promptForArray(promptFunc, itemName) {
 
 evseScope.task("version", "Get contract version")
     .setAction(async (taskArgs, hre) => {
-        const { instance:evse } = await loadContract("EVSE",hre);
+        const { instance: evse } = await loadContract("EVSE", hre);
         console.log("Version: ", await evse.getVersion());
     });
 
@@ -59,20 +59,20 @@ evseScope.task("upgrade", "Upgrade of the EVSE contract")
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
+
     });
 
 
 evseScope.task("exist", "Check if EVSE exists")
     .addParam("id", "EVSE ID")
     .setAction(async ({ id }, hre) => {
-        const { instance: evse } = await loadContract("EVSE",hre);
+        const { instance: evse } = await loadContract("EVSE", hre);
         console.log(`EVSE with id ${id} exist:`, await evse.exist(id));
     });
 
 evseScope.task("add", "Add new EVSE")
     .setAction(async (taskArgs, hre) => {
-        const { instance: evse, partner_id, signer } = await loadContract("EVSE",hre);
+        const { instance: evse, partner_id, signer } = await loadContract("EVSE", hre);
 
         const responses = await inquirer.prompt([
             {
@@ -122,8 +122,6 @@ evseScope.task("add", "Add new EVSE")
         };
 
 
-        console.log(responses)
-
         try {
             await evse.add(evseData, Number(responses.location_id));
             console.log(`EVSE added by partner ${partner_id}`);
@@ -137,7 +135,7 @@ evseScope.task("add", "Add new EVSE")
 evseScope.task("set-meta", "Set EVSE metadata")
     .addParam("evseid", "EVSE ID")
     .setAction(async ({ evseid: evse_id }, hre) => {
-        const { instance: evse } = await loadContract("EVSE",hre);
+        const { instance: evse } = await loadContract("EVSE", hre);
 
         const statusSchedule = await promptForArray(async () => {
             const response = await inquirer.prompt([
@@ -212,14 +210,22 @@ evseScope.task("set-meta", "Set EVSE metadata")
 
         await evse.setMeta(evse_id, meta);
         console.log(`Metadata set for EVSE ${evse_id}`);
+
+        try {
+            await evse.setMeta(evse_id, meta);
+            console.log(`Metadata set for EVSE ${evse_id}`);
+        } catch (error) {
+            const decodedError = evse.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 
 // Task: add-image
 evseScope.task("add-image", "Add image to EVSE")
     .addParam("evseid", "EVSE ID")
-    .setAction(async ({ evseid:evse_id }, hre) => {
-        const { instance: evse } = await loadContract("EVSE",hre);
+    .setAction(async ({ evseid: evse_id }, hre) => {
+        const { instance: evse } = await loadContract("EVSE", hre);
 
         const responses = await inquirer.prompt([
             {
@@ -257,59 +263,90 @@ evseScope.task("add-image", "Add image to EVSE")
             height: parseInt(responses.height)
         };
 
-        await evse.addImage(evse_id, image);
-        console.log(`Image added to EVSE ${evse_id}`);
+
+        try {
+            await evse.addImage(evse_id, image);
+            console.log(`Image added to EVSE ${evse_id}`);
+        } catch (error) {
+            const decodedError = evse.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 // Task: remove-image
 evseScope.task("remove-image", "Remove image from EVSE")
     .addParam("evseid", "EVSE ID")
     .addParam("imageid", "Image ID")
-    .setAction(async ({ evseid:evse_id, imageid:image_id }, hre) => {
-        const { instance: evse } = await loadContract("EVSE",hre);
-        await evse.removeImage(evse_id, image_id);
-        console.log(`Image ${image_id} removed from EVSE ${evse_id}`);
+    .setAction(async ({ evseid: evse_id, imageid: image_id }, hre) => {
+        const { instance: evse } = await loadContract("EVSE", hre);
+
+        try {
+            await evse.removeImage(evse_id, image_id);
+            console.log(`Image ${image_id} removed from EVSE ${evse_id}`);
+        } catch (error) {
+            const decodedError = evse.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 // Task: set-status
 evseScope.task("set-status", "Set EVSE status")
     .addParam("evseid", "EVSE ID")
-    .setAction(async ({ evseid:evse_id }, hre) => {
-        const { instance: evse } = await loadContract("EVSE",hre);
+    .setAction(async ({ evseid: evse_id }, hre) => {
+        const { instance: evse } = await loadContract("EVSE", hre);
 
         const { status } = await inquirer.prompt(
             createEnumPrompt("status", "Select new status:", DataTypes.EVSEStatus)
         );
 
-        await evse.setStatus(evse_id, DataTypes.EVSEStatus[status]);
-        console.log(`Status updated for EVSE ${evse_id}`);
+        
+        try {
+            await evse.setStatus(evse_id, DataTypes.EVSEStatus[status]);
+            console.log(`Status updated for EVSE ${evse_id}`);
+        } catch (error) {
+            const decodedError = evse.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+        
     });
 
 // Task: add-connector
 evseScope.task("add-connector", "Add connector to EVSE")
     .addParam("evseid", "EVSE ID")
     .addParam("connectorid", "Connector ID")
-    .setAction(async ({ evseid:evse_id, connectorid:connector_id }, hre) => {
-        const { instance: evse } = await loadContract("EVSE",hre);
-        await evse.addConnector(evse_id, connector_id);
-        console.log(`Connector ${connector_id} added to EVSE ${evse_id}`);
+    .setAction(async ({ evseid: evse_id, connectorid: connector_id }, hre) => {
+        const { instance: evse } = await loadContract("EVSE", hre);
+
+        try {
+            await evse.addConnector(evse_id, connector_id);
+            console.log(`Connector ${connector_id} added to EVSE ${evse_id}`);
+        } catch (error) {
+            const decodedError = evse.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 // Task: remove-connector
 evseScope.task("remove-connector", "Remove connector from EVSE")
     .addParam("evseid", "EVSE ID")
     .addParam("connectorid", "Connector ID")
-    .setAction(async ({ evseid:evse_id, connectorid:connector_id }, hre) => {
-        const { instance: evse } = await loadContract("EVSE",hre);
-        await evse.removeConnector(evse_id, connector_id);
-        console.log(`Connector ${connector_id} removed from EVSE ${evse_id}`);
+    .setAction(async ({ evseid: evse_id, connectorid: connector_id }, hre) => {
+        const { instance: evse } = await loadContract("EVSE", hre);
+
+        try {
+            await evse.removeConnector(evse_id, connector_id);
+            console.log(`Connector ${connector_id} removed from EVSE ${evse_id}`);
+        } catch (error) {
+            const decodedError = evse.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 // Updated get task with human-readable output
 evseScope.task("get", "Get EVSE details")
     .addParam("id", "EVSE ID")
     .setAction(async ({ id }, hre) => {
-        const { instance: evse } = await loadContract("EVSE",hre);
+        const { instance: evse } = await loadContract("EVSE", hre);
         const details = await evse.get(id);
 
         const formatEVSE = (data) => ({
