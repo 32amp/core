@@ -242,6 +242,7 @@ cardsScope.task("remove-card", "Remove user card")
             message: 'Card id to remove:',
             type: 'string'
         });
+
         try {
             const tx = await cards.removeCard(answer.index);
             console.log(`Card removed: ${tx.hash}`);
@@ -260,8 +261,15 @@ cardsScope.task("list-cards", "List user cards")
             message: 'User address:'
         });
 
-        const cardList = await cards.getCards(answer.account);
-        console.log('User cards:', cardList);
+
+
+        try {
+            const cardList = await cards.getCards(answer.account);
+            console.log('User cards:', cardList);
+        } catch (error) {
+            const decodedError = cards.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 cardsScope.task("get-auto-pay", "Get autopay settings")
@@ -272,11 +280,18 @@ cardsScope.task("get-auto-pay", "Get autopay settings")
             message: 'User address:'
         });
 
-        const settings = await cards.getAutoPaymentSettings(answer.account);
-        console.log('Autopay settings:', {
-            amount: hre.ethers.formatEther(settings.amount),
-            monthly_limit: hre.ethers.formatEther(settings.monthly_limit),
-            threshold: hre.ethers.formatEther(settings.threshold),
-            is_active: settings.is_active
-        });
+
+
+        try {
+            const settings = await cards.getAutoPaymentSettings(answer.account);
+            console.log('Autopay settings:', {
+                amount: hre.ethers.formatEther(settings.amount),
+                monthly_limit: hre.ethers.formatEther(settings.monthly_limit),
+                threshold: hre.ethers.formatEther(settings.threshold),
+                is_active: settings.is_active
+            });
+        } catch (error) {
+            const decodedError = cards.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
