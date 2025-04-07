@@ -121,7 +121,7 @@ function printMessageInfoLight(message, messageId) {
 // Task to get the contract version
 userSupportChatScope.task("version", "Get the version of the UserSupportChat contract")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
         const version = await userSupportChat.getVersion();
         console.log(`UserSupportChat Contract Version: ${version}`);
     });
@@ -141,13 +141,13 @@ userSupportChatScope
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
+
     });
 
 // Task to create a new support topic
 userSupportChatScope.task("create-topic", "Create a new support topic")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { text_message, theme } = await inquirer.prompt([
             {
@@ -184,7 +184,7 @@ userSupportChatScope.task("create-topic", "Create a new support topic")
 // Task to send a message in a topic
 userSupportChatScope.task("send-message", "Send a message in a support topic")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { topic_id, text, image, reply_to } = await inquirer.prompt([
             {
@@ -218,22 +218,26 @@ userSupportChatScope.task("send-message", "Send a message in a support topic")
             reply_to: parseInt(reply_to),
         };
 
-        console.log(message)
 
-        const tx = await userSupportChat.sendMessage(topic_id, message);
-        const eventArgs = await getEventArguments(tx, "Message", 1);
+        try {
+            const tx = await userSupportChat.sendMessage(topic_id, message);
+            const eventArgs = await getEventArguments(tx, "Message", 1);
 
-        if (eventArgs) {
-            console.log(`Message sent with ID: ${eventArgs.message_id.toString()}`);
-        } else {
-            console.log("Message sending failed or event not emitted.");
+            if (eventArgs) {
+                console.log(`Message sent with ID: ${eventArgs.message_id.toString()}`);
+            } else {
+                console.log("Message sending failed or event not emitted.");
+            }
+        } catch (error) {
+            const decodedError = userSupportChat.interface.parseError(error.data);
+            console.log(`Access denied: `, decodedError);
         }
     });
 
 // Task to set a rating for a topic
 userSupportChatScope.task("set-rating", "Set a rating for a support topic")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { topic_id, rating } = await inquirer.prompt([
             {
@@ -250,14 +254,21 @@ userSupportChatScope.task("set-rating", "Set a rating for a support topic")
             },
         ]);
 
-        const tx = await userSupportChat.setRating(topic_id, TopicRating[rating]);
-        console.log("Rating set successfully.");
+
+        try {
+            const tx = await userSupportChat.setRating(topic_id, TopicRating[rating]);
+            console.log("Rating set successfully.");
+        } catch (error) {
+            const decodedError = userSupportChat.interface.parseError(error.data);
+            console.log(`Access denied: `, decodedError);
+        }
+
     });
 
 // Task to close a support topic
 userSupportChatScope.task("close-topic", "Close a support topic")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { topic_id } = await inquirer.prompt([
             {
@@ -268,20 +279,26 @@ userSupportChatScope.task("close-topic", "Close a support topic")
             },
         ]);
 
-        const tx = await userSupportChat.closeTopic(topic_id);
-        const eventArgs = await getEventArguments(tx, "CloseTopic", 1);
 
-        if (eventArgs) {
-            console.log(`Topic closed by: ${eventArgs.account}`);
-        } else {
-            console.log("Topic closing failed or event not emitted.");
+        try {
+            const tx = await userSupportChat.closeTopic(topic_id);
+            const eventArgs = await getEventArguments(tx, "CloseTopic", 1);
+
+            if (eventArgs) {
+                console.log(`Topic closed by: ${eventArgs.account}`);
+            } else {
+                console.log("Topic closing failed or event not emitted.");
+            }
+        } catch (error) {
+            const decodedError = userSupportChat.interface.parseError(error.data);
+            console.log(`Access denied: `, decodedError);
         }
     });
 
 // Task to mark messages as read
 userSupportChatScope.task("set-readed-messages", "Mark messages as read in a topic")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { topic_id, message_ids } = await inquirer.prompt([
             {
@@ -299,14 +316,22 @@ userSupportChatScope.task("set-readed-messages", "Mark messages as read in a top
         ]);
 
         const ids = message_ids.split(",").map((id) => parseInt(id.trim()));
-        const tx = await userSupportChat.setReadedMessages(topic_id, ids);
-        console.log("Messages marked as read successfully.");
+
+
+        try {
+            const tx = await userSupportChat.setReadedMessages(topic_id, ids);
+            await tx.wait()
+            console.log("Messages marked as read successfully.");
+        } catch (error) {
+            const decodedError = userSupportChat.interface.parseError(error.data);
+            console.log(`Access denied: `, decodedError);
+        }
     });
 
 // Task to get user's topics
 userSupportChatScope.task("get-my-topics", "Get topics created by the user")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { offset } = await inquirer.prompt([
             {
@@ -330,7 +355,7 @@ userSupportChatScope.task("get-my-topics", "Get topics created by the user")
 // Task to get details of a specific topic
 userSupportChatScope.task("get-topic", "Get details of a specific topic")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { topic_id } = await inquirer.prompt([
             {
@@ -348,7 +373,7 @@ userSupportChatScope.task("get-topic", "Get details of a specific topic")
 // Task to get messages in a topic
 userSupportChatScope.task("get-messages", "Get messages in a topic")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { topic_id, offset } = await inquirer.prompt([
             {
@@ -377,7 +402,7 @@ userSupportChatScope.task("get-messages", "Get messages in a topic")
 // Task to get a specific message in a topic
 userSupportChatScope.task("get-message", "Get a specific message in a topic")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         const { topic_id, message_id } = await inquirer.prompt([
             {
@@ -402,7 +427,7 @@ userSupportChatScope.task("get-message", "Get a specific message in a topic")
 userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
     .addOptionalParam("topicid", "Topic ID for dialog")
     .setAction(async (taskArgs, hre) => {
-        const { instance: userSupportChat } = await loadContract("UserSupportChat",hre);
+        const { instance: userSupportChat } = await loadContract("UserSupportChat", hre);
 
         // Получаем список топиков пользователя
         const [topics] = await userSupportChat.getMyTopics(0);
@@ -517,10 +542,14 @@ userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
                     image,
                     reply_to: parseInt(reply_to),
                 };
-
-                await userSupportChat.sendMessage(topic_id, message);
-                console.log("Message sent!");
-                await updateChat();
+                try {
+                    await userSupportChat.sendMessage(topic_id, message);
+                    console.log("Message sent!");
+                    await updateChat();
+                } catch (error) {
+                    const decodedError = userSupportChat.interface.parseError(error.data);
+                    console.log(`Error: `, decodedError);
+                }
             }
         }
 
