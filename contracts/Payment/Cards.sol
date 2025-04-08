@@ -6,8 +6,7 @@ import "../Hub/IHub.sol";
 import "../User/IUserAccess.sol";
 import "../User/IUser.sol";
 import "./ICards.sol";
-
-import "hardhat/console.sol";
+import "../Utils.sol";
 
 /**
  * @title Cards Management Contract
@@ -38,6 +37,8 @@ contract Cards is ICards, Initializable {
     
     /// @dev Write-off request IDs
     mapping(address => uint256) write_off_request_id;
+
+    using Utils for string;
 
     /**
      * @notice Initializes contract with Hub connection
@@ -105,6 +106,8 @@ contract Cards is ICards, Initializable {
      * @custom:emits AddCardResponse On response submission
      */
     function addCardResponse(address account, uint256 request_id, bool status, string calldata message, string calldata payment_endpoint) onlyAdmin() external {
+        if (!message.isEncrypted()) revert ParamNotEncrypted("message");
+        if (!payment_endpoint.isEncrypted()) revert ParamNotEncrypted("payment_endpoint");
         emit AddCardResponse(account, request_id, status, message, payment_endpoint);
     }
 
@@ -116,6 +119,15 @@ contract Cards is ICards, Initializable {
      * @custom:emits AddCardSuccess On successful card addition
      */
     function addCard(address account, uint256 request_id, CardInfo calldata card) onlyAdmin() external {
+
+        if (!card.rebill_id.isEncrypted()) revert ParamNotEncrypted("card.rebill_id");
+        if (!card.provider.isEncrypted()) revert ParamNotEncrypted("card.provider");
+        if (!card.card_type.isEncrypted()) revert ParamNotEncrypted("card.card_type");
+        if (!card.expire_year.isEncrypted()) revert ParamNotEncrypted("card.expire_year");
+        if (!card.expire_month.isEncrypted()) revert ParamNotEncrypted("card.expire_month");
+        if (!card.first6.isEncrypted()) revert ParamNotEncrypted("card.first6");
+        if (!card.last4.isEncrypted()) revert ParamNotEncrypted("card.last4");
+
         bytes32 id = keccak256(abi.encode(card));
 
         if(_checkCardExist(account,id))
@@ -205,6 +217,8 @@ contract Cards is ICards, Initializable {
      */    
     function writeOffRequest(string calldata amount) onlyUser() external {
         
+        if (!amount.isEncrypted()) revert ParamNotEncrypted("amount");
+
         if(cards[msg.sender].length == 0)
             revert ObjectNotFound("Card", 0);
 
@@ -228,6 +242,8 @@ contract Cards is ICards, Initializable {
      * @custom:emits WriteOffResponse On response submission
      */
     function writeOffResponse(address account, uint256 request_id, bytes32 card_id, uint256 error_code, bool status, string calldata message, string calldata amount ) onlyAdmin()  external {
+        if (!message.isEncrypted()) revert ParamNotEncrypted("message");
+        if (!amount.isEncrypted()) revert ParamNotEncrypted("amount");
         emit WriteOffResponse(account, request_id, card_id, error_code, status, message, amount);
     }
 

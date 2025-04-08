@@ -33,6 +33,7 @@ module.exports = {
   mocha: {
     timeout: 12000000
   },
+  allowUnsafeLinkedLibraries: true,
   docgen: {
     outputDir: "./docs/contracts",
     pages: "items",

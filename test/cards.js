@@ -1,77 +1,81 @@
 
 const { expect } = require('chai');
-const {deploy} = require("./lib/deploy");
+const { deploy } = require("./lib/deploy");
 
-const {getEventArguments} = require("../utils/utils");
+const { getEventArguments } = require("../utils/utils");
+
+const { encryptAESGCM, decryptAESGCM } = require("../helpers/aes");
+
+const aeskey = "8194dfd74925f99fa84026c71180f230cb73054687a5f836a3a8642380d82282";
 
 
-describe("Cards", function(){
+describe("Cards", function () {
 
 
-    before(async function() {
+    before(async function () {
 
         const accounts = await ethers.getSigners();
         this.owner = accounts[0]
         this.simpleUser = accounts[1]
         this.adminUser = accounts[2]
 
-        this.contracts = await deploy({User:true,Balance: true, Cards: true})
+        this.contracts = await deploy({ User: true, Balance: true, Cards: true })
 
 
         await this.contracts.User.addUser(this.simpleUser.address);
         await this.contracts.User.addUser(this.adminUser.address);
-        
-        await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Cards", 4);
+
+        await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address, "Cards", 4);
 
     })
 
-    it("addCard:process", async function(){
+    it("addCard:process", async function () {
 
         // Client call
         let addCardRequest = await this.contracts.Cards.connect(this.simpleUser).addCardRequest()
 
-        let retAddCardRequest = await getEventArguments(addCardRequest,"AddCardRequest");
-        
+        let retAddCardRequest = await getEventArguments(addCardRequest, "AddCardRequest");
+
 
         expect(retAddCardRequest.account).to.be.equal(this.simpleUser.address)
         expect(retAddCardRequest.request_id).to.be.equal(1)
 
         //Oracle with admin level access should response
-        let addCardResponse = await this.contracts.Cards.connect(this.adminUser).addCardResponse(retAddCardRequest.account,retAddCardRequest.request_id, true,"success", "https://bank.com/endpoint/to/specific/user/for/add/card")
-        let retAddCardResponse = await getEventArguments(addCardResponse,"AddCardResponse");
-    
+        let addCardResponse = await this.contracts.Cards.connect(this.adminUser).addCardResponse(retAddCardRequest.account, retAddCardRequest.request_id, true, await encryptAESGCM("success", aeskey), await encryptAESGCM("https://bank.com/endpoint/to/specific/user/for/add/card", aeskey))
+        let retAddCardResponse = await getEventArguments(addCardResponse, "AddCardResponse");
+
 
         // this is response get client and if status is true open payment_endpoint url
         expect(retAddCardResponse.account).to.be.equal(retAddCardRequest.account)
         expect(retAddCardResponse.request_id).to.be.equal(retAddCardRequest.request_id)
         expect(retAddCardResponse.status).to.be.equal(true)
-        expect(retAddCardResponse.message).to.be.equal("success")
-        expect(retAddCardResponse.payment_endpoint).to.be.equal("https://bank.com/endpoint/to/specific/user/for/add/card")
+        expect(await decryptAESGCM( retAddCardResponse.message, aeskey)).to.be.equal("success")
+        expect(await decryptAESGCM( retAddCardResponse.payment_endpoint, aeskey)).to.be.equal("https://bank.com/endpoint/to/specific/user/for/add/card")
 
         // oracle waiting when payment is will be finished and if all of success try to add card to database
         let addCard = await this.contracts.Cards.connect(this.adminUser).addCard(
             retAddCardRequest.account,
             retAddCardRequest.request_id,
             {
-                rebill_id:"1214",
-                provider:"bank.com",
-                first6:"220256",
-                last4:"4400",
-                card_type: "Visa",
-                expire_month: "12",
-                expire_year: "35",
+                rebill_id: await encryptAESGCM("1214", aeskey),
+                provider: await encryptAESGCM("bank.com", aeskey),
+                first6: await encryptAESGCM("220256", aeskey),
+                last4: await encryptAESGCM("4400", aeskey),
+                card_type: await encryptAESGCM("Visa", aeskey),
+                expire_month: await encryptAESGCM("12", aeskey),
+                expire_year: await encryptAESGCM("35", aeskey),
             }
         )
 
         // Client get this event 
-        let retAddCard = await getEventArguments(addCard,"AddCardSuccess");
+        let retAddCard = await getEventArguments(addCard, "AddCardSuccess");
 
         expect(retAddCard.account).to.be.equal(retAddCardRequest.account)
         expect(retAddCard.request_id).to.be.equal(retAddCardRequest.request_id)
-        expect(retAddCard.card_id).to.be.equal('0x2acad051a6b0b602338e92cb90386e183fd193be432de0346c313c5807306e5a')
+        this.currentCardId = retAddCard.card_id
     })
 
-    it("setAutoPaySettings, getAutoPaymentSettings, disableAutoPay", async function(){
+    it("setAutoPaySettings, getAutoPaymentSettings, disableAutoPay", async function () {
         let setAutoPaySettings = await this.contracts.Cards.connect(this.simpleUser).setAutoPaySettings(
             ethers.parseEther("500"),
             ethers.parseEther("5000"),
@@ -93,20 +97,20 @@ describe("Cards", function(){
         let getAutoPaymentSettingsAgain = await this.contracts.Cards.getAutoPaymentSettings(this.simpleUser.address);
         expect(getAutoPaymentSettingsAgain.is_active).to.be.equal(false)
 
-        
+
     })
 
-    it("writeOff:process", async function(){
+    it("writeOff:process", async function () {
 
         // The client sends a request to debit funds from the card
-        let amount = "500"; // type is string because value should be encrypted
+        let amount = await encryptAESGCM("500", aeskey); // type is string because value should be encrypted
         let writeOffRequest = await this.contracts.Cards.connect(this.simpleUser).writeOffRequest(amount)
 
         let retWriteOffRequest = await getEventArguments(writeOffRequest, "WriteOffRequest")
 
         expect(retWriteOffRequest.account).to.be.equal(this.simpleUser.address)
         expect(retWriteOffRequest.request_id).to.be.equal(1)
-        expect(retWriteOffRequest.card_id).to.be.equal("0x2acad051a6b0b602338e92cb90386e183fd193be432de0346c313c5807306e5a")
+        expect(retWriteOffRequest.card_id).to.be.equal(this.currentCardId)
         expect(retWriteOffRequest.amount).to.be.equal(amount)
 
         // Oracle try to write off money from card and if sucess or failed response calling writeOffResponse
@@ -115,9 +119,9 @@ describe("Cards", function(){
             retWriteOffRequest.account,
             retWriteOffRequest.request_id,
             retWriteOffRequest.card_id,
-            0, 
+            0,
             true,
-            "success", // of Failed
+            await encryptAESGCM("success", aeskey), // of Failed
             amount
         )
 
@@ -129,27 +133,27 @@ describe("Cards", function(){
 
         expect(retWriteOffResponse.error_code).to.be.equal(0)
         expect(retWriteOffResponse.status).to.be.equal(true)
-        expect(retWriteOffResponse.message).to.be.equal("success")
+        expect(await decryptAESGCM( retWriteOffResponse.message, aeskey) ).to.be.equal("success")
         expect(retWriteOffResponse.amount).to.be.equal(amount)
 
         // then Oracle should to transfer Balance to client
     })
 
-    it("getCards", async function(){
+    it("getCards", async function () {
         let cards = await this.contracts.Cards.getCards(this.simpleUser.address)
-        
+
 
         expect(cards.length).to.be.equal(1);
-        expect(cards[0].card.rebill_id).to.be.equal("1214");
-        expect(cards[0].card.provider).to.be.equal("bank.com");
-        expect(cards[0].id).to.be.equal("0x2acad051a6b0b602338e92cb90386e183fd193be432de0346c313c5807306e5a");
-        expect(cards[0].card.first6).to.be.equal("220256");
+        expect(await decryptAESGCM(cards[0].card.rebill_id, aeskey)).to.be.equal("1214");
+        expect(await decryptAESGCM(cards[0].card.provider, aeskey)).to.be.equal("bank.com");
+        expect(cards[0].id).to.be.equal(this.currentCardId);
+        expect(await decryptAESGCM(cards[0].card.first6, aeskey)).to.be.equal("220256");
         expect(cards[0].is_primary).to.be.equal(true);
-        
+
     })
 
-    it("removeCard", async function(){
-        let removeCard = await this.contracts.Cards.connect(this.simpleUser).removeCard("0x2acad051a6b0b602338e92cb90386e183fd193be432de0346c313c5807306e5a"); // index of user card
+    it("removeCard", async function () {
+        let removeCard = await this.contracts.Cards.connect(this.simpleUser).removeCard(this.currentCardId); // index of user card
         await removeCard.wait()
 
         let cards = await this.contracts.Cards.getCards(this.simpleUser.address)

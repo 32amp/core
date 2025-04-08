@@ -33,14 +33,16 @@ async function encryptAESGCM(message, keyHex) {
         // Конкатенация и преобразование в hex
         const result = arrayBufferToHex(nonce) + arrayBufferToHex(ciphertext) + arrayBufferToHex(authTag);
         
-        return result;
+        return "e:"+result;
     } catch (err) {
         throw new Error(`Encryption failed: ${err.message}`);
     }
 }
 
 
-async function decryptAESGCM(encryptedHex, keyHex) {
+async function decryptAESGCM(_encryptedHex, keyHex) {
+    encryptedHex = _encryptedHex.replace("e:","")
+
     try {
         // Преобразование ключа из hex в ArrayBuffer
         const keyBytes = hexToArrayBuffer(keyHex);

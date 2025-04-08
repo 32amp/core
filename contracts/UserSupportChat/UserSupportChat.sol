@@ -5,7 +5,7 @@ import "./IUserSupportChat.sol";
 import "../Hub/IHub.sol";
 import "../User/IUserAccess.sol";
 import "../User/IUser.sol";
-
+import "../Utils.sol";
 
 /**
  * @title User Support Chat Contract
@@ -33,6 +33,8 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     
     /// @dev User-to-topics mapping: address => topic IDs[]
     mapping(address => uint256[]) user_topics;
+
+    using Utils for string;
 
     /**
      * @notice Initializes the contract with Hub connection
@@ -115,7 +117,8 @@ contract UserSupportChat is IUserSupportChat, Initializable {
      */    
     function createTopic(string calldata _text_message, TopicTheme theme) onlyUser() external {
 
-        
+        if (!_text_message.isEncrypted()) revert ParamNotEncrypted("text_message");
+
         topics[topic_counter].create_at = block.timestamp;
         topics[topic_counter].update_at = block.timestamp;
         topics[topic_counter].create_user_account = msg.sender;
@@ -143,6 +146,9 @@ contract UserSupportChat is IUserSupportChat, Initializable {
      * @custom:emits UpdateTopic For topic status change
      */
     function sendMessage(uint256 topic_id, InputMessage calldata message) topic_access(topic_id) external {
+
+        if (!message.text.isEncrypted()) revert ParamNotEncrypted("message.text");
+        if (!message.image.isEncrypted()) revert ParamNotEncrypted("message.image");
         
         uint256 timestamp =  block.timestamp+topics[topic_id].message_counter;
 

@@ -1,6 +1,7 @@
 const {deployProxy} = require("../../utils/deploy")
 const {getEventArguments} = require("../../utils/utils");
 
+
 module.exports.deploy = async function(modules, showlog = false) {
     const retmodules = {};
     const accounts = await ethers.getSigners();
@@ -30,9 +31,9 @@ module.exports.deploy = async function(modules, showlog = false) {
     const partner = await getEventArguments(tx, "AddPartner");
 
     
-    const deployModule = async (moduleName, additionalArgs = []) => {
+    const deployModule = async (moduleName, additionalArgs = [], libs = []) => {
         if (typeof modules?.[moduleName] !== "undefined") {
-            retmodules[moduleName] = await deployProxy(moduleName, [partner.id, retmodules.Hub.target, ...additionalArgs]);
+            retmodules[moduleName] = await deployProxy(moduleName, [partner.id, retmodules.Hub.target, ...additionalArgs], libs);
             const tx = await retmodules.Hub.addModule(moduleName, retmodules[moduleName].target);
             await tx.wait();
             if (showlog) console.log(`${moduleName} deployed to:`, retmodules[moduleName].target);
@@ -41,17 +42,17 @@ module.exports.deploy = async function(modules, showlog = false) {
 
     
     await deployModule("MobileApp");
-    await deployModule("User");
+    await deployModule("User", [], ["Utils"]);
     await deployModule("UserGroups");
     await deployModule("Tariff");
     await deployModule("Location");
-    await deployModule("LocationSearch");
+    await deployModule("LocationSearch",[], ["Utils"]);
     await deployModule("EVSE");
     await deployModule("Connector");
-    await deployModule("UserSupportChat");
+    await deployModule("UserSupportChat",[], ["Utils"]);
     await deployModule("MobileAppSettings");
     await deployModule("Balance", [1]);
-    await deployModule("Cards");
+    await deployModule("Cards",[], ["Utils"]);
 
     retmodules.UserAccess = await deployProxy("UserAccess", [partner.id, retmodules.Hub.target]);
     const tx11 = await retmodules.Hub.addModule("UserAccess", retmodules.UserAccess.target);

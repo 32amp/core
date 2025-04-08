@@ -95,5 +95,25 @@ library Utils {
         }
         return result;
     }
+
+    function isEncrypted(string memory _str) public pure returns (bool) {
+        bytes memory strBytes = bytes(_str);
+        bytes memory prefix = bytes("e:");
+
+        // do not check if string is empty
+        if (strBytes.length == 0) return true;
+
+        if (strBytes.length < prefix.length) {
+            return false;
+        }
+        
+        for (uint i = 0; i < prefix.length; i++) {
+            if (strBytes[i] != prefix[i]) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
 }
 

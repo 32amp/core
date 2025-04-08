@@ -1,7 +1,7 @@
 const userSupportChatScope = scope("UserSupportChat", "Tasks for UserSupportChat module");
 const { getEventArguments } = require("../utils/utils");
 const { loadContract } = require("./helpers/load_contract");
-const { decryptAESGCM, encryptAESGCM } = require("./helpers/aes")
+const { decryptAESGCM, encryptAESGCM } = require("../helpers/aes");
 const inquirer = require("inquirer");
 
 const TopicTheme = {
@@ -93,7 +93,7 @@ async function printMessageInfo(message, messageId, aes_key) {
     console.log("=== Message Information ===");
     console.log(`Message ID: ${messageId}`);
     console.log("+++++++++++++++++++++++++++");
-    console.log(`Text: ${await decryptAESGCM(message.text.replace("e:", ""), aes_key)}`);
+    console.log(`Text: ${await decryptAESGCM(message.text, aes_key)}`);
     console.log("+++++++++++++++++++++++++++");
     console.log(`Image IPFS Hash: ${message.image || "None"}`);
     console.log(`Reply To: ${message.reply_to === 0 ? "None" : message.reply_to}`);
@@ -112,7 +112,7 @@ async function printMessageInfoLight(message, messageId, aes_key) {
 
     console.log(`\n\n+++ Message ID: ${messageId}`);
     console.log("+++++++++++++++++++++++++++");
-    console.log(`>>> ${await decryptAESGCM(message.text.replace("e:", ""), aes_key)}`);
+    console.log(`>>> ${await decryptAESGCM(message.text, aes_key)}`);
     console.log("+++++++++++++++++++++++++++");
     console.log(`+++ Reply To: ${message.reply_to === 0 ? "None" : message.reply_to} | Created At: ${new Date(Number(message.create_at) * 1000).toLocaleString()} | Read: ${message.readed ? "Yes" : "No"} | Author: ${message.account}`);
     console.log("+++++++++++++++++++++++++++");
@@ -175,7 +175,7 @@ userSupportChatScope.task("create-topic", "Create a new support topic")
 
             console.log(text_message, TopicTheme[theme])
             const encryptMessage = await encryptAESGCM(text_message, aeskey)
-            const tx = await userSupportChat.createTopic("e:" + encryptMessage, TopicTheme[theme]);
+            const tx = await userSupportChat.createTopic(encryptMessage, TopicTheme[theme]);
             const eventArgs = await getEventArguments(tx, "CreateTopic", 1);
 
             if (eventArgs) {
@@ -229,8 +229,8 @@ userSupportChatScope.task("send-message", "Send a message in a support topic")
         const encryptImage = await encryptAESGCM(image, aeskey)
 
         const message = {
-            text: "e:" + encryptMessage,
-            image: "e:" + encryptImage,
+            text: encryptMessage,
+            image: encryptImage,
             reply_to: parseInt(reply_to),
         };
 
@@ -578,8 +578,8 @@ userSupportChatScope.task("dialog", "Interactive chat for a specific topic")
                 const encryptImage = await encryptAESGCM(image, aes_key)
         
                 const message = {
-                    text: "e:" + encryptMessage,
-                    image: "e:" + encryptImage,
+                    text: encryptMessage,
+                    image: encryptImage,
                     reply_to: parseInt(reply_to),
                 };
                 

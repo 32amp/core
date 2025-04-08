@@ -112,6 +112,8 @@ interface IBaseErrors {
      */
     error InvalidSender(address sender);
 
+    error ParamNotEncrypted(string param);
+
 
 
 

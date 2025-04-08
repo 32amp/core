@@ -3,7 +3,7 @@ const { getEventArguments } = require("../utils/utils");
 const inquirer = require("inquirer");
 const { loadConfig } = require("./helpers/configs")
 const { loadContract } = require("./helpers/load_contract");
-const { encryptAESGCM } = require("./helpers/aes");
+const { encryptAESGCM } = require("../helpers/aes");
 const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
 
 cardsScope.task("version", "Get contract version")
@@ -157,7 +157,7 @@ cardsScope.task("writeoff-request", "Initiate write-off request")
 
         const amount = await encryptAESGCM(answer.amount, answer.aeskey)
 
-        const tx = await cards.writeOffRequest("e:"+amount);
+        const tx = await cards.writeOffRequest(amount);
         const eventArgs = await getEventArguments(tx, "WriteOffRequest");
 
         console.log(`WriteOff requested: ${tx.hash}`);
