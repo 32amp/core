@@ -15,12 +15,23 @@ cardsScope.task("version", "Get contract version")
 
 // Task to upgrade of the Cards contract
 cardsScope.task("upgrade", "Upgrade of the Cards contract")
+    .addOptionalParam("force", "Using forceImport")
     .setAction(async (taskArgs, hre) => {
         const { instance: cards } = await loadContract("Cards", hre);
 
         try {
-            const contractFactory = await ethers.getContractFactory("Cards")
-            const deploy = await upgrades.upgradeProxy(cards.target, contractFactory)
+            const utilsFactory = await ethers.getContractFactory("Utils")
+            const utilsDeploy = await utilsFactory.deploy()
+            const utilsDeployed = await utilsDeploy.waitForDeployment()
+
+            const contractFactory = await ethers.getContractFactory("Cards", {libraries:{Utils: utilsDeployed.target}})
+
+            var deploy 
+ 
+            if(taskArgs?.force)
+                deploy = await upgrades.forceImport(cards.target, contractFactory,{unsafeAllow: ["external-library-linking"]})
+            else
+                deploy = await upgrades.upgradeProxy(cards.target, contractFactory,{unsafeAllow: ["external-library-linking"]})
 
             await deploy.waitForDeployment()
             console.log("Success upgrade")

@@ -52,7 +52,7 @@ contract UserSupportChat is IUserSupportChat, Initializable {
      * @return string Constant version identifier
      */
     function getVersion() external pure returns(string memory){
-        return "1.0";
+        return "1.1";
     }
 
     /**

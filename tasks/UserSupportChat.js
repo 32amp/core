@@ -131,12 +131,24 @@ userSupportChatScope.task("version", "Get the version of the UserSupportChat con
 // Task to upgrade of the UserSupportChat contract
 userSupportChatScope
     .task("upgrade", "Upgrade of the UserSupportChat contract")
+    .addOptionalParam("force", "Using forceImport")
     .setAction(async (taskArgs, hre) => {
         const { instance } = await loadContract("UserSupportChat", hre);
 
+        
         try {
-            const contractFactory = await ethers.getContractFactory("UserSupportChat")
-            const deploy = await upgrades.upgradeProxy(instance.target, contractFactory)
+            const utilsFactory = await ethers.getContractFactory("Utils")
+            const utilsDeploy = await utilsFactory.deploy()
+            const utilsDeployed = await utilsDeploy.waitForDeployment()
+
+            const contractFactory = await ethers.getContractFactory("UserSupportChat", {libraries:{Utils: utilsDeployed.target}})
+
+            var deploy;
+
+            if(taskArgs?.force)
+                deploy = await upgrades.forceImport(instance.target, contractFactory,{unsafeAllow: ["external-library-linking"]})
+            else
+                deploy = await upgrades.upgradeProxy(instance.target, contractFactory,{unsafeAllow: ["external-library-linking"]})
 
             await deploy.waitForDeployment()
             console.log("Success upgrade")

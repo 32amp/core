@@ -42,7 +42,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
      * @return string Contract version identifier
      */
     function getVersion() external pure returns (string memory) {
-        return "1.1";
+        return "1.2";
     }
 
     /**
