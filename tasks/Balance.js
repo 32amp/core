@@ -338,3 +338,41 @@ balanceScope
             console.log("Decoded error:", decodedError);
         }
     });    
+
+balanceScope
+.task("balance-history")
+.addOptionalParam("account", "The address to query the balance for")
+.setAction(async (args, hre) => {
+    let { account } = args;
+    if (!account) {
+        const answer = await inquirer.prompt([{
+            type: "input",
+            name: "account",
+            message: "Enter account address:",
+            validate: input => hre.ethers.isAddress(input)
+                ? true
+                : "Invalid address format"
+        }]);
+        account = answer.account;
+    }
+
+    const { instance: balance } = await loadContract("Balance",hre);
+
+    let query = balance.filters.Transfer(hre.ethers.ZeroAddress, account)
+    let events = await balance.queryFilter(query, null,null)
+
+    for (let index = 0; index < events.length; index++) {
+        const event = events[index];
+
+        let date = new Date( (await ethers.provider.getBlock(event.blockNumber)).timestamp*1000);
+
+        console.log("=====================")
+        console.log("Date", date.toISOString())
+        console.log("From: ", event.args[0])
+        console.log("To: ", event.args[1])
+        console.log("Amount: ", hre.ethers.formatEther(event.args[2]))
+        console.log("From amount: ", hre.ethers.formatEther(event.args[3]))
+        console.log("To amount: ", hre.ethers.formatEther(event.args[4]))
+        console.log("")
+    }
+})
