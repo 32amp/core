@@ -265,6 +265,34 @@ contract Cards is ICards, Initializable {
         return empty; 
     }
 
+    function setPrimaryCard(bytes32 card_id) onlyUser() external {
+
+        uint256 _index = 999;
+
+        for (uint i = 0; i < cards[msg.sender].length; i++) {
+            if(cards[msg.sender][i].id == card_id){
+                _index = i;
+                break;
+            }
+            
+        }
+
+
+        if (_index == 999) {
+            revert ObjectNotFound("Card", _index);
+        }
+
+        for (uint i = 0; i < cards[msg.sender].length; i++) {
+            if(i == _index){
+                cards[msg.sender][i].is_primary = true;
+            }else{
+                cards[msg.sender][i].is_primary = false;
+            }
+            
+        }
+
+    }
+
     /**
      * @notice Retrieves user cards
      * @param account User address

@@ -14,6 +14,9 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
         if (typeof config?.deployed?.Currencies == "undefined")
             throw new Error("Currencies not deployed")
 
+        if (typeof config?.deployed?.OCPPSwarm == "undefined")
+            throw new Error("OCPPSwarm not deployed")
+
         if (typeof config?.deployed?.Hub != "undefined")
             throw new Error("Hub already deployed")
 
@@ -22,6 +25,10 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
             {
                 name: "Currencies",
                 contract_address: config.deployed.Currencies
+            },
+            {
+                name: "OCPPSwarm",
+                contract_address: config.deployed.OCPPSwarm
             }
         ]
 

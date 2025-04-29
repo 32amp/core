@@ -152,12 +152,72 @@ describe("Cards", function () {
 
     })
 
+
+    it("addCard:process - second card", async function () {
+
+        // Client call
+        let addCardRequest = await this.contracts.Cards.connect(this.simpleUser).addCardRequest()
+
+        let retAddCardRequest = await getEventArguments(addCardRequest, "AddCardRequest");
+
+
+        expect(retAddCardRequest.account).to.be.equal(this.simpleUser.address)
+        expect(retAddCardRequest.request_id).to.be.equal(2)
+        //Oracle with admin level access should response
+        let addCardResponse = await this.contracts.Cards.connect(this.adminUser).addCardResponse(retAddCardRequest.account, retAddCardRequest.request_id, true, await encryptAESGCM("success", aeskey), await encryptAESGCM("https://bank.com/endpoint/to/specific/user/for/add/card", aeskey))
+        let retAddCardResponse = await getEventArguments(addCardResponse, "AddCardResponse");
+
+
+        // this is response get client and if status is true open payment_endpoint url
+        expect(retAddCardResponse.account).to.be.equal(retAddCardRequest.account)
+        expect(retAddCardResponse.request_id).to.be.equal(retAddCardRequest.request_id)
+        expect(retAddCardResponse.status).to.be.equal(true)
+        expect(await decryptAESGCM( retAddCardResponse.message, aeskey)).to.be.equal("success")
+        expect(await decryptAESGCM( retAddCardResponse.payment_endpoint, aeskey)).to.be.equal("https://bank.com/endpoint/to/specific/user/for/add/card")
+
+        // oracle waiting when payment is will be finished and if all of success try to add card to database
+        let addCard = await this.contracts.Cards.connect(this.adminUser).addCard(
+            retAddCardRequest.account,
+            retAddCardRequest.request_id,
+            {
+                rebill_id: await encryptAESGCM("1215", aeskey),
+                provider: await encryptAESGCM("bank.com", aeskey),
+                first6: await encryptAESGCM("220256", aeskey),
+                last4: await encryptAESGCM("4400", aeskey),
+                card_type: await encryptAESGCM("Visa", aeskey),
+                expire_month: await encryptAESGCM("12", aeskey),
+                expire_year: await encryptAESGCM("35", aeskey),
+            }
+        )
+
+        // Client get this event 
+        let retAddCard = await getEventArguments(addCard, "AddCardSuccess");
+
+        expect(retAddCard.account).to.be.equal(retAddCardRequest.account)
+        expect(retAddCard.request_id).to.be.equal(retAddCardRequest.request_id)
+        this.secondCardId = retAddCard.card_id
+
+    })
+
+    it("setPrimaryCard", async function(){
+        let setPrimaryCard = await this.contracts.Cards.connect(this.simpleUser).setPrimaryCard(this.currentCardId); // index of user card
+        await setPrimaryCard.wait()
+
+
+        let getPrimaryCard = await this.contracts.Cards.getPrimaryCard(this.simpleUser.address)
+
+
+        expect(getPrimaryCard.id).to.be.equal(this.currentCardId)
+
+
+    })
+
     it("removeCard", async function () {
         let removeCard = await this.contracts.Cards.connect(this.simpleUser).removeCard(this.currentCardId); // index of user card
         await removeCard.wait()
 
         let cards = await this.contracts.Cards.getCards(this.simpleUser.address)
-        expect(cards.length).to.be.equal(0);
+        expect(cards.length).to.be.equal(1);
     })
 
 })

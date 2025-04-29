@@ -132,6 +132,7 @@ interface ICards is IBaseErrors {
     function removeCard(bytes32 card_id) external;
     function getCards(address account) external view returns(Card[] memory);
     function getPrimaryCard(address account) external view returns(Card memory);
+    function setPrimaryCard(bytes32 card_id) external;
     function getAutoPaymentSettings(address account) external view returns(AutopaySettings memory);
     function writeOffRequest(string calldata amount) external;
     function writeOffResponse(address account, uint256 request_id, bytes32 card_id, uint256 error_code, bool status, string calldata message, string calldata amount )  external;
