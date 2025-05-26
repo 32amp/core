@@ -80,11 +80,7 @@ interface DataTypes {
     enum ConnectorStatus {
         None,           // Undefined status
         Available,      // Ready for use
-        Preparing,      // Session initialization
-        Charging,       // Active charging
-        SuspendedEVSE,  // Suspended by EVSE (power management)
-        SuspendedEV,    // Suspended by vehicle (BMS control)
-        Finishing,      // Session termination
+        Occupied,
         Reserved,       // Reserved state
         Unavailable,    // Out of service
         Faulted         // Fault condition

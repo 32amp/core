@@ -138,11 +138,8 @@ contract Connector is IConnector, Initializable {
         ret.connector = connectors[id];
         ret.last_updated = last_updated[id];
         ret.status = connector_status[id];
+        ret.tariff = connector_tariff[id];
 
-
-        if(connector_tariff[id] > 0){
-            ret.tariff = _Tariff().getLight(connector_tariff[id]);
-        }
 
         return ret;
     }

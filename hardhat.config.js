@@ -2,6 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require('@openzeppelin/hardhat-upgrades');
 require("./utils/taskloader");
 require("solidity-docgen");
+require("hardhat-contract-sizer");
 
 const mnemonic = require('fs').readFileSync('.mnemonic', 'utf8');
 
@@ -15,8 +16,8 @@ module.exports = {
       accounts: {mnemonic: mnemonic}
     },
     local: {
-      url: "http://localhost:8546",
-      networkid:544566,
+      url: "http://localhost:8545",
+      networkid:32382,
       accounts: {mnemonic: mnemonic}
     }
   },
@@ -38,5 +39,10 @@ module.exports = {
     outputDir: "./docs/contracts",
     pages: "items",
     collapseNewlines: true,
+  },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
   },
 };

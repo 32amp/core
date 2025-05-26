@@ -40,7 +40,7 @@ module.exports.deploy = async function(modules, showlog = false) {
         }
     };
 
-    
+
     await deployModule("MobileApp");
     await deployModule("User", [], ["Utils"]);
     await deployModule("UserGroups");

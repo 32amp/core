@@ -58,14 +58,30 @@ hubScope.task("upgrade", "Upgrade of the Hub contract")
 
         try {
             const contractFactory = await ethers.getContractFactory("Hub")
-            const deploy = await upgrades.upgradeProxy(typeof config?.deployed?.Hub, contractFactory)
+            const deploy = await hre.upgrades.upgradeProxy(config?.deployed?.Hub, contractFactory)
 
             await deploy.waitForDeployment()
             console.log("Success upgrade")
         } catch (error) {
             console.log("Failed upgrade: ", error)
         }
-        
+
+    });
+
+hubScope.task("version", "Show version of contract")
+    .setAction(async (taskArgs, hre) => {
+        const { name, country, party } = taskArgs;
+
+        const config = await loadConfig("config")
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+
+        const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub);
+        const version = await hub.getVersion()
+
+        console.log("Version:", version)
     });
 
 hubScope.task("register-partner", "Registers a new partner")
@@ -229,6 +245,39 @@ hubScope.task("change-module-address", "Changes the address of an existing modul
         await tx.wait();
 
         console.log("Module address changed, transaction:", tx.hash);
+    });
+
+hubScope.task("set-service", "Set the address of service")
+    .addParam("name", "Service name")
+    .addParam("address", "Contract address")
+    .setAction(async (taskArgs, hre) => {
+        const { name, address } = taskArgs;
+        const config = await loadConfig("config")
+        const signer = await accountSelection(hre);
+
+
+        if (!hre.ethers.isAddress(address)) throw new Error("Invalid module address");
+
+        if (typeof config?.deployed?.Hub == "undefined")
+            throw new Error("Hub not deployed")
+
+
+
+        const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
+
+        try {
+
+            console.log(config.deployed.Hub, name, address)
+
+            const tx = await hub.setService(name, address);
+            await tx.wait();
+
+            console.log("Service seted, transaction:", tx.hash);
+        } catch (error) {
+            const decodedError = hub.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
+
     });
 
 hubScope.task("get-partner-by-address", "Получает информацию о партнере по адресу кошелька")

@@ -209,10 +209,10 @@ balanceScope
             value = value || answers.value;
         }
 
-
+        const { instance: balance } = await loadContract("Balance",hre);
 
         try {
-            const { instance: balance } = await loadContract("Balance",hre);
+
             const tx = await balance.transferFrom(from, to, ethers.parseEther(value));
             await tx.wait();
             console.log(`Transfer From successful. TX hash: ${tx.hash}`);

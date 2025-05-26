@@ -37,23 +37,17 @@ interface ITariff is DataTypes, IBaseErrors {
         TIME       // Time-based charging fees
     }
 
-    /**
-     * @title Reservation Restriction Types
-     * @notice Defines reservation-related tariff limitations
-     */
-    enum ReservationRestrictionType {
-        None,
-        RESERVATION,          // Requires reservation
-        RESERVATION_EXPIRES   // Reservation expiration policy
+
+    struct Output {
+        uint256 id;
+        uint256 current_version;
+        uint256 last_updated;
+        TariffData tariff;
     }
 
     /**
      * @title Complete Tariff Output
      * @notice Contains full tariff details with all components
-     * @param country_code ISO 3166-1 alpha-2 country code
-     * @param party_id Operator identifier within country
-     * @param id Unique tariff identifier
-     * @param last_updated UNIX timestamp of last modification
      * @param tariff Main tariff structure
      * @param min_price Minimum price constraints
      * @param max_price Maximum price constraints
@@ -61,11 +55,7 @@ interface ITariff is DataTypes, IBaseErrors {
      * @param end_date_time Expiration timestamp
      * @param energy_mix Renewable energy composition data
      */
-    struct Output {
-        bytes2 country_code;
-        bytes3 party_id;
-        uint256 id;
-        uint256 last_updated;
+    struct TariffData {
         Tariff tariff;
         Price min_price;
         Price max_price;   
@@ -74,16 +64,6 @@ interface ITariff is DataTypes, IBaseErrors {
         EnergyMix energy_mix;             
     }
 
-    /**
-     * @title Simplified Tariff Output
-     * @notice Contains basic tariff information
-     * @param id Unique tariff identifier
-     * @param tariff Core tariff structure
-     */
-    struct OutputLight {
-        uint256 id;
-        Tariff tariff;
-    }
 
     /**
      * @title Main Tariff Structure
@@ -134,7 +114,6 @@ interface ITariff is DataTypes, IBaseErrors {
      * @param min_duration Minimum charging duration (seconds)
      * @param max_duration Maximum charging duration (seconds)
      * @param day_of_week Applicable days of week
-     * @param reservation Reservation requirements
      */
     struct TariffRestrictions {
         int16 start_time_hour;
@@ -152,7 +131,6 @@ interface ITariff is DataTypes, IBaseErrors {
         uint32 min_duration;
         uint32 max_duration;
         DayOfWeek[] day_of_week;
-        ReservationRestrictionType reservation;
     }
 
     /**
@@ -169,23 +147,17 @@ interface ITariff is DataTypes, IBaseErrors {
     /**
      * @notice Emitted when new tariff is added
      * @param uid New tariff ID
-     * @param partner_id Hub-registered operator ID
      * @param account Creator's wallet address
      */
     event AddTariff(
         uint256 indexed uid,
-        uint256 indexed partner_id,
         address indexed account
     );
 
     function getVersion() external pure returns(string memory);
     function exist(uint256 id) external returns(bool);
-    function add(Tariff calldata tariff) external;
-    function setMinPrice(uint256 id, Price calldata _min_price) external;
-    function setMaxPrice(uint256 id, Price calldata _max_price) external;
-    function setStartDateTime(uint256 id, uint256 _start_date_time) external;
-    function setEndDateTime(uint256 id, uint256 _end_date_time) external;
-    function setEnergyMix(uint256 id, EnergyMix calldata _energy_mix ) external;
+    function add(TariffData calldata tariff) external;
     function get(uint256 id) external view returns(Output memory);
-    function getLight(uint256 id) external view returns(OutputLight memory);
+    function getByVersion(uint256 id, uint256 version ) external view returns(Output memory);
+    function getCurrentVersion(uint256 id) external view returns(uint256);
 }

@@ -1,8 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
+import "./DataTypes.sol";
 
-library Utils {
+
+library Utils  {
+
+    function removeElement(DataTypes.AdditionalGeoLocation[] storage array, uint index) internal {
+        require(index < array.length, "Invalid index");
+        for (uint i = index; i < array.length-1; i++) {
+            array[i] = array[i+1];
+        }
+        array.pop();
+    }
+
+    function removeElement(DataTypes.Image[] storage array, uint index) internal {
+        require(index < array.length, "Invalid index");
+        for (uint i = index; i < array.length-1; i++) {
+            array[i] = array[i+1];
+        }
+        array.pop();
+    }
+
+    function removeElement(DataTypes.DisplayText[] storage array, uint index) internal {
+        require(index < array.length, "Invalid index");
+        for (uint i = index; i < array.length-1; i++) {
+            array[i] = array[i+1];
+        }
+        array.pop();
+    }
+
+    function removeElement(uint256[] storage array, uint index) internal {
+        require(index < array.length, "Invalid index");
+        for (uint i = index; i < array.length-1; i++) {
+            array[i] = array[i+1];
+        }
+        array.pop();
+    }
 
     function splitCoordinate(string memory coordinate) internal pure returns (int16) {
         bytes memory coordinateBytes = bytes(coordinate);

@@ -11,6 +11,8 @@ import "../Tariff/ITariff.sol";
  * @dev Inherits common data types from DataTypes interface
  */
 interface IConnector is DataTypes, IBaseErrors {
+
+
     /**
      * @title Connector Output Data
      * @notice Aggregated connector information structure
@@ -25,7 +27,7 @@ interface IConnector is DataTypes, IBaseErrors {
         uint256 last_updated;
         Connector connector;
         ConnectorStatus status;
-        ITariff.OutputLight tariff;
+        uint256 tariff;
     }
 
     /**

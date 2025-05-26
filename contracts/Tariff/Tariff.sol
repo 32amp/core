@@ -28,29 +28,10 @@ contract Tariff is ITariff, Initializable {
     /// @dev Timestamp of last update for each tariff
     mapping(uint256 => uint256) last_updated;
     
-    /// @dev Tariff data storage
-    mapping(uint256 => Tariff) tariffs;
-    
-    /// @dev Minimum price configuration for tariffs
-    mapping(uint256 => Price) min_price;
-    
-    /// @dev Maximum price configuration for tariffs
-    mapping(uint256 => Price) max_price;
-    
-    /// @dev Start date and time for tariff validity
-    mapping(uint256 => uint256) start_date_time;
-    
-    /// @dev End date and time for tariff validity
-    mapping(uint256 => uint256) end_date_time;
-    
-    /// @dev Energy mix configuration for tariffs
-    mapping(uint256 => EnergyMix) energy_mix;
-    
-    /// @dev Country code associated with tariffs
-    mapping(uint256 => bytes2) country_code;
-    
-    /// @dev Party ID associated with tariffs
-    mapping(uint256 => bytes3) party_id;
+    /// @dev Tariff data storage id => version => TariffData
+    mapping(uint256 => mapping( uint256 => TariffData )) tariffs;
+
+    mapping(uint256 => uint256) current_tariff_version;
 
     /**
      * @notice Initializes the contract with Hub connection
@@ -68,7 +49,7 @@ contract Tariff is ITariff, Initializable {
      * @return string Contract version identifier
      */
     function getVersion() external pure returns(string memory) {
-        return "1.0";
+        return "1.1";
     }
 
     /**
@@ -76,7 +57,7 @@ contract Tariff is ITariff, Initializable {
      * @param id Tariff ID to check
      * @return bool True if the tariff exists, false otherwise
      */
-    function exist(uint256 id) external view returns(bool) {
+    function exist(uint256 id) public view returns(bool) {
         return last_updated[id] != 0;
     }
 
@@ -120,7 +101,7 @@ contract Tariff is ITariff, Initializable {
      * @custom:reverts ObjectNotFound If referenced currency does not exist
      * @custom:emits AddTariff On successful tariff addition
      */
-    function add(Tariff calldata tariff) external {
+    function add(TariffData calldata tariff) external {
 
         uint access_level = _UserAccess().getModuleAccessLevel("Tariff", msg.sender);
 
@@ -128,72 +109,35 @@ contract Tariff is ITariff, Initializable {
             revert AccessDenied("Tariff");
         }
 
-        if(!_Currencies().exist(tariff.currency))
-            revert ObjectNotFound("Currency",tariff.currency);
+        if(!_Currencies().exist(tariff.tariff.currency))
+            revert ObjectNotFound("Currency",tariff.tariff.currency);
 
         counter++;
-        tariffs[counter] = tariff;
-        country_code[counter] = IHub(hubContract).getPartnerCountryCode(partner_id);
-        party_id[counter] = IHub(hubContract).getPartnerPartyId(partner_id);
+
+        current_tariff_version[counter] = 0;
+        tariffs[counter][0] = tariff;
 
         _updated(counter);
 
-        emit AddTariff(counter, partner_id, msg.sender);
+        emit AddTariff(counter, msg.sender);
 
         _UserAccess().setAccessLevelToModuleObject(bytes32(counter),msg.sender,"Tariff",IUserAccess.AccessLevel.FOURTH);
 
     }
 
-    
-    /**
-     * @notice Sets the minimum price for a tariff
-     * @param id Tariff ID to update
-     * @param _min_price Price structure containing minimum price details
-     * @custom:reverts AccessDenied If caller lacks FOURTH level access
-     */
-    function setMinPrice(uint256 id, Price calldata _min_price) access(id) external{
-        min_price[id] = _min_price;
+    function update(uint256 id, TariffData calldata tariff) access(id) external {
+        if( !exist(id) ) {
+            revert ObjectNotFound("tariff", id);
+        }
+
+        current_tariff_version[id]++;
+
+        _updated(id);
+
+        tariffs[id][current_tariff_version[id]] = tariff;
     }
 
-    /**
-     * @notice Sets the maximum price for a tariff
-     * @param id Tariff ID to update
-     * @param _max_price Price structure containing maximum price details
-     * @custom:reverts AccessDenied If caller lacks FOURTH level access
-     */    
-    function setMaxPrice(uint256 id, Price calldata _max_price) access(id) external{
-        max_price[id] = _max_price;
-    }
 
-    /**
-     * @notice Sets the start date and time for a tariff
-     * @param id Tariff ID to update
-     * @param _start_date_time Unix timestamp for tariff start
-     * @custom:reverts AccessDenied If caller lacks FOURTH level access
-     */    
-    function setStartDateTime(uint256 id, uint256 _start_date_time) access(id) external {
-        start_date_time[id] = _start_date_time;
-    }
-
-    /**
-     * @notice Sets the end date and time for a tariff
-     * @param id Tariff ID to update
-     * @param _end_date_time Unix timestamp for tariff end
-     * @custom:reverts AccessDenied If caller lacks FOURTH level access
-     */    
-    function setEndDateTime(uint256 id, uint256 _end_date_time) access(id) external {
-        end_date_time[id] = _end_date_time;
-    }
-
-    /**
-     * @notice Sets the energy mix configuration for a tariff
-     * @param id Tariff ID to update
-     * @param _energy_mix EnergyMix structure containing energy source details
-     * @custom:reverts AccessDenied If caller lacks FOURTH level access
-     */    
-    function setEnergyMix(uint256 id, EnergyMix calldata _energy_mix ) access(id) external {
-        energy_mix[id] = _energy_mix;
-    }
 
     /**
      * @notice Retrieves complete tariff details by ID
@@ -201,34 +145,51 @@ contract Tariff is ITariff, Initializable {
      * @return Output Tariff data structure with all associated details
      */    
     function get(uint256 id) external view returns(Output memory) {
+
+        if( !exist(id) ) {
+            revert ObjectNotFound("tariff", id);
+        }
+
         Output memory ret;
 
-        ret.country_code = country_code[id];
-        ret.party_id = party_id[id];
         ret.id = id;
         ret.last_updated = last_updated[id];
-        ret.tariff = tariffs[id];
-        ret.min_price = min_price[id];
-        ret.max_price = max_price[id];
-        ret.start_date_time = start_date_time[id];
-        ret.end_date_time = end_date_time[id];
-        ret.energy_mix = energy_mix[id];
+        ret.current_version = current_tariff_version[id];
+        ret.tariff = tariffs[id][current_tariff_version[id]];
 
         return ret;
     }
 
+
     /**
-     * @notice Retrieves lightweight tariff details by ID
+     * @notice Retrieves complete tariff details by ID
      * @param id Tariff ID to query
-     * @return OutputLight Simplified tariff data structure
+     * @param version Verion of tariff
+     * @return Output Tariff data structure with all associated details
      */    
-    function getLight(uint256 id) external view returns(OutputLight memory) {
-        OutputLight memory ret;
+    function getByVersion(uint256 id, uint256 version ) external view returns(Output memory) {
+
+        if( !exist(id) ) {
+            revert ObjectNotFound("tariff", id);
+        }
+
+        Output memory ret;
 
         ret.id = id;
-        ret.tariff = tariffs[id];
-
+        ret.last_updated = last_updated[id];
+        ret.current_version = version;
+        ret.tariff = tariffs[id][current_tariff_version[version]];
 
         return ret;
+    }
+
+
+
+    function getCurrentVersion(uint256 id) external view returns(uint256){
+        if( !exist(id) ) {
+            revert ObjectNotFound("tariff", id);
+        }
+
+        return current_tariff_version[id];
     }
 }

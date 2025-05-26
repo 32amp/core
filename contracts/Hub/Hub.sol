@@ -48,7 +48,7 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
      * @return Contract version as string
      */
     function getVersion() external pure returns(string memory){
-        return "1.1";
+        return "1.2";
     }
 
     /**
@@ -75,6 +75,10 @@ contract Hub is IHub, Initializable, OwnableUpgradeable {
      */    
     function getService(string calldata name) external view returns(address){
         return services[name];
+    }
+
+    function setService(string calldata name, address service) external onlyOwner() {
+        services[name] = service;
     }
 
    /**

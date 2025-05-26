@@ -118,6 +118,7 @@ interface IHub is IBaseErrors {
     function addModule(string memory name, address contractAddress) external;
     function changeModuleAddress(string memory name, address contractAddress)  external;
     function getService(string memory name) external view returns(address);
+    function setService(string calldata name, address service) external;
     function getModule(string memory name, uint256 partner_id)  external view returns (address);
     function checkModuleExist(string memory name, uint256 partner_id)  external view returns (address);
     function getPartnerModules(uint256 partner_id) external view returns (string[] memory);
