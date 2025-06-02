@@ -19,7 +19,8 @@ describe("Sessions", function() {
             EVSE: true,
             Connector: true,
             Tariff: true,
-            Sessions: true
+            Sessions: true,
+            CDR: true
         });
 
 
@@ -319,7 +320,7 @@ async function runTestSession(params, contracts) {
         await contracts.Sessions.connect(params.simpleUser).stopSessionRequest(startSessionResponse.session_id);
         await contracts.Sessions.connect(params.ocppProxy).stopSessionResponse(startSessionResponse.session_id, finalLog, true, "ok");
 
-        const cdr = await contracts.Sessions.getCDR(startSessionResponse.session_id);
+        const cdr = await contracts.CDR.getCDR(startSessionResponse.session_id);
 
         return cdr;
 }

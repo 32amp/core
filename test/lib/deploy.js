@@ -54,6 +54,7 @@ module.exports.deploy = async function(modules, showlog = false) {
     await deployModule("Balance", [1]);
     await deployModule("Cards",[], ["Utils"]);
     await deployModule("Sessions", [ethers.ZeroAddress]);
+    await deployModule("CDR");
 
     retmodules.UserAccess = await deployProxy("UserAccess", [partner.id, retmodules.Hub.target]);
     const tx11 = await retmodules.Hub.addModule("UserAccess", retmodules.UserAccess.target);
