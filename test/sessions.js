@@ -65,7 +65,7 @@ describe("Sessions", function() {
         await this.contracts.Connector.connect(this.adminUser).setTariffs(1, 1);
         
         // Mint some balance for testing
-        await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("1000"));
+        await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("100000"));
     });
 
     it("should initialize with correct values", async function() {

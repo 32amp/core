@@ -3,6 +3,8 @@ require('@openzeppelin/hardhat-upgrades');
 require("./utils/taskloader");
 require("solidity-docgen");
 require("hardhat-contract-sizer");
+require("hardhat-gas-reporter");
+
 
 const mnemonic = require('fs').readFileSync('.mnemonic', 'utf8');
 
@@ -28,7 +30,7 @@ module.exports = {
         enabled: true,
         runs: 200,
       },
-      viaIR: false,
+      viaIR: true,
     },
   },
   mocha: {
