@@ -14,13 +14,14 @@ module.exports.deployProxy = async function (contract, init = [], libs = []) {
         }
     }
 
-    const contractFactory = await ethers.getContractFactory(contract,{
+    const contractFactory = await ethers.getContractFactory(contract, {
         libraries 
     })
-    const deploy = await upgrades.deployProxy(contractFactory, init, {unsafeAllow: ["external-library-linking"]})
+    const deploy = await upgrades.deployProxy(contractFactory, init, {
+        unsafeAllow: ["external-library-linking"]
+    })
 
     const deployed = await deploy.waitForDeployment()
-
 
     return deployed;
 }

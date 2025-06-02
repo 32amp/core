@@ -156,6 +156,17 @@ contract Connector is IConnector, Initializable {
         return false;
     }
     
+    /**
+     * @notice Updates connector operational status
+     * @param id Connector ID
+     * @param status New status value
+     * @custom:reverts "AccessDenied" if insufficient privileges
+     */
+    function setStatus(uint256 id, ConnectorStatus status) access(id) external {
+        connector_status[id] = status;
+        _updated(id);
+    }
+    
     /// @dev Internal update tracker
     function _updated(uint256 id) internal {
         last_updated[id] = block.timestamp;

@@ -114,8 +114,8 @@ contract Tariff is ITariff, Initializable {
 
         counter++;
 
-        current_tariff_version[counter] = 0;
-        tariffs[counter][0] = tariff;
+        current_tariff_version[counter] = 1;
+        tariffs[counter][1] = tariff;
 
         _updated(counter);
 

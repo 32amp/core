@@ -160,7 +160,6 @@ contract Balance is Initializable, IBalance {
      * @custom:reverts "AccessDeniedLevel:Four" if unauthorized
      */
     function transferFrom(address from, address to, uint256 value) onlyAdmin() external {
-        _User().exist(to);
         _update(from, to, value);
     }
 

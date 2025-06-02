@@ -46,13 +46,14 @@ module.exports.deploy = async function(modules, showlog = false) {
     await deployModule("UserGroups");
     await deployModule("Tariff");
     await deployModule("Location");
-    await deployModule("LocationSearch",[], ["Utils"]);
+    await deployModule("LocationSearch",[]);
     await deployModule("EVSE");
     await deployModule("Connector");
     await deployModule("UserSupportChat",[], ["Utils"]);
     await deployModule("MobileAppSettings");
     await deployModule("Balance", [1]);
     await deployModule("Cards",[], ["Utils"]);
+    await deployModule("Sessions", [ethers.ZeroAddress]);
 
     retmodules.UserAccess = await deployProxy("UserAccess", [partner.id, retmodules.Hub.target]);
     const tx11 = await retmodules.Hub.addModule("UserAccess", retmodules.UserAccess.target);

@@ -80,16 +80,23 @@ interface ISessions is DataTypes, IBaseErrors {
         uint256 start_datetime;
         uint256 end_datetime;
         uint256 total_energy;
-        uint256 total_cost;
+        Price total_cost;
         uint256 tariff_id;
         uint256 tariff_version;
     }
+
+    struct CDRElement {
+        ITariff.TariffDimensionType _type;
+        Price price;
+    }
+
 
     struct Reservation {
         uint256 time_expire;
         address account;
         bool confirmed;
         bool canceled;
+        bool executed;
     }
 
 
@@ -99,16 +106,21 @@ interface ISessions is DataTypes, IBaseErrors {
         uint256 indexed time_expire
     );
 
-    event ReservationResponseConfirm(
+    event ReservationCancelRequest(
         uint256 indexed id, 
-        address indexed account,
-        uint256 indexed time_expire
+        address indexed iniciator_account
     );
 
-    event ReservationResponseCanceled(
+    event ReservationCancelResponse(
+        uint256 indexed id, 
+        bool status
+    );
+
+    event CreateReservationResponse(
         uint256 indexed id, 
         address indexed account,
-        uint256 indexed time_expire
+        uint256 indexed time_expire,
+        bool status
     );
 
 
@@ -171,6 +183,7 @@ interface ISessions is DataTypes, IBaseErrors {
 
     // Custom errors
     error SessionAlreadyActive(address auth_id);
+    error ReserveAlreadyRunned(address auth_id, uint256 reserve_id);
     error InvalidSessionStatus(uint256 session_id, SessionStatus status);
     error TooManyLogs(uint256 session_id);
     error InvalidTimestamp(uint256 session_id, uint256 timestamp);
@@ -180,11 +193,11 @@ interface ISessions is DataTypes, IBaseErrors {
 
 
     function getVersion() external pure returns(string memory);
-    function startSessionRequest( uint256 evse_uid, uint256 connector_id, address start_for, uint256 reserve_id) external;
+    function startSessionRequest( uint256 evse_uid, uint256 connector_id, uint256 reserve_id, address start_for) external;
     function updateSession(uint256 session_id, SessionMeterLog memory session_log) external;
-    function stopSessionResponse(uint256 session_id, SessionMeterLog memory session_log) external;
+    function stopSessionResponse(uint256 session_id, SessionMeterLog memory session_log, bool status, string calldata message) external;
     function getSession(uint256 session_id) external view returns(Session memory);
-    function getCDR(uint256 session_id) external view returns(CDR memory);
+    function getCDR(uint256 session_id) external view returns(CDR memory, CDRElement[] memory);
     function exist(uint256 session_id) external view returns(bool);
     function getSessionByAuth(address auth_id) external view returns(uint256);
 }

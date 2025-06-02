@@ -9,6 +9,7 @@ import "../Tariff/ITariff.sol";
 import "../Location/IEVSE.sol";
 import "../Location/IConnector.sol";
 import "../Payment/IBalance.sol";
+import "hardhat/console.sol";
 
 /**
  * @title Sessions Management Contract
@@ -23,13 +24,15 @@ contract Sessions is ISessions, Initializable {
     uint256 sessionCounter;
     uint256 reservationsCounter;
     uint256 min_price_for_start_session;
-    uint8 reservation_time; // in minutes
+    uint256 reservation_time; // in minutes
     
     // Storage mappings
     mapping(uint256 => Session) sessions;
     mapping(uint256 => Reservation) reservations;
+    mapping(address => uint256) authByReservation;
     mapping(uint256 => mapping(uint256 => SessionMeterLog)) session_logs;
     mapping(uint256 => CDR) sessionCDRs;
+    mapping(uint256 => CDRElement[]) cdrElements;
     mapping(uint256 => uint256) last_updated;
     mapping(address => uint256) sessionByAuth; // auth_id -> session_id
     mapping(uint256 => address) authBySession; // session_id -> auth_id
@@ -93,6 +96,11 @@ contract Sessions is ISessions, Initializable {
     }
 
 
+    function changeOcpp(address new_ocpp) external {
+         _UserAccess().checkAccessModule(msg.sender, "Sessions", uint(IUserAccess.AccessLevel.GOD));
+        ocpp = new_ocpp;
+    }
+
     function createReservationRequest( uint256 evse_uid, uint256 connector_id, address start_for) external {
 
         if (start_for == address(0)){
@@ -108,10 +116,15 @@ contract Sessions is ISessions, Initializable {
             }
         }
 
+        if(authByReservation[start_for] != 0){
+            revert ReserveAlreadyRunned(start_for, authByReservation[start_for]);
+        }
+
 
         if(!_EVSE().exist(evse_uid)) {
             revert ObjectNotFound("EVSE", evse_uid);
         }
+
 
         IConnector.output memory connector = _Connector().get(connector_id);
 
@@ -126,11 +139,17 @@ contract Sessions is ISessions, Initializable {
 
         reservationsCounter++;
 
+        uint256 expire_time;
+        unchecked {
+            expire_time = block.timestamp + (reservation_time * 1 minutes);
+        }
+
         Reservation memory r = Reservation({
-            time_expire: block.timestamp + (reservation_time * 1 minutes),
+            time_expire: expire_time,
             account: start_for,
             confirmed: false,
-            canceled: false
+            canceled: false,
+            executed: false
         });
 
         reservations[reservationsCounter] = r;
@@ -139,17 +158,47 @@ contract Sessions is ISessions, Initializable {
     }
 
     
-    function reservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access {
+    function createReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access {
         if(status){
             reservations[reserve_id].confirmed = true;
-            emit ReservationResponseConfirm(reserve_id, reservations[reserve_id].account, reservations[reserve_id].time_expire);
+            authByReservation[reservations[reserve_id].account] = reserve_id;
         }else{
             reservations[reserve_id].canceled = true;
-            emit ReservationResponseCanceled(reserve_id, reservations[reserve_id].account, reservations[reserve_id].time_expire);
         }
+
+        emit CreateReservationResponse(reserve_id, reservations[reserve_id].account, reservations[reserve_id].time_expire, status);
 
     }
 
+    function cancelReservationRequest(uint256 reserve_id, address cancel_for) external {
+        if (cancel_for == address(0)){
+            cancel_for = msg.sender;
+            uint access_level = _UserAccess().getModuleAccessLevel("Sessions", msg.sender);
+            if(access_level < uint(IUserAccess.AccessLevel.THIRD)) {
+                revert AccessDenied("Sessions");
+            }
+        }else {
+            uint access_level = _UserAccess().getModuleAccessLevel("Sessions", msg.sender);
+            if(access_level < uint(IUserAccess.AccessLevel.FOURTH)) {
+                revert AccessDenied("Sessions");
+            }
+        }
+
+        if (authByReservation[cancel_for] == 0){
+            revert ObjectNotFound("Reservation", reserve_id);
+        }
+
+        emit ReservationCancelRequest(reserve_id, msg.sender);
+    }
+
+
+    function cancelReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access {
+        if(status){
+            delete authByReservation[reservations[reserve_id].account];
+        }
+
+        emit ReservationCancelResponse(reserve_id, status);
+    }
 
 
 
@@ -164,7 +213,7 @@ contract Sessions is ISessions, Initializable {
      * @custom:reverts "ConnectorNotAvailable" if connector is busy
      * @custom:emits SessionStart on success
      */
-    function startSessionRequest( uint256 evse_uid, uint256 connector_id, address start_for, uint256 reserve_id ) external {
+    function startSessionRequest( uint256 evse_uid, uint256 connector_id, uint256 reserve_id, address start_for ) external {
 
         if (start_for == address(0)){
             start_for = msg.sender;
@@ -180,7 +229,7 @@ contract Sessions is ISessions, Initializable {
         }
 
         if(reserve_id != 0) {
-            if( !reservations[reserve_id].confirmed || reservations[reserve_id].account != start_for){
+            if( !reservations[reserve_id].confirmed && reservations[reserve_id].account != start_for){
                 revert AccessDenied("Sessions");
             }
         }
@@ -195,15 +244,16 @@ contract Sessions is ISessions, Initializable {
         }
 
         // Проверяем доступность коннектора
-        if(connector.status != ConnectorStatus.Available || connector.status != ConnectorStatus.Reserved) {
+        if(connector.status != ConnectorStatus.Available && connector.status != ConnectorStatus.Reserved) {
             revert ConnectorNotAvailable(connector_id);
         }
 
         // Проверяем корректность тарифа
         require(connector.tariff != 0, "Invalid tariff");
 
+        // Проверяем, нет ли уже сессии у пользователя
         if(sessionByAuth[msg.sender] != 0) {
-            revert SessionAlreadyActive(msg.sender);
+                revert SessionAlreadyActive(msg.sender);
         }
 
         // Получаем текущую версию тарифа на момент старта сессии
@@ -244,13 +294,31 @@ contract Sessions is ISessions, Initializable {
     }
 
     
+    // Централизованная очистка sessionByAuth и authBySession
+    function _cleanupSessionAuth(uint256 session_id) private {
+        address auth_id = authBySession[session_id];
+        if (auth_id != address(0)) {
+            delete sessionByAuth[auth_id];
+            delete authBySession[session_id];
+        }
+    }
+
+    // Централизованное изменение статуса сессии
+    function _setSessionStatus(uint256 session_id, SessionStatus new_status) private {
+        sessions[session_id].status = new_status;
+        if (new_status != SessionStatus.ACTIVE && new_status != SessionStatus.PENDING) {
+            _cleanupSessionAuth(session_id);
+        }
+    }
+
     function startSessionResponse(uint256 session_id, bool status, string calldata message ) external ocpp_proxy_access {
         if(status){
-            sessions[session_id].status = SessionStatus.ACTIVE;
+            _setSessionStatus(session_id, SessionStatus.ACTIVE);
+            reservations[sessions[session_id].reserve_id].executed = true;
+            delete authByReservation[reservations[sessions[session_id].reserve_id].account];
         }else{
-            sessions[session_id].status = SessionStatus.INVALID;
+            _setSessionStatus(session_id, SessionStatus.INVALID);
         }
-
         emit SessionStartResponse(session_id, status, message);
     }
 
@@ -298,13 +366,12 @@ contract Sessions is ISessions, Initializable {
 
 
         uint256 user_balance = _Balance().balanceOf(sessions[session_id].account);
-        CDR memory cdr = generateCDR(session_id);
+        (CDR memory cdr, ) = generateCDR(session_id);
 
 
-        emit SessionUpdate(session_id, session_log.meter_value, session_log.percent, session_log.power, session_log.current, session_log.voltage, cdr.total_cost);
+        emit SessionUpdate(session_id, session_log.meter_value, session_log.percent, session_log.power, session_log.current, session_log.voltage, cdr.total_cost.incl_vat);
 
-
-        if(cdr.total_cost > user_balance) {
+        if(cdr.total_cost.incl_vat > user_balance) {
             emit SessionStopRequest(session_id, address(this));
         }
 
@@ -336,7 +403,7 @@ contract Sessions is ISessions, Initializable {
      * @custom:reverts "InvalidFinalLog" if final log is invalid
      * @custom:emits SessionEnd on success
      */
-    function stopSessionResponse(uint256 session_id, SessionMeterLog memory session_log) public ocpp_proxy_access {
+    function stopSessionResponse(uint256 session_id, SessionMeterLog memory session_log, bool status, string calldata message ) public ocpp_proxy_access {
         if(sessions[session_id].uid == 0) {
             revert ObjectNotFound("Session", session_id);
         }
@@ -352,60 +419,76 @@ contract Sessions is ISessions, Initializable {
             require(session_log.meter_value >= last_log.meter_value, "Invalid final meter value");
         }
 
-        uint256 end_time = block.timestamp;
+        uint256 end_time = session_log.timestamp;
         require(end_time > sessions[session_id].start_datetime, "Invalid end time");
 
-        session_logs[session_id][sessions[session_id].session_log_counter] = session_log;
-        sessions[session_id].end_datetime = end_time;
-        sessions[session_id].status = SessionStatus.COMPLETED;
-        last_updated[session_id] = end_time;
 
-        // Generate CDR
-        CDR memory cdr = generateCDR(session_id);
-                
+        if (!status){
+            emit SessionStopResponse(session_id, status, message);
+            return;
+        }
+
+
+        // Сначала добавляем финальный лог
+        session_logs[session_id][sessions[session_id].session_log_counter] = session_log;
+        sessions[session_id].session_log_counter++;
+        // Теперь меняем статус и завершаем сессию
+        sessions[session_id].end_datetime = end_time;
+
+        // Генерируем CDR пока сессия еще ACTIVE
+        (CDR memory cdr, CDRElement[] memory elements) = generateCDR(session_id);
         sessionCDRs[session_id] = cdr;
 
-        _Balance().transferFrom(sessions[session_id].account, address(0), cdr.total_cost );
+        for (uint i = 0; i < elements.length; i++) {
+            cdrElements[session_id].push(elements[i]);
+        }
 
-        address auth_id = authBySession[session_id];
-        delete sessionByAuth[auth_id];
-        delete authBySession[session_id];
+        _setSessionStatus(session_id, SessionStatus.COMPLETED);
+        last_updated[session_id] = end_time;
 
-        emit SessionStopResponse(session_id, true, "");
+//        _Balance().transferFrom(sessions[session_id].account, address(0), cdr.total_cost);
+
+        emit SessionStopResponse(session_id, status, message);
     }
 
     /**
      * @dev Function to generate Charging Data Record
      * @param session_id Session ID to process
      */
-    function generateCDR(uint256 session_id)  public view returns(CDR memory) {
+    function generateCDR(uint256 session_id)  public view returns(CDR memory, CDRElement[] memory ) {
         Session memory session = sessions[session_id];
         
         require(session.session_log_counter > 0, "No session logs");
         
         // Получаем первый и последний лог
         SessionMeterLog memory first_log = session_logs[session_id][0];
-        SessionMeterLog memory last_log = session_logs[session_id][session.session_log_counter];
+        SessionMeterLog memory last_log = session_logs[session_id][session.session_log_counter-1];
         
-        require(last_log.meter_value >= first_log.meter_value, "Invalid energy consumption");
+        if(session.session_log_counter > 2){
+            require(last_log.meter_value >= first_log.meter_value, "Invalid energy consumption");
+        }
+
         
         CDR memory cdr;
         cdr.session_id = session_id;
         cdr.evse_uid = session.evse_uid;
         cdr.connector_id = session.connector_id;
-        cdr.start_datetime = session.start_datetime;
+        cdr.start_datetime = first_log.timestamp;
         cdr.end_datetime = session.end_datetime;
         cdr.tariff_id = session.tariff_id;
         cdr.tariff_version = session.tariff_version;
-        cdr.total_energy = last_log.meter_value - first_log.meter_value;
         
+        if(session.session_log_counter > 2){
+            cdr.total_energy = last_log.meter_value;
+        }
 
         ITariff.Output memory tariff = _Tariff().getByVersion(session.tariff_id, session.tariff_version);
 
-        cdr.total_cost = _calculateCost(session_id, tariff);
+        (Price memory cost, CDRElement[] memory elements) = _calculateCost(session_id, tariff);
 
+        cdr.total_cost = cost;
         
-        return cdr;
+        return (cdr,elements);
     }
     
 
@@ -415,35 +498,72 @@ contract Sessions is ISessions, Initializable {
      * @param tariff Tariff structure
      * @return cost Calculated cost in milliunits (1/1000 of currency unit)
      */
-    function _calculateCost(uint256 session_id, ITariff.Output memory tariff) internal view returns(uint256 cost) {
+    function _calculateCost(uint256 session_id, ITariff.Output memory tariff) internal view returns(Price memory, CDRElement[] memory ) {
+
+
+
         Session memory session = sessions[session_id];
-        SessionMeterLog memory last_log = session_logs[session_id][session.session_log_counter];
-        uint256 total_duration = last_log.timestamp - session.start_datetime;
-        
-        // Проходим по всем элементам тарифа
-        for (uint i = 0; i < tariff.tariff.tariff.elements.length; i++) {
-            ITariff.TariffElement memory element = tariff.tariff.tariff.elements[i];
-            
-            // Проверяем ограничения тарифа
-            if (!_checkTariffRestrictions(element.restrictions, session, session_logs[session_id][session.session_log_counter], total_duration)) {
-                continue;
+        CDRElement[] memory elements = new CDRElement[](tariff.tariff.tariff.elements.length);
+        Price memory cost;
+
+        if(session.session_log_counter < 3){
+
+            assembly {
+                mstore(elements, 1)
             }
+
+            return (Price({excl_vat:0, incl_vat:0}), elements);
+        }
+        
+        uint256 count = 0;
+
+        {
+            SessionMeterLog memory first_log = session_logs[session_id][0];
+            SessionMeterLog memory last_log = session_logs[session_id][session.session_log_counter-1];
+            uint256 total_duration = last_log.timestamp - first_log.timestamp;
             
-            // Проходим по всем компонентам цены
-            for (uint j = 0; j < element.price_components.length; j++) {
-                ITariff.PriceComponent memory component = element.price_components[j];
+            
+            // Проходим по всем элементам тарифа
+            for (uint i = 0; i < tariff.tariff.tariff.elements.length; i++) {
+                ITariff.TariffElement memory element = tariff.tariff.tariff.elements[i];
                 
-                if (component._type == ITariff.TariffDimensionType.ENERGY) {
-                    cost += _calculateEnergyCost(session_id, session, element.restrictions, component);
-                } else if (component._type == ITariff.TariffDimensionType.TIME) {
-                    cost += _calculateTimeCost(session_id, session, element.restrictions, component);
-                } else if (component._type == ITariff.TariffDimensionType.FLAT) {
-                    cost += _calculateFlatCost(component);
-                } else if (component._type == ITariff.TariffDimensionType.PARKING_TIME) {
-                    cost += _calculateParkingCost(session_id, session, element.restrictions, component);
+            
+                // Проверяем ограничения тарифа
+                if (!_checkTariffRestrictions(element.restrictions, session, last_log, total_duration)) {
+                    continue;
                 }
+                
+
+                // Проходим по всем компонентам цены
+                for (uint j = 0; j < element.price_components.length; j++) {
+                    ITariff.PriceComponent memory component = element.price_components[j];
+                    
+                    if (component._type == ITariff.TariffDimensionType.ENERGY) {
+                        
+                        elements[count] = _calculateEnergyCost(session_id, session, element.restrictions, component);
+                        cost.excl_vat += elements[count].price.excl_vat;
+                        cost.incl_vat += elements[count].price.incl_vat;
+                    } else if (component._type == ITariff.TariffDimensionType.TIME) {
+                        console.log(session_id, "_calculateTimeCost");
+                        //cost += _calculateTimeCost(session_id, session, element.restrictions, component);
+                    } else if (component._type == ITariff.TariffDimensionType.FLAT) {
+                        console.log(session_id, "_calculateFlatCost");
+                        //cost += _calculateFlatCost(component);
+                    } else if (component._type == ITariff.TariffDimensionType.PARKING_TIME) {
+                        console.log(session_id, "_calculateParkingCost");
+                        //cost += _calculateParkingCost(session_id, session, element.restrictions, component);
+                    }
+                }
+
+                count++;
             }
         }
+
+        assembly {
+            mstore(elements, count)
+        }
+
+        return (cost, elements);
     }
 
     function _calculateEnergyCost(
@@ -451,15 +571,19 @@ contract Sessions is ISessions, Initializable {
         Session memory session,
         ITariff.TariffRestrictions memory restrictions,
         ITariff.PriceComponent memory component
-    ) internal view returns (uint256) {
+    ) internal view returns (CDRElement memory) {
+
+        if(component.price == 0){
+            return CDRElement({price:Price({excl_vat:0, incl_vat:0}), _type:ITariff.TariffDimensionType.ENERGY});
+        }
+
         require(component.step_size > 0, "Invalid step size");
-        require(component.price > 0, "Invalid price");
 
         uint256 energy_cost = 0;
         uint256 prev_meter_value = 0;
         
         // Проходим по всем логам сессии
-        for (uint k = 0; k <= session.session_log_counter; k++) {
+        for (uint k = 0; k < session.session_log_counter; k++) {
             SessionMeterLog memory log = session_logs[session_id][k];
             if (k == 0) {
                 prev_meter_value = log.meter_value;
@@ -472,22 +596,27 @@ contract Sessions is ISessions, Initializable {
             // Рассчитываем потребление энергии между логами
             uint256 energy_consumed = log.meter_value - prev_meter_value;
             if (energy_consumed > 0 && _isTimeInTariffPeriod(log.timestamp, restrictions)) {
-                uint256 cost_increment = (energy_consumed * component.price) / component.step_size;
+                uint256 rounded_kwh = energy_consumed;
+                uint256 cost_increment = (rounded_kwh * component.price) / 1e18;
+                
                 require(energy_cost + cost_increment >= energy_cost, "Cost overflow");
                 energy_cost += cost_increment;
             }
             prev_meter_value = log.meter_value;
         }
         
+        uint256 energy_cost_with_vat = energy_cost;
+
         // Применяем НДС для энергии
         if (component.vat > 0) {
             uint256 vat_amount = (energy_cost * component.vat) / 100;
             require(energy_cost + vat_amount >= energy_cost, "VAT overflow");
-            energy_cost += vat_amount;
+            energy_cost_with_vat += vat_amount;
         }
         
         require(energy_cost <= MAX_COST, "Cost too high");
-        return energy_cost;
+
+        return CDRElement({price:Price({excl_vat:energy_cost, incl_vat:energy_cost_with_vat}), _type:ITariff.TariffDimensionType.ENERGY});
     }
 
     function _calculateTimeCost(
@@ -496,9 +625,14 @@ contract Sessions is ISessions, Initializable {
         ITariff.TariffRestrictions memory restrictions,
         ITariff.PriceComponent memory component
     ) internal view returns (uint256) {
+
+        if(component.price == 0 ){
+            return 0;
+        }
+        
         require(component.step_size > 0, "Invalid step size");
-        require(component.price > 0, "Invalid price");
-        SessionMeterLog memory last_log = session_logs[session_id][session.session_log_counter];
+        
+        SessionMeterLog memory last_log = session_logs[session_id][session.session_log_counter-1];
 
         require(last_log.timestamp > session.start_datetime, "Invalid session duration");
         
@@ -542,7 +676,9 @@ contract Sessions is ISessions, Initializable {
     function _calculateFlatCost(
         ITariff.PriceComponent memory component
     ) internal pure returns (uint256) {
-        require(component.price > 0, "Invalid price");
+        if(component.price == 0){
+            return 0;
+        }
         
         uint256 flat_cost = component.price;
         
@@ -676,7 +812,7 @@ contract Sessions is ISessions, Initializable {
         }
         
         // Проверяем все логи сессии на соответствие ограничениям времени и мощности
-        for (uint i = 0; i <= session.session_log_counter; i++) {
+        for (uint i = 0; i <= session.session_log_counter-1; i++) {
             SessionMeterLog memory log = session_logs[session.uid][i];
             
             // Проверка времени
@@ -726,8 +862,8 @@ contract Sessions is ISessions, Initializable {
      * @param session_id Session ID to query
      * @return cdr Complete CDR data
      */
-    function getCDR(uint256 session_id) external view returns(CDR memory) {
-        return sessionCDRs[session_id];
+    function getCDR(uint256 session_id) external view returns(CDR memory, CDRElement[] memory) {
+        return (sessionCDRs[session_id], cdrElements[session_id]);
     }
 
     /**
