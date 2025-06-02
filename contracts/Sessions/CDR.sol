@@ -153,7 +153,7 @@ contract CDR is ICDR, Initializable {
                         console.log(session_id, "_calculateTimeCost");
                         //cost += _calculateTimeCost(session_id, session, element.restrictions, component);
                     } else if (component._type == ITariff.TariffDimensionType.FLAT) {
-                        console.log(session_id, "_calculateFlatCost");
+                        //console.log(session_id, "_calculateFlatCost");
                         //cost += _calculateFlatCost(component);
                     } else if (component._type == ITariff.TariffDimensionType.PARKING_TIME) {
                         console.log(session_id, "_calculateParkingCost");
