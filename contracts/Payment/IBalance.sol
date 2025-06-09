@@ -36,13 +36,13 @@ interface IBalance is IBaseErrors {
         address indexed from,
         address indexed to,
         uint256 amount,
-        uint256 from_amount,
-        uint256 to_amount 
+        int256 from_amount,
+        int256 to_amount 
     );
 
     function totalSupply() external view returns (uint256);
 
-    function balanceOf(address account) external view returns (uint256);
+    function balanceOf(address account) external view returns (int256);
 
     function transfer(address to, uint256 value) external;
 

@@ -32,10 +32,12 @@ contract Balance is Initializable, IBalance {
     /// @dev Currency identifier
     uint256 _currency;
     
+    /// @dev Minimum allowed negative balance
+    int256 constant MIN_NEGATIVE_BALANCE = -1000 * 10**18; // -1000 tokens
+    
     // Storage mappings documentation
     /// @dev Account balances storage
-    mapping(address => uint256) _balances;
-    mapping(address => uint256) _debts;
+    mapping(address => int256) _balances;
     
 
     /**
@@ -134,7 +136,7 @@ contract Balance is Initializable, IBalance {
      * @param account User address
      * @return uint256 Account balance
      */    
-    function balanceOf(address account) onlyUser() external view returns (uint256){
+    function balanceOf(address account) onlyUser() external view returns (int256){
         return _balances[account];
     }
 
@@ -169,16 +171,15 @@ contract Balance is Initializable, IBalance {
      * @custom:emits Transfer On successful transfer
      */
     function _update(address from, address to, uint256 value) internal {
-
         if (from == address(0)) {
             _totalSupply += value;
         } else {
-            uint256 fromBalance = _balances[from];
-            if (fromBalance < value) {
-                revert InsufficientBalance(fromBalance, value);
+            int256 fromBalance = _balances[from];
+            if (fromBalance < int256(value)) {
+                revert InsufficientBalance(uint256(fromBalance), value);
             }
             unchecked {
-                _balances[from] = fromBalance - value;
+                _balances[from] = fromBalance - int256(value);
             }
         }
 
@@ -187,8 +188,12 @@ contract Balance is Initializable, IBalance {
                 _totalSupply -= value;
             }
         } else {
+            int256 newBalance = _balances[to] + int256(value);
+            if (newBalance < MIN_NEGATIVE_BALANCE) {
+                revert InsufficientBalance(uint256(_balances[to]), value);
+            }
             unchecked {
-                _balances[to] += value;
+                _balances[to] = newBalance;
             }
         }
 

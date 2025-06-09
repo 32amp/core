@@ -1,4 +1,3 @@
-
 const { expect } = require('chai');
 const {deploy} = require("./lib/deploy");
 
@@ -70,6 +69,21 @@ describe("Balance", function (){
         expect(balance2).to.be.equal(ethers.parseEther("0"))
     })
 
+    it("negative balance", async function(){
+        // Mint tokens to owner
+        let tx = await this.contracts.Balance.mint(this.owner.address, ethers.parseEther("100"))
+        await tx.wait()
+
+        // Transfer more than balance to create negative balance
+        tx = await this.contracts.Balance.transferFrom(this.owner.address, this.simpleUser.address, ethers.parseEther("150"))
+        await tx.wait()
+
+        const balance = await this.contracts.Balance.balanceOf(this.owner.address)
+        expect(balance).to.be.equal(ethers.parseEther("-50"))
+
+        const balance2 = await this.contracts.Balance.balanceOf(this.simpleUser.address)
+        expect(balance2).to.be.equal(ethers.parseEther("150"))
+    })
 
 })
 

@@ -268,10 +268,10 @@ contract Sessions is ISessions, Initializable {
         uint256 current_tariff_version = _Tariff().getCurrentVersion(connector.tariff);
         require(current_tariff_version > 0, "Invalid tariff version");
 
-        uint256 account_balance = _Balance().balanceOf(start_for);
+        int256 account_balance = _Balance().balanceOf(start_for);
 
-        if(account_balance < min_price_for_start_session){
-            revert InsufficientBalance(account_balance, min_price_for_start_session);
+        if(account_balance < int256(min_price_for_start_session)){
+            revert InsufficientBalance(uint256(account_balance), min_price_for_start_session);
         }
 
         sessionCounter++;
@@ -390,22 +390,22 @@ contract Sessions is ISessions, Initializable {
         last_updated[session_id] = block.timestamp;
 
 
-        uint256 user_balance = _Balance().balanceOf(sessions[session_id].account);
+        int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
         
         (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, session_log, total_duration);
 
-        uint256 debt = cdr.total_cost.incl_vat-sessions[session_id].total_paid.incl_vat;
+        int256 debt = int256(cdr.total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
                 
-        if(cdr.total_cost.incl_vat > user_balance) {
+        if(int256(cdr.total_cost.incl_vat) > user_balance) {
             emit SessionStopRequest(session_id, address(this));
         }
 
         if(debt < user_balance) {
-            if( (user_balance-debt) <= writeoff_treshold){
+            if( (user_balance-debt) <= int256(writeoff_treshold)){
                 Price memory amount  = Price({
-                    incl_vat:debt,
+                    incl_vat:uint256(debt),
                     excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
                 });
                 _writeOff(session_id,amount);
@@ -495,14 +495,14 @@ contract Sessions is ISessions, Initializable {
         last_updated[session_id] = stop_time;
 
 
-        uint256 user_balance = _Balance().balanceOf(sessions[session_id].account);
+        int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
-        uint256 debt = cdr.total_cost.incl_vat-sessions[session_id].total_paid.incl_vat;
+        int256 debt = int256(cdr.total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
         if(debt < user_balance) {
-            if( (user_balance-debt) <= writeoff_treshold){
+            if( (user_balance-debt) <= int256(writeoff_treshold)){
                 Price memory amount  = Price({
-                    incl_vat:debt,
+                    incl_vat:uint256(debt),
                     excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
                 });
                 _writeOff(session_id,amount);
@@ -539,14 +539,14 @@ contract Sessions is ISessions, Initializable {
 
         last_updated[session_id] = timestamp;
 
-        uint256 user_balance = _Balance().balanceOf(sessions[session_id].account);
+        int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
-        uint256 debt = cdr.total_cost.incl_vat-sessions[session_id].total_paid.incl_vat;
+        int256 debt = int256(cdr.total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
         if(debt < user_balance) {
-            if( (user_balance-debt) <= writeoff_treshold){
+            if( (user_balance-debt) <= int256(writeoff_treshold)){
                 Price memory amount  = Price({
-                    incl_vat:debt,
+                    incl_vat:uint256(debt),
                     excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
                 });
                 _writeOff(session_id,amount);
