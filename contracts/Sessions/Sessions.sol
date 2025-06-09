@@ -26,12 +26,14 @@ contract Sessions is ISessions, Initializable {
     uint256 reservationsCounter;
     uint256 min_price_for_start_session;
     uint256 reservation_time; // in minutes
+    uint256 writeoff_treshold;
     
     // Storage mappings
     mapping(uint256 => Session) sessions;
     mapping(uint256 => Reservation) reservations;
     mapping(address => uint256) authByReservation;
     mapping(uint256 => mapping(uint256 => SessionMeterLog)) session_logs;
+    mapping(uint256 => mapping(uint256 => PaidLog)) paid_logs;
 
     mapping(uint256 => uint256) last_updated;
     mapping(address => uint256) sessionByAuth; // auth_id -> session_id
@@ -48,12 +50,13 @@ contract Sessions is ISessions, Initializable {
      * @param _partner_id Partner ID from Hub registry
      * @param _hubContract Address of Hub contract
      */
-    function initialize(uint256 _partner_id, address _hubContract, address _ocpp) public initializer {
+    function initialize(uint256 _partner_id, address _hubContract, address _ocpp, uint256 _writeoff_treshold) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
         min_price_for_start_session = 10 ether;
         reservation_time = 15; 
         ocpp = _ocpp;
+        writeoff_treshold = _writeoff_treshold;
     }
 
     /// @notice Returns current contract version
@@ -268,7 +271,7 @@ contract Sessions is ISessions, Initializable {
         uint256 account_balance = _Balance().balanceOf(start_for);
 
         if(account_balance < min_price_for_start_session){
-            revert InsufficientBalance();
+            revert InsufficientBalance(account_balance, min_price_for_start_session);
         }
 
         sessionCounter++;
@@ -278,13 +281,18 @@ contract Sessions is ISessions, Initializable {
             evse_uid: evse_uid,
             connector_id: connector_id,
             start_datetime: block.timestamp,
-            end_datetime: 0,
+            stop_datetime: 0,
+            end_datetime:0,
             session_log_counter: 0,
+            paid_log_counter:0,
+            total_paid: Price({incl_vat:0,excl_vat:0}),
             tariff_id: connector.tariff,
             account: start_for,
             reserve_id: reserve_id,
             tariff_version: current_tariff_version, // Сохраняем текущую версию тарифа
-            status: SessionStatus.PENDING
+            status: SessionStatus.PENDING,
+            meter_start: 0,
+            meter_stop:0
         });
 
         sessions[sessionCounter] = s;
@@ -316,9 +324,20 @@ contract Sessions is ISessions, Initializable {
         }
     }
 
-    function startSessionResponse(uint256 session_id, bool status, string calldata message ) external ocpp_proxy_access {
+    function startSessionResponse(uint256 session_id, uint256 timestamp, uint256 meter_start, bool status, string calldata message ) external ocpp_proxy_access {
         if(status){
             _setSessionStatus(session_id, SessionStatus.ACTIVE);
+            _CDR().createCDR(session_id, sessions[session_id], timestamp, meter_start);
+            sessions[session_id].meter_start = meter_start;
+
+            SessionMeterLog memory log;
+
+            log.meter_value = meter_start;
+            log.timestamp = timestamp;
+
+            session_logs[session_id][sessions[session_id].session_log_counter] = log;
+            sessions[session_id].session_log_counter++;
+
             reservations[sessions[session_id].reserve_id].executed = true;
             delete authByReservation[reservations[sessions[session_id].reserve_id].account];
         }else{
@@ -345,21 +364,22 @@ contract Sessions is ISessions, Initializable {
         if(sessions[session_id].status != SessionStatus.ACTIVE) {
             revert InvalidSessionStatus(session_id, sessions[session_id].status);
         }
-
+        
         // Проверяем корректность значений в логе
         require(session_log.meter_value >= 0, "Invalid meter value");
-        require(session_log.percent <= 100, "Invalid percent value");
-        require(session_log.power >= 0, "Invalid power value");
-        require(session_log.current >= 0, "Invalid current value");
-        require(session_log.voltage >= 0, "Invalid voltage value");
         require(session_log.timestamp > 0, "Invalid timestamp");
+
+        SessionMeterLog memory prev_log;
+        uint256 total_duration;
 
         // Проверяем монотонность timestamp
         if (sessions[session_id].session_log_counter > 0) {
-            SessionMeterLog memory prev_log = session_logs[session_id][sessions[session_id].session_log_counter - 1];
             require(session_log.timestamp > prev_log.timestamp, "Invalid timestamp sequence");
-        }
 
+            prev_log = session_logs[session_id][sessions[session_id].session_log_counter - 1];
+            total_duration = session_log.timestamp-prev_log.timestamp;
+        }
+        
         // Проверяем количество логов
         if(sessions[session_id].session_log_counter >= MAX_LOGS_PER_SESSION) {
             revert TooManyLogs(session_id);
@@ -371,14 +391,31 @@ contract Sessions is ISessions, Initializable {
 
 
         uint256 user_balance = _Balance().balanceOf(sessions[session_id].account);
-        (ICDR.CDR memory cdr, ) = _CDR().generateCDR(session_id);
+
+        
+        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, session_log, total_duration);
+
+        uint256 debt = cdr.total_cost.incl_vat-sessions[session_id].total_paid.incl_vat;
+
+                
+        if(cdr.total_cost.incl_vat > user_balance) {
+            emit SessionStopRequest(session_id, address(this));
+        }
+
+        if(debt < user_balance) {
+            if( (user_balance-debt) <= writeoff_treshold){
+                Price memory amount  = Price({
+                    incl_vat:debt,
+                    excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
+                });
+                _writeOff(session_id,amount);
+            }
+        }
+
 
 
         emit SessionUpdate(session_id, session_log.meter_value, session_log.percent, session_log.power, session_log.current, session_log.voltage, cdr.total_cost.incl_vat);
 
-        if(cdr.total_cost.incl_vat > user_balance) {
-            emit SessionStopRequest(session_id, address(this));
-        }
 
     }
 
@@ -402,13 +439,13 @@ contract Sessions is ISessions, Initializable {
      * only ocpp proxy
      * @notice Stops an active charging session
      * @param session_id Session ID to stop
-     * @param session_log Final meter reading
+     * @param meter_stop Final meter
      * @custom:reverts "ObjectNotFound" if session doesn't exist
      * @custom:reverts "InvalidSessionStatus" if session not ACTIVE
      * @custom:reverts "InvalidFinalLog" if final log is invalid
      * @custom:emits SessionEnd on success
      */
-    function stopSessionResponse(uint256 session_id, SessionMeterLog memory session_log, bool status, string calldata message ) public ocpp_proxy_access {
+    function stopSessionResponse(uint256 session_id, uint256 meter_stop, uint256 timestamp, bool status, string calldata message ) public ocpp_proxy_access {
         if(sessions[session_id].uid == 0) {
             revert ObjectNotFound("Session", session_id);
         }
@@ -416,16 +453,21 @@ contract Sessions is ISessions, Initializable {
         if(sessions[session_id].status != SessionStatus.ACTIVE) {
             revert InvalidSessionStatus(session_id, sessions[session_id].status);
         }
+        SessionMeterLog memory log;
+
+        log.meter_value = meter_stop;
+        log.timestamp = timestamp;
+
 
         // Проверяем корректность финального лога
         if (sessions[session_id].session_log_counter > 0) {
             SessionMeterLog memory last_log = session_logs[session_id][sessions[session_id].session_log_counter - 1];
-            require(session_log.timestamp > last_log.timestamp, "Invalid final log timestamp");
-            require(session_log.meter_value >= last_log.meter_value, "Invalid final meter value");
+            require(log.timestamp > last_log.timestamp, "Invalid final log timestamp");
+            require(log.meter_value >= last_log.meter_value, "Invalid final meter value");
         }
 
-        uint256 end_time = session_log.timestamp;
-        require(end_time > sessions[session_id].start_datetime, "Invalid end time");
+        uint256 stop_time = log.timestamp;
+        require(stop_time > sessions[session_id].start_datetime, "Invalid end time");
 
 
         if (!status){
@@ -433,23 +475,98 @@ contract Sessions is ISessions, Initializable {
             return;
         }
 
-
-        // Сначала добавляем финальный лог
-        session_logs[session_id][sessions[session_id].session_log_counter] = session_log;
-        sessions[session_id].session_log_counter++;
-        // Теперь меняем статус и завершаем сессию
-        sessions[session_id].end_datetime = end_time;
-
-        // Генерируем CDR пока сессия еще ACTIVE
-        (ICDR.CDR memory cdr, ) = _CDR().generateCDR(session_id);
         
 
-        _setSessionStatus(session_id, SessionStatus.COMPLETED);
-        last_updated[session_id] = end_time;
+        // Сначала добавляем финальный лог
+        session_logs[session_id][sessions[session_id].session_log_counter] = log;
+        sessions[session_id].session_log_counter++;
+        // Теперь меняем статус и завершаем сессию
+        sessions[session_id].stop_datetime = stop_time;
 
-        _Balance().transferFrom(sessions[session_id].account, address(0), cdr.total_cost.incl_vat);
+        
+        uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
+        
+        // Генерируем CDR пока сессия еще ACTIVE
+        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, log, total_duration);
+        
+
+        _setSessionStatus(session_id, SessionStatus.CHARGING_COMPLETED);
+
+        last_updated[session_id] = stop_time;
+
+
+        uint256 user_balance = _Balance().balanceOf(sessions[session_id].account);
+
+        uint256 debt = cdr.total_cost.incl_vat-sessions[session_id].total_paid.incl_vat;
+
+        if(debt < user_balance) {
+            if( (user_balance-debt) <= writeoff_treshold){
+                Price memory amount  = Price({
+                    incl_vat:debt,
+                    excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
+                });
+                _writeOff(session_id,amount);
+            }
+        }
 
         emit SessionStopResponse(session_id, status, message);
+    }
+
+
+    function endSession(uint256 session_id, uint256 timestamp) external ocpp_proxy_access {
+
+        if(sessions[session_id].status != SessionStatus.CHARGING_COMPLETED) {
+            revert InvalidSessionStatus(session_id, sessions[session_id].status);
+        }
+
+        SessionMeterLog memory last_log;
+        if (sessions[session_id].session_log_counter > 0) {
+            last_log = session_logs[session_id][sessions[session_id].session_log_counter - 1];
+        }
+
+        SessionMeterLog memory log;
+
+        log.meter_value = last_log.meter_value;
+        log.timestamp = timestamp;
+
+        uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
+        
+        // Генерируем CDR пока сессия еще ACTIVE
+        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, log, total_duration);
+
+        _setSessionStatus(session_id, SessionStatus.FINISHING);
+
+
+        last_updated[session_id] = timestamp;
+
+        uint256 user_balance = _Balance().balanceOf(sessions[session_id].account);
+
+        uint256 debt = cdr.total_cost.incl_vat-sessions[session_id].total_paid.incl_vat;
+
+        if(debt < user_balance) {
+            if( (user_balance-debt) <= writeoff_treshold){
+                Price memory amount  = Price({
+                    incl_vat:debt,
+                    excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
+                });
+                _writeOff(session_id,amount);
+            }
+        }
+
+    }
+
+    function _writeOff(uint256 session_id, Price memory amount) internal {
+
+        if(amount.incl_vat == 0){
+            return;
+        }
+        
+        _Balance().transferFrom(sessions[session_id].account, address(0), amount.incl_vat);
+
+        paid_logs[session_id][sessions[session_id].paid_log_counter] = PaidLog({timestamp:block.timestamp,amount:amount});
+        sessions[session_id].paid_log_counter++;
+        sessions[session_id].total_paid.incl_vat += amount.incl_vat;
+        sessions[session_id].total_paid.excl_vat += amount.excl_vat;
     }
 
 
@@ -470,6 +587,17 @@ contract Sessions is ISessions, Initializable {
      */
     function getSessionLog(uint256 session_id, uint256 index) external view returns(SessionMeterLog memory) {
         return session_logs[session_id][index];
+    }
+
+    function sessionLogs(uint256 session_id) external view returns(SessionMeterLog[] memory){
+
+        SessionMeterLog[] memory logs = new SessionMeterLog[](sessions[session_id].session_log_counter);
+
+        for (uint i = 0; i < sessions[session_id].session_log_counter; i++) {
+            logs[i] = session_logs[session_id][i];
+        }
+
+        return logs;
     }
 
 

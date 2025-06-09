@@ -10,56 +10,6 @@ import "../Tariff/ITariff.sol";
  * @notice Defines session structures and events according to OCPI 2.2.1
  */
 interface ISessions is DataTypes, IBaseErrors {
-    /**
-     * @title Session Status Enum
-     * @notice Lifecycle states of charging sessions
-     */
-    enum SessionStatus {
-        ACTIVE,     // Ongoing charging
-        COMPLETED,  // Successfully ended
-        INVALID,    // Rejected/errored
-        PENDING     // Awaiting start
-    }
-
-    enum SessionLogInfoType {
-        ERROR,
-        WARNING,
-        INFO
-    }
-
-
-    /**
-     * @title Charging Session Data
-     * @notice Complete session information
-     * @param uid Unique session identifier
-     * @param evse_uid Connected EVSE ID
-     * @param connector_id Physical connector ID
-     * @param start_datetime Session start timestamp
-     * @param end_datetime Session end timestamp
-     * @param status Current session state
-     */
-    struct Session {
-        uint256 uid;
-        uint256 evse_uid;
-        uint256 connector_id;
-        uint256 start_datetime;
-        uint256 end_datetime;
-        uint256 session_log_counter;
-        uint256 tariff_id;
-        uint256 tariff_version;
-        uint256 reserve_id;
-        address account;
-        SessionStatus status;
-    }
-
-    struct SessionMeterLog {
-        uint256 meter_value;
-        uint256 percent;
-        uint256 power;
-        uint256 current;
-        uint256 voltage;
-        uint256 timestamp; 
-    }
 
 
     struct Reservation {
@@ -70,6 +20,10 @@ interface ISessions is DataTypes, IBaseErrors {
         bool executed;
     }
 
+    struct PaidLog {
+        uint256 timestamp;
+        Price amount;
+    }
 
     event ReservationRequest(
         uint256 indexed id, 
@@ -166,9 +120,10 @@ interface ISessions is DataTypes, IBaseErrors {
     function getVersion() external pure returns(string memory);
     function startSessionRequest( uint256 evse_uid, uint256 connector_id, uint256 reserve_id, address start_for) external;
     function updateSession(uint256 session_id, SessionMeterLog memory session_log) external;
-    function stopSessionResponse(uint256 session_id, SessionMeterLog memory session_log, bool status, string calldata message) external;
+    function stopSessionResponse(uint256 session_id, uint256 meter_stop,uint256 timestamp, bool status, string calldata message) external;
     function getSession(uint256 session_id) external view returns(Session memory);
     function getSessionLog(uint256 session_id, uint256 index) external view returns(SessionMeterLog memory);
+    function sessionLogs(uint256 session_id) external view returns(SessionMeterLog[] memory);
     function exist(uint256 session_id) external view returns(bool);
     function getSessionByAuth(address auth_id) external view returns(uint256);
 }

@@ -460,4 +460,63 @@ interface DataTypes {
         int16 max_electric_power;
         string terms_and_conditions_url;
     }
+
+
+    /**
+     * @title Charging Session Data
+     * @notice Complete session information
+     * @param uid Unique session identifier
+     * @param evse_uid Connected EVSE ID
+     * @param connector_id Physical connector ID
+     * @param start_datetime Session start timestamp
+     * @param end_datetime Session end timestamp
+     * @param status Current session state
+     */
+    struct Session {
+        uint256 uid;
+        uint256 evse_uid;
+        uint256 connector_id;
+        uint256 meter_start;
+        uint256 meter_stop;
+        uint256 start_datetime;
+        uint256 stop_datetime;
+        uint256 end_datetime;
+        uint256 session_log_counter;
+        uint256 paid_log_counter;
+        uint256 tariff_id;
+        uint256 tariff_version;
+        uint256 reserve_id;
+        address account;
+        Price total_paid;
+        SessionStatus status;
+    }
+
+    struct SessionMeterLog {
+        uint256 meter_value;
+        uint256 percent;
+        uint256 power;
+        uint256 current;
+        uint256 voltage;
+        uint256 timestamp; 
+    }
+
+    /**
+     * @title Session Status Enum
+     * @notice Lifecycle states of charging sessions
+     */
+    enum SessionStatus {
+        ACTIVE,     // Ongoing charging
+        FINISHING,  // Successfully ended
+        CHARGING_COMPLETED,
+        INVALID,    // Rejected/errored
+        PENDING     // Awaiting start
+    }
+
+    enum SessionLogInfoType {
+        ERROR,
+        WARNING,
+        INFO
+    }
+
+
 }

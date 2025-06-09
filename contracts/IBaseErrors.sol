@@ -96,7 +96,7 @@ interface IBaseErrors {
      * @notice Emitted when an account has insufficient balance
      * @dev Raised during transfers or withdrawals
      */
-    error InsufficientBalance();
+    error InsufficientBalance(uint256 transfer_amount, uint256 amount);
 
     /**
      * @notice Emitted when an invalid receiver address is provided

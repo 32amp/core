@@ -92,7 +92,6 @@ interface ITariff is DataTypes, IBaseErrors {
         TariffDimensionType _type;
         uint256 price;
         uint8 vat;
-        uint256 step_size;
     }
 
     /**

@@ -30,13 +30,19 @@ interface ICDR is IBaseErrors, DataTypes {
         Price total_cost;
         uint256 tariff_id;
         uint256 tariff_version;
+        SessionMeterLog prev_log;
+        SessionMeterLog current_log;
     }
 
     struct CDRElement {
         ITariff.TariffDimensionType _type;
+        uint256 total_duration;
         Price price;
     }
 
-    function generateCDR(uint256 session_id)  external  returns(CDR memory, CDRElement[] memory );
+    error InvalidSessionDuration();
+
+    function createCDR(uint256 session_id, Session calldata session, uint256 timestamp, uint256 meter_start) external;
+    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration) external returns(CDR memory, CDRElement[] memory);
     function getCDR(uint256 session_id) external view returns(CDR memory, CDRElement[] memory);
 }

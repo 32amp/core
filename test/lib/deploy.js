@@ -1,3 +1,4 @@
+const { ethers } = require("hardhat");
 const {deployProxy} = require("../../utils/deploy")
 const {getEventArguments} = require("../../utils/utils");
 
@@ -53,7 +54,7 @@ module.exports.deploy = async function(modules, showlog = false) {
     await deployModule("MobileAppSettings");
     await deployModule("Balance", [1]);
     await deployModule("Cards",[], ["Utils"]);
-    await deployModule("Sessions", [ethers.ZeroAddress]);
+    await deployModule("Sessions", [ethers.ZeroAddress, ethers.parseEther("100.0")]);
     await deployModule("CDR");
 
     retmodules.UserAccess = await deployProxy("UserAccess", [partner.id, retmodules.Hub.target]);

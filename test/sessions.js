@@ -64,8 +64,6 @@ describe("Sessions", function() {
 
         await this.contracts.Connector.connect(this.adminUser).setTariffs(1, 1);
         
-        // Mint some balance for testing
-        await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("100000"));
     });
 
     it("should initialize with correct values", async function() {
@@ -90,6 +88,7 @@ describe("Sessions", function() {
 
     it("should start session with reservation with free tariff", async function() {
 
+        await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("10"));
 
         const params = {
             start_from: ethers.ZeroAddress,
@@ -103,19 +102,22 @@ describe("Sessions", function() {
             number_of_logs: 75,
             meter_value_increment: ethers.parseEther("0.2"),
             time_increment: 30,
+            parking_duration:0,
             start_timestamp: Math.floor(Date.now() / 1000)
         }
         
         const cdr = await runTestSession(params, this.contracts);
         
         expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
-        expect(cdr[0].start_datetime).to.equal(params.start_timestamp + params.time_increment, "start_datetime");
+        expect(cdr[0].start_datetime).to.equal(params.start_timestamp, "start_datetime");
         expect(cdr[0].end_datetime).to.equal(params.start_timestamp + ((params.number_of_logs + 1) * params.time_increment), "end_datetime");
     });
 
 
     it("should start session with reservation with single energy tariff", async function(){
 
+        let tx = await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("2073.6"));
+        await tx.wait()
         // Add test connector
         const { connector } = require("./lib/evse_data");
         await this.contracts.Connector.connect(this.adminUser).add(connector, 1);
@@ -139,9 +141,10 @@ describe("Sessions", function() {
             connector_id: 2,
             percent_start: 1,
             percent_end: 100,
-            number_of_logs: 75,
+            number_of_logs: 575,
             meter_value_increment: ethers.parseEther("0.2"),
             time_increment: 30,
+            parking_duration:0,
             start_timestamp: Math.floor(Date.now() / 1000)
         }
         
@@ -149,9 +152,161 @@ describe("Sessions", function() {
         const cdr = await runTestSession(params, this.contracts);
 
         expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
-        expect(ethers.formatEther(cdr[0].total_cost.excl_vat)).to.equal("225.0")
-        expect(ethers.formatEther(cdr[0].total_cost.incl_vat)).to.equal("270.0")
+        expect(ethers.formatEther(cdr[0].total_cost.excl_vat)).to.equal("1728.0", "excl_vat")
+        expect(ethers.formatEther(cdr[0].total_cost.incl_vat)).to.equal("2073.6", "incl_vat")
     })
+
+    it("should start session with reservation with single time tariff", async function(){
+
+        // Add test connector
+        const { connector } = require("./lib/evse_data");
+        await this.contracts.Connector.connect(this.adminUser).add(connector, 1);
+        // Set connector status to Available
+        await this.contracts.Connector.connect(this.adminUser).setStatus(3, 1); // 1 = Available
+
+        // Add test tariff
+        const { time_tariff } = require("./lib/tariff_data");
+        await this.contracts.Tariff.connect(this.adminUser).add(time_tariff);
+
+        await this.contracts.Connector.connect(this.adminUser).setTariffs(3, 3);
+
+
+        const params = {
+            start_from: ethers.ZeroAddress,
+            reservation: true,
+            simpleUser: this.simpleUser,
+            ocppProxy: this.ocppProxy, 
+            evse_id: 1,
+            connector_id: 3,
+            percent_start: 1,
+            percent_end: 100,
+            number_of_logs: 75,
+            meter_value_increment: ethers.parseEther("0.2"),
+            time_increment: 30000, // every 30 second
+            parking_duration:0,
+            start_timestamp: Math.floor(Date.now() / 1000)
+        }
+
+        const total_component_price = (BigInt(params.number_of_logs + 1) * BigInt(params.time_increment))/BigInt(60000)*time_tariff.tariff.elements[0].price_components[0].price;
+        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(time_tariff.tariff.elements[0].price_components[0].vat))+total_component_price;
+
+        await this.contracts.Balance.mint(this.simpleUser.address, total_component_price_vat);
+
+        const cdr = await runTestSession(params, this.contracts);
+
+
+        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        
+        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].price.excl_vat)
+        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].price.incl_vat)
+
+        expect(cdr[1][0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+
+        expect(cdr[1][0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+    })
+
+
+    it("should start session with reservation with single flat tariff", async function(){
+
+        // Add test connector
+        const { connector } = require("./lib/evse_data");
+        await this.contracts.Connector.connect(this.adminUser).add(connector, 1);
+        // Set connector status to Available
+        await this.contracts.Connector.connect(this.adminUser).setStatus(4, 1); // 1 = Available
+
+        // Add test tariff
+        const { flat_tariff } = require("./lib/tariff_data");
+        await this.contracts.Tariff.connect(this.adminUser).add(flat_tariff);
+
+        await this.contracts.Connector.connect(this.adminUser).setTariffs(4, 4);
+
+
+        const params = {
+            start_from: ethers.ZeroAddress,
+            reservation: true,
+            simpleUser: this.simpleUser,
+            ocppProxy: this.ocppProxy, 
+            evse_id: 1,
+            connector_id: 4,
+            percent_start: 1,
+            percent_end: 100,
+            number_of_logs: 5,
+            meter_value_increment: ethers.parseEther("0.2"),
+            time_increment: 30000, // every 30 second
+            parking_duration:0,
+            start_timestamp: Math.floor(Date.now() / 1000)
+        }
+        
+
+        const cdr = await runTestSession(params, this.contracts);
+        const total_component_price = flat_tariff.tariff.elements[0].price_components[0].price;
+        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(flat_tariff.tariff.elements[0].price_components[0].vat))+total_component_price;
+
+        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        
+        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
+
+        expect(cdr[1][0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+
+        expect(cdr[1][0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+    })
+
+
+
+    it("should start session with reservation with energy and parking tariff", async function(){
+
+        // Add test connector
+        const { connector } = require("./lib/evse_data");
+        await this.contracts.Connector.connect(this.adminUser).add(connector, 1);
+        // Set connector status to Available
+        await this.contracts.Connector.connect(this.adminUser).setStatus(5, 1); // 1 = Available
+
+        // Add test tariff
+        const { energy_and_parking } = require("./lib/tariff_data");
+        await this.contracts.Tariff.connect(this.adminUser).add(energy_and_parking);
+
+        await this.contracts.Connector.connect(this.adminUser).setTariffs(5, 5);
+
+
+        const params = {
+            start_from: ethers.ZeroAddress,
+            reservation: true,
+            simpleUser: this.simpleUser,
+            ocppProxy: this.ocppProxy, 
+            evse_id: 1,
+            connector_id: 5,
+            percent_start: 1,
+            percent_end: 100,
+            number_of_logs: 75,
+            meter_value_increment: ethers.parseEther("0.2"),
+            time_increment: 30000, // every 30 second
+            parking_duration:60000*60, // 1h
+            start_timestamp: Math.floor(Date.now() / 1000)
+        }
+        
+
+        const cdr = await runTestSession(params, this.contracts);
+        const total_component_price = energy_and_parking.tariff.elements[0].price_components[0].price;
+        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking.tariff.elements[0].price_components[0].vat))+total_component_price;
+
+        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        
+        console.log(cdr[1],ethers.formatEther(cdr[0].total_cost.excl_vat))
+
+        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].price.excl_vat+cdr[1][1].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].price.incl_vat+cdr[1][1].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
+
+        
+
+        //expect(cdr[1][0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+
+        //expect(cdr[1][0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+    })
+
+
+    
+
 /* 
 
     it("should handle session errors correctly", async function() {
@@ -228,10 +383,10 @@ async function runTestSession(params, contracts) {
 
 
         // Response start transaction from ocpp proxy 
-        let tx2 = await contracts.Sessions.connect(params.ocppProxy).startSessionResponse(session_id, true, "ok")
+        let tx2 = await contracts.Sessions.connect(params.ocppProxy).startSessionResponse(session_id, params.start_timestamp,0,true, "ok")
 
         const startSessionResponse = await getEventArguments(tx2, "SessionStartResponse");
-
+        
         expect(startSessionResponse.session_id).to.equal(event.uid);
         expect(startSessionResponse.status).to.equal(true);
         expect(startSessionResponse.message).to.equal("ok");
@@ -244,7 +399,7 @@ async function runTestSession(params, contracts) {
         
 
         // Создаем и отправляем множество логов
-        for (let i = 1; i <= numberOfLogs; i++) {
+        for (var i = 1; i <= numberOfLogs; i++) {
             const percent = Number(Math.min(
                 params.percent_end, 
                 Math.max(
@@ -289,6 +444,7 @@ async function runTestSession(params, contracts) {
                 voltage: voltage,
                 timestamp: startTimestamp + (i * timeIncrement)
             };
+            
 
             const tx = await contracts.Sessions.connect(params.ocppProxy).updateSession(startSessionResponse.session_id, sessionLog);
             const event = await getEventArguments(tx, "SessionUpdate");
@@ -307,18 +463,15 @@ async function runTestSession(params, contracts) {
 
         }
 
-        // Останавливаем сессию
-        const finalLog = {
-            meter_value: meterValueIncrement * BigInt(numberOfLogs+1),
-            percent: params.percent_end,
-            power: 0,
-            current: 0,
-            voltage: 0,
-            timestamp: startTimestamp + ((numberOfLogs + 1) * timeIncrement)
-        };
+        
+
+        const finalMeterValue = meterValueIncrement * BigInt(i+1);
+        const finalTimestamp = startTimestamp + ((i + 1) * timeIncrement)
 
         await contracts.Sessions.connect(params.simpleUser).stopSessionRequest(startSessionResponse.session_id);
-        await contracts.Sessions.connect(params.ocppProxy).stopSessionResponse(startSessionResponse.session_id, finalLog, true, "ok");
+        await contracts.Sessions.connect(params.ocppProxy).stopSessionResponse(startSessionResponse.session_id, finalMeterValue, finalTimestamp, true, "ok");
+        await contracts.Sessions.connect(params.ocppProxy).endSession(startSessionResponse.session_id, finalTimestamp+params.parking_duration);
+
 
         const cdr = await contracts.CDR.getCDR(startSessionResponse.session_id);
 

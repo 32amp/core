@@ -32,12 +32,10 @@ contract Balance is Initializable, IBalance {
     /// @dev Currency identifier
     uint256 _currency;
     
-    /// @dev Transfer ID counter
-    uint256 _transfer_ids;
-
     // Storage mappings documentation
     /// @dev Account balances storage
     mapping(address => uint256) _balances;
+    mapping(address => uint256) _debts;
     
 
     /**
@@ -171,12 +169,13 @@ contract Balance is Initializable, IBalance {
      * @custom:emits Transfer On successful transfer
      */
     function _update(address from, address to, uint256 value) internal {
+
         if (from == address(0)) {
             _totalSupply += value;
         } else {
             uint256 fromBalance = _balances[from];
             if (fromBalance < value) {
-                revert InsufficientBalance();
+                revert InsufficientBalance(fromBalance, value);
             }
             unchecked {
                 _balances[from] = fromBalance - value;
