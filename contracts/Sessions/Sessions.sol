@@ -462,7 +462,7 @@ contract Sessions is ISessions, Initializable {
         // Проверяем корректность финального лога
         if (sessions[session_id].session_log_counter > 0) {
             SessionMeterLog memory last_log = session_logs[session_id][sessions[session_id].session_log_counter - 1];
-            require(log.timestamp > last_log.timestamp, "Invalid final log timestamp");
+            require(log.timestamp >= last_log.timestamp, "Invalid final log timestamp");
             require(log.meter_value >= last_log.meter_value, "Invalid final meter value");
         }
 
@@ -528,6 +528,8 @@ contract Sessions is ISessions, Initializable {
 
         log.meter_value = last_log.meter_value;
         log.timestamp = timestamp;
+        // if power 9999999 in updateCDR will be correct calc parking time
+        log.power = 9999999;
 
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
         

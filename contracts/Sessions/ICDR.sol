@@ -35,6 +35,10 @@ interface ICDR is IBaseErrors, DataTypes {
     }
 
     struct CDRElement {
+        CDRComponent[] components;
+    }
+
+    struct CDRComponent {
         ITariff.TariffDimensionType _type;
         uint256 total_duration;
         Price price;

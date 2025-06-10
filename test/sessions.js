@@ -116,7 +116,7 @@ describe("Sessions", function() {
 
     it("should start session with reservation with single energy tariff", async function(){
 
-        let tx = await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("2073.6"));
+        let tx = await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("2173.6"));
         await tx.wait()
         // Add test connector
         const { connector } = require("./lib/evse_data");
@@ -197,13 +197,14 @@ describe("Sessions", function() {
 
         expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
-        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].price.excl_vat)
-        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].price.incl_vat)
+        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat)
+        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat)
 
-        expect(cdr[1][0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+        expect(cdr[1][0].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
 
-        expect(cdr[1][0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        expect(cdr[1][0].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
     })
+
 
 
     it("should start session with reservation with single flat tariff", async function(){
@@ -244,12 +245,12 @@ describe("Sessions", function() {
 
         expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
-        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
-        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
+        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
 
-        expect(cdr[1][0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+        expect(cdr[1][0].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
 
-        expect(cdr[1][0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        expect(cdr[1][0].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
     })
 
 
@@ -287,23 +288,21 @@ describe("Sessions", function() {
         
 
         const cdr = await runTestSession(params, this.contracts);
-        const total_component_price = energy_and_parking.tariff.elements[0].price_components[0].price;
-        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking.tariff.elements[0].price_components[0].vat))+total_component_price;
+        const total_component_price = energy_and_parking.tariff.elements[1].price_components[0].price*BigInt(params.parking_duration/60000);
+        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking.tariff.elements[1].price_components[0].vat))+total_component_price;
 
         expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
-        console.log(cdr[1],ethers.formatEther(cdr[0].total_cost.excl_vat))
+        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat+cdr[1][1].components[0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat+cdr[1][1].components[0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
 
-        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].price.excl_vat+cdr[1][1].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
-        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].price.incl_vat+cdr[1][1].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
-
+        console.log("total_component_price", ethers.formatEther(total_component_price))
         
 
-        //expect(cdr[1][0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
-
-        //expect(cdr[1][0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        expect(cdr[1][1].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+        expect(cdr[1][1].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
     })
-
+  
 
     
 
@@ -463,10 +462,8 @@ async function runTestSession(params, contracts) {
 
         }
 
-        
-
-        const finalMeterValue = meterValueIncrement * BigInt(i+1);
-        const finalTimestamp = startTimestamp + ((i + 1) * timeIncrement)
+        const finalMeterValue = meterValueIncrement * BigInt(i);
+        const finalTimestamp = startTimestamp + (i * timeIncrement);
 
         await contracts.Sessions.connect(params.simpleUser).stopSessionRequest(startSessionResponse.session_id);
         await contracts.Sessions.connect(params.ocppProxy).stopSessionResponse(startSessionResponse.session_id, finalMeterValue, finalTimestamp, true, "ok");

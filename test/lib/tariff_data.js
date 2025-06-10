@@ -261,7 +261,7 @@ const energy_and_parking = {
                 price_components: [
                     {
                         _type: 0, // energy
-                        price: ethers.parseEther("15.0"),
+                        price: ethers.parseEther("16.0"),
                         vat: 20
                     }
                 ],

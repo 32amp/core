@@ -72,7 +72,6 @@ contract CDR is ICDR, Initializable {
             prev_log:log,
             current_log:log
         });
-
         
 
         cdrTariff[session_id] = _Tariff().getByVersion(session.tariff_id, session.tariff_version);
@@ -88,7 +87,7 @@ contract CDR is ICDR, Initializable {
         
         CDR memory cdr = cdrs[session_id];
         Price memory total_cost;
-
+        
         // Проходим по всем элементам тарифа
         for (uint i = 0; i < cdrTariff[session_id].tariff.tariff.elements.length; i++) {
             ITariff.TariffElement memory element = cdrTariff[session_id].tariff.tariff.elements[i];
@@ -99,44 +98,50 @@ contract CDR is ICDR, Initializable {
                 continue;
             }
             
+            if(cdrElements[session_id][i].components.length == 0){
+                cdrElements[session_id][i].components = new CDRComponent[](element.price_components.length);
+            }
 
             // Проходим по всем компонентам цены
             for (uint j = 0; j < element.price_components.length; j++) {
                 ITariff.PriceComponent memory component = element.price_components[j];
                 if(component.price == 0 || !_isTimeInTariffPeriod(log.timestamp, element.restrictions)){
-                    cdrElements[session_id][j] =  CDRElement({price:Price({excl_vat:0, incl_vat:0}), _type:component._type, total_duration:0});
+                    cdrElements[session_id][i].components[j] =  CDRComponent({price:Price({excl_vat:0, incl_vat:0}), _type:component._type, total_duration:0});
                     continue;
                 }
 
                 
                 if (component._type == ITariff.TariffDimensionType.ENERGY) {
-                    cdrElements[session_id][j] = _calculateEnergyCost(cdrElements[session_id][j], session_id, log, component);
-                    total_cost.excl_vat += cdrElements[session_id][j].price.excl_vat;
-                    total_cost.incl_vat += cdrElements[session_id][j].price.incl_vat;
+                    cdrElements[session_id][i].components[j] = _calculateEnergyCost(cdrElements[session_id][i].components[j], session_id, log, component);
+                    total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
+                    total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
                 } else if (component._type == ITariff.TariffDimensionType.TIME) {
-                    cdrElements[session_id][j] = _calculateTimeCost(cdrElements[session_id][j], session_id,  log, component);
-                    total_cost.excl_vat += cdrElements[session_id][j].price.excl_vat;
-                    total_cost.incl_vat += cdrElements[session_id][j].price.incl_vat;
+                    cdrElements[session_id][i].components[j] = _calculateTimeCost(cdrElements[session_id][i].components[j], session_id,  log, component);
+                    total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
+                    total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
                 } else if (component._type == ITariff.TariffDimensionType.FLAT) {
-                    if(cdrElements[session_id][j].price.excl_vat == component.price){
-                        total_cost.excl_vat += cdrElements[session_id][j].price.excl_vat;
-                        total_cost.incl_vat += cdrElements[session_id][j].price.incl_vat;
+                    if(cdrElements[session_id][i].components[j].price.excl_vat == component.price){
+                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
+                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
                         continue;
                     }
-                    cdrElements[session_id][j] = _calculateFlatCost(component);
-                    total_cost.excl_vat += cdrElements[session_id][j].price.excl_vat;
-                    total_cost.incl_vat += cdrElements[session_id][j].price.incl_vat;
-                } else if (component._type == ITariff.TariffDimensionType.PARKING_TIME && log.power == 0) {
-                    console.log("cdrElements[session_id][j].price.excl_vat", cdrElements[session_id][j].price.excl_vat);
+                    cdrElements[session_id][i].components[j] = _calculateFlatCost(component);
+                    total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
+                    total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
+                } else if (component._type == ITariff.TariffDimensionType.PARKING_TIME && log.power == 9999999) {
 
-                    if(cdrElements[session_id][j].price.excl_vat == 0){
-                        cdrElements[session_id][j] = _calculateTimeCost(cdrElements[session_id][j], session_id,  log, component);
-                        total_cost.excl_vat += cdrElements[session_id][j].price.excl_vat;
-                        total_cost.incl_vat += cdrElements[session_id][j].price.incl_vat;
-                        console.log("ITariff.TariffDimensionType.PARKING_TIME");
+                    if(cdrElements[session_id][i].components[j].price.excl_vat == 0){
+                        cdrElements[session_id][i].components[j] = _calculateTimeCost(cdrElements[session_id][i].components[j], session_id,  log, component);
+
+                        
+                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
+                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
+                    }else{
+                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
+                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
                     }
 
-
+                    console.log("ITariff.TariffDimensionType.PARKING_TIME");
                 }
             }
 
@@ -152,21 +157,21 @@ contract CDR is ICDR, Initializable {
 
     function _calculateFlatCost(
         ITariff.PriceComponent memory component
-    ) internal pure returns (CDRElement memory) {
+    ) internal pure returns (CDRComponent memory) {
 
         uint256 cost = component.price;
         uint256 cost_vat = _addVat(cost,component.vat);
         
-        return CDRElement({price:Price({excl_vat:cost, incl_vat:cost_vat}), _type:ITariff.TariffDimensionType.FLAT, total_duration:0});
+        return CDRComponent({price:Price({excl_vat:cost, incl_vat:cost_vat}), _type:ITariff.TariffDimensionType.FLAT, total_duration:0});
 
     }
 
     function _calculateEnergyCost(
-        CDRElement memory element,
+        CDRComponent memory element,
         uint256 session_id,
         SessionMeterLog calldata log,
         ITariff.PriceComponent memory component
-    ) internal view returns (CDRElement memory) {
+    ) internal view returns (CDRComponent memory) {
         
 
         uint256 energy_cost = element.price.excl_vat;
@@ -195,17 +200,17 @@ contract CDR is ICDR, Initializable {
         uint256 energy_cost_with_vat = _addVat(energy_cost,component.vat);
 
 
-        return CDRElement({price:Price({excl_vat:energy_cost, incl_vat:energy_cost_with_vat}), _type:ITariff.TariffDimensionType.ENERGY, total_duration:0});
+        return CDRComponent({price:Price({excl_vat:energy_cost, incl_vat:energy_cost_with_vat}), _type:ITariff.TariffDimensionType.ENERGY, total_duration:0});
     }
 
 
 
     function _calculateTimeCost(
-        CDRElement memory element,
+        CDRComponent memory element,
         uint256 session_id,
         SessionMeterLog calldata log,
         ITariff.PriceComponent memory component
-    ) internal view returns (CDRElement memory) {
+    ) internal view returns (CDRComponent memory) {
 
         uint256 time_cost = element.price.excl_vat;
         uint256 total_duration = element.total_duration;
@@ -223,7 +228,7 @@ contract CDR is ICDR, Initializable {
 
         uint256 time_cost_vat = _addVat(time_cost, component.vat);
         
-        return CDRElement({price:Price({excl_vat:time_cost, incl_vat:time_cost_vat}), _type:component._type, total_duration:total_duration});
+        return CDRComponent({price:Price({excl_vat:time_cost, incl_vat:time_cost_vat}), _type:component._type, total_duration:total_duration});
     }
 
 
