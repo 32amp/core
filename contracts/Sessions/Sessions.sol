@@ -393,7 +393,7 @@ contract Sessions is ISessions, Initializable {
         int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
         
-        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, session_log, total_duration);
+        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, session_log, total_duration, sessions[session_id].status);
 
         int256 debt = int256(cdr.total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
@@ -487,7 +487,7 @@ contract Sessions is ISessions, Initializable {
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
         
         // Генерируем CDR пока сессия еще ACTIVE
-        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, log, total_duration);
+        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, log, total_duration, SessionStatus.CHARGING_COMPLETED);
         
 
         _setSessionStatus(session_id, SessionStatus.CHARGING_COMPLETED);
@@ -525,16 +525,12 @@ contract Sessions is ISessions, Initializable {
         }
 
         SessionMeterLog memory log;
-
         log.meter_value = last_log.meter_value;
         log.timestamp = timestamp;
-        // if power 9999999 in updateCDR will be correct calc parking time
-        log.power = 9999999;
 
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
         
-        // Генерируем CDR пока сессия еще ACTIVE
-        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, log, total_duration);
+        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, log, total_duration, SessionStatus.FINISHING);
 
         _setSessionStatus(session_id, SessionStatus.FINISHING);
 

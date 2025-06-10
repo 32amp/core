@@ -80,13 +80,14 @@ contract CDR is ICDR, Initializable {
     }
 
 
-    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration) onlySessionContract external returns(CDR memory, CDRElement[] memory) {
+    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) onlySessionContract external returns(CDR memory, CDRElement[] memory) {
         
         cdrs[session_id].prev_log = cdrs[session_id].current_log;
         cdrs[session_id].current_log = log;
         
         CDR memory cdr = cdrs[session_id];
         Price memory total_cost;
+
         
         // Проходим по всем элементам тарифа
         for (uint i = 0; i < cdrTariff[session_id].tariff.tariff.elements.length; i++) {
@@ -110,8 +111,19 @@ contract CDR is ICDR, Initializable {
                     continue;
                 }
 
-                
-                if (component._type == ITariff.TariffDimensionType.ENERGY) {
+                if ( component._type == ITariff.TariffDimensionType.PARKING_TIME) {
+
+                    if(cdrElements[session_id][i].components[j].price.excl_vat == 0 && status == SessionStatus.FINISHING ){
+                        cdrElements[session_id][i].components[j] = _calculateTimeCost(cdrElements[session_id][i].components[j], session_id,  log, component);
+
+                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
+                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
+                    }else{
+                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
+                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
+                    }
+
+                }else if (component._type == ITariff.TariffDimensionType.ENERGY) {
                     cdrElements[session_id][i].components[j] = _calculateEnergyCost(cdrElements[session_id][i].components[j], session_id, log, component);
                     total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
                     total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
@@ -128,29 +140,14 @@ contract CDR is ICDR, Initializable {
                     cdrElements[session_id][i].components[j] = _calculateFlatCost(component);
                     total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
                     total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
-                } else if (component._type == ITariff.TariffDimensionType.PARKING_TIME && log.power == 9999999) {
-
-                    if(cdrElements[session_id][i].components[j].price.excl_vat == 0){
-                        cdrElements[session_id][i].components[j] = _calculateTimeCost(cdrElements[session_id][i].components[j], session_id,  log, component);
-
-                        
-                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
-                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
-                    }else{
-                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
-                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
-                    }
-
-                    console.log("ITariff.TariffDimensionType.PARKING_TIME");
                 }
+                
             }
-
         }
 
         cdrs[session_id].total_cost = total_cost;
         cdrs[session_id].total_energy = log.meter_value;
         cdrs[session_id].end_datetime = log.timestamp;
-        
         
         return (cdrs[session_id], cdrElements[session_id]);
     }

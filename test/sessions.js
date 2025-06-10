@@ -288,7 +288,7 @@ describe("Sessions", function() {
         
 
         const cdr = await runTestSession(params, this.contracts);
-        const total_component_price = energy_and_parking.tariff.elements[1].price_components[0].price*BigInt(params.parking_duration/60000);
+        const total_component_price = (energy_and_parking.tariff.elements[1].price_components[0].price/BigInt(60000))*BigInt(params.parking_duration);
         const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking.tariff.elements[1].price_components[0].vat))+total_component_price;
 
         expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
@@ -296,7 +296,6 @@ describe("Sessions", function() {
         expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat+cdr[1][1].components[0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
         expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat+cdr[1][1].components[0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
 
-        console.log("total_component_price", ethers.formatEther(total_component_price))
         
 
         expect(cdr[1][1].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")

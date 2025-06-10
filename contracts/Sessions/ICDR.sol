@@ -47,6 +47,6 @@ interface ICDR is IBaseErrors, DataTypes {
     error InvalidSessionDuration();
 
     function createCDR(uint256 session_id, Session calldata session, uint256 timestamp, uint256 meter_start) external;
-    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration) external returns(CDR memory, CDRElement[] memory);
+    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) external returns(CDR memory, CDRElement[] memory);
     function getCDR(uint256 session_id) external view returns(CDR memory, CDRElement[] memory);
 }
