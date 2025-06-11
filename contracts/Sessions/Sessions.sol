@@ -331,7 +331,7 @@ contract Sessions is ISessions, Initializable {
             _CDR().createCDR(session_id, sessions[session_id], timestamp, meter_start);
             sessions[session_id].meter_start = meter_start;
             sessions[session_id].start_datetime = timestamp;
-            
+
             SessionMeterLog memory log;
 
             log.meter_value = meter_start;
@@ -382,10 +382,10 @@ contract Sessions is ISessions, Initializable {
             total_duration = session_log.timestamp-prev_log.timestamp;
         }
         
-        // Проверяем количество логов
+   /*      // Проверяем количество логов
         if(sessions[session_id].session_log_counter >= MAX_LOGS_PER_SESSION) {
             revert TooManyLogs(session_id);
-        }
+        } */
 
         session_logs[session_id][sessions[session_id].session_log_counter] = session_log;
         sessions[session_id].session_log_counter++;
