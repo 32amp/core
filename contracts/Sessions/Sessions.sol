@@ -32,17 +32,11 @@ contract Sessions is ISessions, Initializable {
     mapping(uint256 => Session) sessions;
     mapping(uint256 => Reservation) reservations;
     mapping(address => uint256) authByReservation;
-    mapping(uint256 => mapping(uint256 => SessionMeterLog)) session_logs;
     mapping(uint256 => mapping(uint256 => PaidLog)) paid_logs;
 
     mapping(uint256 => uint256) last_updated;
     mapping(address => uint256) sessionByAuth; // auth_id -> session_id
     mapping(uint256 => address) authBySession; // session_id -> auth_id
-
-    // Константы
-    uint256 constant MAX_LOGS_PER_SESSION = 1000; // Максимальное количество логов в сессии
-
-    
 
 
     /**
@@ -276,6 +270,8 @@ contract Sessions is ISessions, Initializable {
 
         sessionCounter++;
 
+        SessionMeterLog memory log;
+
         Session memory s = Session({
             uid: sessionCounter,
             evse_uid: evse_uid,
@@ -284,7 +280,6 @@ contract Sessions is ISessions, Initializable {
             start_datetime:0,
             stop_datetime: 0,
             end_datetime:0,
-            session_log_counter: 0,
             paid_log_counter:0,
             total_paid: Price({incl_vat:0,excl_vat:0}),
             tariff_id: connector.tariff,
@@ -293,7 +288,9 @@ contract Sessions is ISessions, Initializable {
             tariff_version: current_tariff_version, // Сохраняем текущую версию тарифа
             status: SessionStatus.PENDING,
             meter_start: 0,
-            meter_stop:0
+            meter_stop:0,
+            current_log:log,
+            prev_log:log
         });
 
         sessions[sessionCounter] = s;
@@ -337,8 +334,8 @@ contract Sessions is ISessions, Initializable {
             log.meter_value = meter_start;
             log.timestamp = timestamp;
 
-            session_logs[session_id][sessions[session_id].session_log_counter] = log;
-            sessions[session_id].session_log_counter++;
+            
+            sessions[session_id].prev_log = log;
 
             reservations[sessions[session_id].reserve_id].executed = true;
             delete authByReservation[reservations[sessions[session_id].reserve_id].account];
@@ -371,24 +368,18 @@ contract Sessions is ISessions, Initializable {
         require(session_log.meter_value >= 0, "Invalid meter value");
         require(session_log.timestamp > 0, "Invalid timestamp");
 
-        SessionMeterLog memory prev_log;
         uint256 total_duration;
 
         // Проверяем монотонность timestamp
-        if (sessions[session_id].session_log_counter > 0) {
-            require(session_log.timestamp > prev_log.timestamp, "Invalid timestamp sequence");
-
-            prev_log = session_logs[session_id][sessions[session_id].session_log_counter - 1];
-            total_duration = session_log.timestamp-prev_log.timestamp;
+        if (sessions[session_id].prev_log.timestamp > 0) {
+            require(session_log.timestamp > sessions[session_id].prev_log.timestamp, "Invalid timestamp sequence");
+            total_duration = session_log.timestamp-sessions[session_id].prev_log.timestamp;
         }
         
-        // Проверяем количество логов
-        if(sessions[session_id].session_log_counter >= MAX_LOGS_PER_SESSION) {
-            revert TooManyLogs(session_id);
-        }
 
-        session_logs[session_id][sessions[session_id].session_log_counter] = session_log;
-        sessions[session_id].session_log_counter++;
+        sessions[session_id].prev_log = sessions[session_id].current_log;
+        sessions[session_id].current_log = session_log;
+        
         last_updated[session_id] = block.timestamp;
 
 
@@ -462,10 +453,10 @@ contract Sessions is ISessions, Initializable {
 
 
         // Проверяем корректность финального лога
-        if (sessions[session_id].session_log_counter > 0) {
-            SessionMeterLog memory last_log = session_logs[session_id][sessions[session_id].session_log_counter - 1];
-            require(log.timestamp >= last_log.timestamp, "Invalid final log timestamp");
-            require(log.meter_value >= last_log.meter_value, "Invalid final meter value");
+        if (sessions[session_id].prev_log.timestamp > 0) {
+            
+            require(log.timestamp >= sessions[session_id].prev_log.timestamp, "Invalid final log timestamp");
+            require(log.meter_value >= sessions[session_id].prev_log.meter_value, "Invalid final meter value");
         }
 
         uint256 stop_time = log.timestamp;
@@ -478,10 +469,6 @@ contract Sessions is ISessions, Initializable {
         }
 
         
-
-        // Сначала добавляем финальный лог
-        session_logs[session_id][sessions[session_id].session_log_counter] = log;
-        sessions[session_id].session_log_counter++;
         // Теперь меняем статус и завершаем сессию
         sessions[session_id].stop_datetime = stop_time;
 
@@ -521,13 +508,8 @@ contract Sessions is ISessions, Initializable {
             revert InvalidSessionStatus(session_id, sessions[session_id].status);
         }
 
-        SessionMeterLog memory last_log;
-        if (sessions[session_id].session_log_counter > 0) {
-            last_log = session_logs[session_id][sessions[session_id].session_log_counter - 1];
-        }
-
         SessionMeterLog memory log;
-        log.meter_value = last_log.meter_value;
+        log.meter_value = sessions[session_id].prev_log.meter_value;
         log.timestamp = timestamp;
 
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
@@ -577,27 +559,6 @@ contract Sessions is ISessions, Initializable {
      */
     function getSession(uint256 session_id) external view returns(Session memory) {
         return sessions[session_id];
-    }
-
-    /**
-     * @notice Retrieves session details
-     * @param session_id Session ID to query
-     * @param index Number of log
-     * @return SessionMeterLog Complete session data
-     */
-    function getSessionLog(uint256 session_id, uint256 index) external view returns(SessionMeterLog memory) {
-        return session_logs[session_id][index];
-    }
-
-    function sessionLogs(uint256 session_id) external view returns(SessionMeterLog[] memory){
-
-        SessionMeterLog[] memory logs = new SessionMeterLog[](sessions[session_id].session_log_counter);
-
-        for (uint i = 0; i < sessions[session_id].session_log_counter; i++) {
-            logs[i] = session_logs[session_id][i];
-        }
-
-        return logs;
     }
 
 

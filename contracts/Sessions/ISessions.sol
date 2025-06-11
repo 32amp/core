@@ -122,8 +122,6 @@ interface ISessions is DataTypes, IBaseErrors {
     function updateSession(uint256 session_id, SessionMeterLog memory session_log) external;
     function stopSessionResponse(uint256 session_id, uint256 meter_stop,uint256 timestamp, bool status, string calldata message) external;
     function getSession(uint256 session_id) external view returns(Session memory);
-    function getSessionLog(uint256 session_id, uint256 index) external view returns(SessionMeterLog memory);
-    function sessionLogs(uint256 session_id) external view returns(SessionMeterLog[] memory);
     function exist(uint256 session_id) external view returns(bool);
     function getSessionByAuth(address auth_id) external view returns(uint256);
 }
