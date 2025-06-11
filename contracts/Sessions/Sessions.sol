@@ -289,8 +289,7 @@ contract Sessions is ISessions, Initializable {
             status: SessionStatus.PENDING,
             meter_start: 0,
             meter_stop:0,
-            current_log:log,
-            prev_log:log
+            last_log:log
         });
 
         sessions[sessionCounter] = s;
@@ -334,8 +333,7 @@ contract Sessions is ISessions, Initializable {
             log.meter_value = meter_start;
             log.timestamp = timestamp;
 
-            
-            sessions[session_id].prev_log = log;
+            sessions[session_id].last_log = log;
 
             reservations[sessions[session_id].reserve_id].executed = true;
             delete authByReservation[reservations[sessions[session_id].reserve_id].account];
@@ -356,6 +354,8 @@ contract Sessions is ISessions, Initializable {
      * @custom:reverts "InvalidSessionStatus" if session not ACTIVE
      */
     function updateSession(uint256 session_id, SessionMeterLog memory session_log) external ocpp_proxy_access {
+
+        
         if(sessions[session_id].uid == 0) {
             revert ObjectNotFound("Session", session_id);
         }
@@ -367,18 +367,13 @@ contract Sessions is ISessions, Initializable {
         // Проверяем корректность значений в логе
         require(session_log.meter_value >= 0, "Invalid meter value");
         require(session_log.timestamp > 0, "Invalid timestamp");
+        require(session_log.timestamp > sessions[session_id].last_log.timestamp, "Invalid timestamp sequence");
+    
 
-        uint256 total_duration;
-
-        // Проверяем монотонность timestamp
-        if (sessions[session_id].prev_log.timestamp > 0) {
-            require(session_log.timestamp > sessions[session_id].prev_log.timestamp, "Invalid timestamp sequence");
-            total_duration = session_log.timestamp-sessions[session_id].prev_log.timestamp;
-        }
+        uint256 total_duration = session_log.timestamp-sessions[session_id].last_log.timestamp;
+    
         
-
-        sessions[session_id].prev_log = sessions[session_id].current_log;
-        sessions[session_id].current_log = session_log;
+        sessions[session_id].last_log = session_log;
         
         last_updated[session_id] = block.timestamp;
 
@@ -451,13 +446,11 @@ contract Sessions is ISessions, Initializable {
         log.meter_value = meter_stop;
         log.timestamp = timestamp;
 
+        require(log.timestamp >= sessions[session_id].last_log.timestamp, "Invalid final log timestamp");
+        require(log.meter_value >= sessions[session_id].last_log.meter_value, "Invalid final meter value");
 
-        // Проверяем корректность финального лога
-        if (sessions[session_id].prev_log.timestamp > 0) {
-            
-            require(log.timestamp >= sessions[session_id].prev_log.timestamp, "Invalid final log timestamp");
-            require(log.meter_value >= sessions[session_id].prev_log.meter_value, "Invalid final meter value");
-        }
+        sessions[session_id].last_log = log;
+        
 
         uint256 stop_time = log.timestamp;
         require(stop_time > sessions[session_id].start_datetime, "Invalid end time");
@@ -509,7 +502,7 @@ contract Sessions is ISessions, Initializable {
         }
 
         SessionMeterLog memory log;
-        log.meter_value = sessions[session_id].prev_log.meter_value;
+        log.meter_value = sessions[session_id].last_log.meter_value;
         log.timestamp = timestamp;
 
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;

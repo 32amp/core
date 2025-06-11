@@ -489,8 +489,7 @@ interface DataTypes {
         address account;
         Price total_paid;
         SessionStatus status;
-        SessionMeterLog prev_log;
-        SessionMeterLog current_log;
+        SessionMeterLog last_log;
     }
 
     struct SessionMeterLog {

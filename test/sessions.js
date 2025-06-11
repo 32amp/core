@@ -383,7 +383,7 @@ describe("Sessions", function() {
             meter_value_increment: ethers.parseEther("0.2"),
             time_increment: 30, // every 30 second
             parking_duration:60*60, // 1h
-            start_timestamp: Math.floor(Date.parse("2024-02-26T22:10:00Z") / 1000)
+            start_timestamp: Math.floor(Date.parse("2024-02-26T21:10:00Z") / 1000)
         }
         
 
