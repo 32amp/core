@@ -478,6 +478,7 @@ interface DataTypes {
         uint256 connector_id;
         uint256 meter_start;
         uint256 meter_stop;
+        uint256 create_datetime;
         uint256 start_datetime;
         uint256 stop_datetime;
         uint256 end_datetime;

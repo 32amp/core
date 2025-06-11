@@ -86,66 +86,51 @@ contract CDR is ICDR, Initializable {
         cdrs[session_id].current_log = log;
         
         CDR memory cdr = cdrs[session_id];
-        Price memory total_cost;
-
         
-        // Проходим по всем элементам тарифа
         for (uint i = 0; i < cdrTariff[session_id].tariff.tariff.elements.length; i++) {
             ITariff.TariffElement memory element = cdrTariff[session_id].tariff.tariff.elements[i];
             
-            
-            // Проверяем ограничения тарифа
-            if (!_checkTariffRestrictions(element.restrictions,  cdr.current_log, total_duration)) {
-                continue;
-            }
             
             if(cdrElements[session_id][i].components.length == 0){
                 cdrElements[session_id][i].components = new CDRComponent[](element.price_components.length);
             }
 
-            // Проходим по всем компонентам цены
+            if (!_checkTariffRestrictions(element.restrictions,  cdr.current_log, total_duration)) {
+                continue;
+            }
+
             for (uint j = 0; j < element.price_components.length; j++) {
                 ITariff.PriceComponent memory component = element.price_components[j];
-                if(component.price == 0 || !_isTimeInTariffPeriod(log.timestamp, element.restrictions)){
+                CDRComponent memory component_before_calc = cdrElements[session_id][i].components[j];
+                
+                
+                if(component.price == 0){
                     cdrElements[session_id][i].components[j] =  CDRComponent({price:Price({excl_vat:0, incl_vat:0}), _type:component._type, total_duration:0});
                     continue;
                 }
 
-                if ( component._type == ITariff.TariffDimensionType.PARKING_TIME) {
-
-                    if(cdrElements[session_id][i].components[j].price.excl_vat == 0 && status == SessionStatus.FINISHING ){
-                        cdrElements[session_id][i].components[j] = _calculateTimeCost(cdrElements[session_id][i].components[j], session_id,  log, component);
-
-                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
-                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
-                    }else{
-                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
-                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
-                    }
-
+                if ( component._type == ITariff.TariffDimensionType.PARKING_TIME && cdrElements[session_id][i].components[j].price.excl_vat == 0 && status == SessionStatus.FINISHING ) {
+                    cdrElements[session_id][i].components[j] = _calculateTimeCost(cdrElements[session_id][i].components[j], session_id,  log, component);
                 }else if (component._type == ITariff.TariffDimensionType.ENERGY) {
                     cdrElements[session_id][i].components[j] = _calculateEnergyCost(cdrElements[session_id][i].components[j], session_id, log, component);
-                    total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
-                    total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
                 } else if (component._type == ITariff.TariffDimensionType.TIME) {
                     cdrElements[session_id][i].components[j] = _calculateTimeCost(cdrElements[session_id][i].components[j], session_id,  log, component);
-                    total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
-                    total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
                 } else if (component._type == ITariff.TariffDimensionType.FLAT) {
                     if(cdrElements[session_id][i].components[j].price.excl_vat == component.price){
-                        total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
-                        total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
                         continue;
                     }
                     cdrElements[session_id][i].components[j] = _calculateFlatCost(component);
-                    total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat;
-                    total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat;
+                    
                 }
                 
+                if(cdrElements[session_id][i].components[j].price.excl_vat > component_before_calc.price.excl_vat){
+                    cdrs[session_id].total_cost.excl_vat += cdrElements[session_id][i].components[j].price.excl_vat-component_before_calc.price.excl_vat;
+                    cdrs[session_id].total_cost.incl_vat += cdrElements[session_id][i].components[j].price.incl_vat-component_before_calc.price.incl_vat;
+                }
             }
         }
 
-        cdrs[session_id].total_cost = total_cost;
+        
         cdrs[session_id].total_energy = log.meter_value;
         cdrs[session_id].end_datetime = log.timestamp;
         
@@ -169,6 +154,11 @@ contract CDR is ICDR, Initializable {
         SessionMeterLog calldata log,
         ITariff.PriceComponent memory component
     ) internal view returns (CDRComponent memory) {
+        
+        uint256 total_duration = element.total_duration;
+        uint256 prev_timestamp = cdrs[session_id].prev_log.timestamp;
+        uint256 interval_duration = log.timestamp - prev_timestamp;
+
         
 
         uint256 energy_cost = element.price.excl_vat;
@@ -195,9 +185,9 @@ contract CDR is ICDR, Initializable {
         require(energy_cost <= MAX_COST, "Cost too high");
 
         uint256 energy_cost_with_vat = _addVat(energy_cost,component.vat);
+        total_duration += interval_duration;
 
-
-        return CDRComponent({price:Price({excl_vat:energy_cost, incl_vat:energy_cost_with_vat}), _type:ITariff.TariffDimensionType.ENERGY, total_duration:0});
+        return CDRComponent({price:Price({excl_vat:energy_cost, incl_vat:energy_cost_with_vat}), _type:ITariff.TariffDimensionType.ENERGY, total_duration:total_duration});
     }
 
 
@@ -213,7 +203,7 @@ contract CDR is ICDR, Initializable {
         uint256 total_duration = element.total_duration;
         uint256 prev_timestamp = cdrs[session_id].prev_log.timestamp;
         uint256 interval_duration = log.timestamp - prev_timestamp;
-        uint256 cost_increment = (interval_duration * (component.price/60000));
+        uint256 cost_increment = (interval_duration * (component.price/60));
 
         require(time_cost + cost_increment >= time_cost, "Cost overflow");
         
@@ -249,9 +239,9 @@ contract CDR is ICDR, Initializable {
         require(timestamp > 0, "Invalid timestamp");
         
         // Проверка времени суток
-        uint256 hour = (timestamp % 86400) / 3600;
-        uint256 minute = (timestamp % 3600) / 60;
-        
+        (uint256 hour, uint256 minute) = _getHoursMinutes(timestamp);
+
+
         uint256 start_hour = uint256(int256(restrictions.start_time_hour));
         uint256 start_minute = uint256(int256(restrictions.start_time_minute));
         uint256 end_hour = uint256(int256(restrictions.end_time_hour));
@@ -264,6 +254,7 @@ contract CDR is ICDR, Initializable {
                 (hour == start_hour && minute < start_minute) ||
                 hour > end_hour ||
                 (hour == end_hour && minute > end_minute)) {
+                console.log("hour", hour, "minute", minute);
                 return false;
             }
         }
@@ -294,6 +285,20 @@ contract CDR is ICDR, Initializable {
         }
         
         return true;
+    }
+
+    function _getHoursMinutes(uint timestamp) public pure returns (uint256, uint256) {
+        // 1. Получить количество секунд с начала текущего дня
+        uint256 secondsInDay = timestamp % 86400; // 86400 секунд = 1 день
+        
+        // 2. Вычислить часы (делением на 3600 секунд)
+        uint256 _hours = secondsInDay / 3600;
+        
+        // 3. Вычислить минуты из оставшихся секунд
+        uint256 remainingSeconds = secondsInDay % 3600;
+        uint256 _minutes = remainingSeconds / 60;
+        
+        return (_hours,_minutes);
     }
 
     /**

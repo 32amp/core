@@ -280,7 +280,8 @@ contract Sessions is ISessions, Initializable {
             uid: sessionCounter,
             evse_uid: evse_uid,
             connector_id: connector_id,
-            start_datetime: block.timestamp,
+            create_datetime: block.timestamp,
+            start_datetime:0,
             stop_datetime: 0,
             end_datetime:0,
             session_log_counter: 0,
@@ -329,7 +330,8 @@ contract Sessions is ISessions, Initializable {
             _setSessionStatus(session_id, SessionStatus.ACTIVE);
             _CDR().createCDR(session_id, sessions[session_id], timestamp, meter_start);
             sessions[session_id].meter_start = meter_start;
-
+            sessions[session_id].start_datetime = timestamp;
+            
             SessionMeterLog memory log;
 
             log.meter_value = meter_start;
