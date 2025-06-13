@@ -370,12 +370,12 @@ contract Sessions is ISessions, Initializable {
         int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
         
-        (ITariff.CDR memory cdr, ) = _Tariff().updateCDR(session_id, session_log, total_duration, sessions[session_id].status);
+        Price memory total_cost = _Tariff().updateCDR(session_id, session_log, total_duration, sessions[session_id].status);
 
-        int256 debt = int256(cdr.total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
+        int256 debt = int256(total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
                 
-        if(int256(cdr.total_cost.incl_vat) > user_balance) {
+        if(int256(total_cost.incl_vat) > user_balance) {
             emit SessionStopRequest(session_id, address(this));
         }
 
@@ -383,7 +383,7 @@ contract Sessions is ISessions, Initializable {
             if( (user_balance-debt) <= int256(writeoff_treshold)){
                 Price memory amount  = Price({
                     incl_vat:uint256(debt),
-                    excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
+                    excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
                 });
                 _writeOff(session_id,amount);
             }
@@ -391,7 +391,7 @@ contract Sessions is ISessions, Initializable {
 
 
 
-        emit SessionUpdate(session_id, session_log.meter_value, session_log.percent, session_log.power, session_log.current, session_log.voltage, cdr.total_cost.incl_vat);
+        emit SessionUpdate(session_id, session_log.meter_value, session_log.percent, session_log.power, session_log.current, session_log.voltage, total_cost.incl_vat);
 
 
     }
@@ -458,7 +458,7 @@ contract Sessions is ISessions, Initializable {
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
         
         // Генерируем CDR пока сессия еще ACTIVE
-        (ITariff.CDR memory cdr, ) = _Tariff().updateCDR(session_id, log, total_duration, SessionStatus.CHARGING_COMPLETED);
+        Price memory total_cost = _Tariff().updateCDR(session_id, log, total_duration, SessionStatus.CHARGING_COMPLETED);
         
 
         _setSessionStatus(session_id, SessionStatus.CHARGING_COMPLETED);
@@ -468,13 +468,13 @@ contract Sessions is ISessions, Initializable {
 
         int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
-        int256 debt = int256(cdr.total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
+        int256 debt = int256(total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
         if(debt < user_balance) {
             if( (user_balance-debt) <= int256(writeoff_treshold)){
                 Price memory amount  = Price({
                     incl_vat:uint256(debt),
-                    excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
+                    excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
                 });
                 _writeOff(session_id,amount);
             }
@@ -496,7 +496,7 @@ contract Sessions is ISessions, Initializable {
 
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
         
-        (ITariff.CDR memory cdr, ) = _Tariff().updateCDR(session_id, log, total_duration, SessionStatus.FINISHING);
+        Price memory total_cost = _Tariff().updateCDR(session_id, log, total_duration, SessionStatus.FINISHING);
 
         _setSessionStatus(session_id, SessionStatus.FINISHING);
 
@@ -505,13 +505,13 @@ contract Sessions is ISessions, Initializable {
 
         int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
-        int256 debt = int256(cdr.total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
+        int256 debt = int256(total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
         if(debt < user_balance) {
             if( (user_balance-debt) <= int256(writeoff_treshold)){
                 Price memory amount  = Price({
                     incl_vat:uint256(debt),
-                    excl_vat:cdr.total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
+                    excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
                 });
                 _writeOff(session_id,amount);
             }

@@ -167,6 +167,7 @@ interface ITariff is DataTypes, IBaseErrors {
         uint256 tariff_id;
         uint16 tariff_version;
         SessionMeterLog last_log;
+        CDRElement[] elements;
     }
 
     struct CDRElement {
@@ -196,6 +197,6 @@ interface ITariff is DataTypes, IBaseErrors {
     function getByVersion(uint256 id, uint16 version ) external view returns(Output memory);
     function getCurrentVersion(uint256 id) external view returns(uint16);
     function createCDR(uint256 session_id, Session calldata session, uint256 timestamp, uint256 meter_start) external;
-    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) external returns(CDR memory, CDRElement[] memory);
-    function getCDR(uint256 session_id) external view returns(CDR memory, CDRElement[] memory);
+    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) external returns(Price memory);
+    function getCDR(uint256 session_id) external view returns(CDR memory);
 }

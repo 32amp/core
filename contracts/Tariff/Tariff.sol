@@ -34,7 +34,6 @@ contract Tariff is ITariff, Initializable {
     mapping(uint256 => uint16) current_tariff_version;
 
     mapping(uint256 => CDR) cdrs;
-    mapping(uint256 => CDRElement[]) cdrElements;
 
     uint256 constant MAX_COST = type(uint256).max / 2; // Максимальная стоимость для предотвращения переполнения
 
@@ -230,19 +229,19 @@ contract Tariff is ITariff, Initializable {
                 incl_vat:0,
                 excl_vat:0
             }),
-            last_log:log
+            last_log:log,
+            elements:new CDRElement[](tariffs[session.tariff_id][session.tariff_version].tariff.elements.length)
         });
         
-        cdrElements[session_id] = new CDRElement[](tariffs[session.tariff_id][session.tariff_version].tariff.elements.length);
         cdrs[session_id] = cdr;
     }
 
 
-    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) onlySessionContract external returns(CDR memory, CDRElement[] memory) {
+    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) onlySessionContract external returns(Price memory) {
         
-        
+        CDR storage cdr = cdrs[session_id];
         TariffData storage tariff = tariffs[cdrs[session_id].tariff_id][cdrs[session_id].tariff_version];
-        CDRElement[] storage elements = cdrElements[session_id];
+
 
         
         for (uint i = 0; i < tariff.tariff.elements.length; i++) {
@@ -250,8 +249,8 @@ contract Tariff is ITariff, Initializable {
             
             
             
-            if(elements[i].components.length == 0){
-                elements[i].components = new CDRComponent[](element.price_components.length);
+            if(cdr.elements[i].components.length == 0){
+                cdr.elements[i].components = new CDRComponent[](element.price_components.length);
             }
 
             if (!_checkTariffRestrictions(element.restrictions,  log, total_duration)) {
@@ -260,43 +259,43 @@ contract Tariff is ITariff, Initializable {
 
             for (uint j = 0; j < element.price_components.length; j++) {
                 ITariff.PriceComponent memory component = element.price_components[j];
-                CDRComponent memory component_before_calc = elements[i].components[j];
+                CDRComponent memory component_before_calc = cdr.elements[i].components[j];
                 
                 
                 if(component.price == 0){
-                    elements[i].components[j] =  CDRComponent({price:Price({excl_vat:0, incl_vat:0}), _type:component._type, total_duration:0});
+                    cdr.elements[i].components[j] =  CDRComponent({price:Price({excl_vat:0, incl_vat:0}), _type:component._type, total_duration:0});
                     continue;
                 }
 
-                if ( component._type == ITariff.TariffDimensionType.PARKING_TIME && elements[i].components[j].price.excl_vat == 0 && status == SessionStatus.FINISHING ) {
-                    elements[i].components[j] = _calculateTimeCost(elements[i].components[j], session_id,  log, component);
+                if ( component._type == ITariff.TariffDimensionType.PARKING_TIME && cdr.elements[i].components[j].price.excl_vat == 0 && status == SessionStatus.FINISHING ) {
+                    cdr.elements[i].components[j] = _calculateTimeCost(cdr.elements[i].components[j], session_id,  log, component);
                 }else if (component._type == ITariff.TariffDimensionType.ENERGY) {
-                    elements[i].components[j] = _calculateEnergyCost(elements[i].components[j], session_id, log, component);
+                    cdr.elements[i].components[j] = _calculateEnergyCost(cdr.elements[i].components[j], session_id, log, component);
                 } else if (component._type == ITariff.TariffDimensionType.TIME) {
-                    elements[i].components[j] = _calculateTimeCost(elements[i].components[j], session_id,  log, component);
+                    cdr.elements[i].components[j] = _calculateTimeCost(cdr.elements[i].components[j], session_id,  log, component);
                 } else if (component._type == ITariff.TariffDimensionType.FLAT) {
-                    if(elements[i].components[j].price.excl_vat == component.price){
+                    if(cdr.elements[i].components[j].price.excl_vat == component.price){
                         continue;
                     }
-                    elements[i].components[j] = _calculateFlatCost(component);
+                    cdr.elements[i].components[j] = _calculateFlatCost(component);
                     
                 }
                 
-                if(elements[i].components[j].price.excl_vat > component_before_calc.price.excl_vat){
-                    cdrs[session_id].total_cost.excl_vat += elements[i].components[j].price.excl_vat-component_before_calc.price.excl_vat;
-                    cdrs[session_id].total_cost.incl_vat += elements[i].components[j].price.incl_vat-component_before_calc.price.incl_vat;
+                if(cdr.elements[i].components[j].price.excl_vat > component_before_calc.price.excl_vat){
+                    cdr.total_cost.excl_vat += cdr.elements[i].components[j].price.excl_vat-component_before_calc.price.excl_vat;
+                    cdr.total_cost.incl_vat += cdr.elements[i].components[j].price.incl_vat-component_before_calc.price.incl_vat;
                 }
             }
         }
 
         if(status == SessionStatus.FINISHING){
-            cdrs[session_id].total_energy = log.meter_value;
+            cdr.total_energy = log.meter_value;
             cdrs[session_id].end_datetime = log.timestamp;
         }
 
-        cdrs[session_id].last_log = log;
+        cdr.last_log = log;
 
-        return (cdrs[session_id], cdrElements[session_id]);
+        return cdr.total_cost;
     }
 
     function _calculateFlatCost(
@@ -513,7 +512,7 @@ contract Tariff is ITariff, Initializable {
      * @param session_id Session ID to query
      * @return cdr Complete CDR data
      */
-    function getCDR(uint256 session_id) external view returns(CDR memory, CDRElement[] memory) {
-        return (cdrs[session_id], cdrElements[session_id]);
+    function getCDR(uint256 session_id) external view returns(CDR memory) {
+        return (cdrs[session_id]);
     }
 }

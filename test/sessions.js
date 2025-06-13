@@ -108,9 +108,9 @@ describe("Sessions", function() {
         
         const cdr = await runTestSession(params, this.contracts);
         
-        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
-        expect(cdr[0].start_datetime).to.equal(params.start_timestamp, "start_datetime");
-        expect(cdr[0].end_datetime).to.equal(params.start_timestamp + ((params.number_of_logs + 1) * params.time_increment), "end_datetime");
+        expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        expect(cdr.start_datetime).to.equal(params.start_timestamp, "start_datetime");
+        expect(cdr.end_datetime).to.equal(params.start_timestamp + ((params.number_of_logs + 1) * params.time_increment), "end_datetime");
     });
 
 
@@ -151,9 +151,9 @@ describe("Sessions", function() {
 
         const cdr = await runTestSession(params, this.contracts);
         const total_energy = BigInt(params.number_of_logs + 1) * params.meter_value_increment;
-        expect(cdr[0].total_energy).to.equal(total_energy, "total_energy");
+        expect(cdr.total_energy).to.equal(total_energy, "total_energy");
         
-        expect(ethers.formatEther(cdr[0].total_cost.excl_vat)).to.equal("228.0", "excl_vat")
+        expect(ethers.formatEther(cdr.total_cost.excl_vat)).to.equal("228.0", "excl_vat")
         //expect(ethers.formatEther(cdr[0].total_cost.incl_vat)).to.equal("2073.6", "incl_vat")
     })
 
@@ -196,14 +196,14 @@ describe("Sessions", function() {
         const cdr = await runTestSession(params, this.contracts);
 
 
-        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
-        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat)
-        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat)
+        expect(cdr.total_cost.excl_vat).to.equal(cdr.elements[0].components[0].price.excl_vat)
+        expect(cdr.total_cost.incl_vat).to.equal(cdr.elements[0].components[0].price.incl_vat)
 
-        expect(cdr[1][0].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+        expect(cdr.elements[0].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
 
-        expect(cdr[1][0].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        expect(cdr.elements[0].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
     })
 
 
@@ -244,14 +244,14 @@ describe("Sessions", function() {
         const total_component_price = flat_tariff.tariff.elements[0].price_components[0].price;
         const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(flat_tariff.tariff.elements[0].price_components[0].vat))+total_component_price;
 
-        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
-        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
-        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
+        expect(cdr.total_cost.excl_vat).to.equal(cdr.elements[0].components[0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr.total_cost.incl_vat).to.equal(cdr.elements[0].components[0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
 
-        expect(cdr[1][0].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+        expect(cdr.elements[0].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
 
-        expect(cdr[1][0].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        expect(cdr.elements[0].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
     })
 
 
@@ -292,15 +292,15 @@ describe("Sessions", function() {
         const total_component_price = (energy_and_parking.tariff.elements[1].price_components[0].price/BigInt(60))*BigInt(params.parking_duration);
         const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking.tariff.elements[1].price_components[0].vat))+total_component_price;
 
-        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
-        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat+cdr[1][1].components[0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
-        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat+cdr[1][1].components[0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
+        expect(cdr.total_cost.excl_vat).to.equal(cdr.elements[0].components[0].price.excl_vat+cdr.elements[1].components[0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr.total_cost.incl_vat).to.equal(cdr.elements[0].components[0].price.incl_vat+cdr.elements[1].components[0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
 
         
 
-        expect(cdr[1][1].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
-        expect(cdr[1][1].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        expect(cdr.elements[1].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+        expect(cdr.elements[1].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
     })
   
 
@@ -342,15 +342,15 @@ describe("Sessions", function() {
         const total_component_price = (energy_and_parking_2.tariff.elements[0].price_components[1].price/BigInt(60))*BigInt(params.parking_duration);
         const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking_2.tariff.elements[0].price_components[1].vat))+total_component_price;
 
-        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
-        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat+cdr[1][0].components[1].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
-        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat+cdr[1][0].components[1].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
+        expect(cdr.total_cost.excl_vat).to.equal(cdr.elements[0].components[0].price.excl_vat+cdr.elements[0].components[1].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr.total_cost.incl_vat).to.equal(cdr.elements[0].components[0].price.incl_vat+cdr.elements[0].components[1].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
 
         
 
-        expect(cdr[1][0].components[1].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
-        expect(cdr[1][0].components[1].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        expect(cdr.elements[0].components[1].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+        expect(cdr.elements[0].components[1].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
     })
 
 
@@ -393,17 +393,17 @@ describe("Sessions", function() {
         
         const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking_with_time_restrictions.tariff.elements[0].price_components[1].vat))+total_component_price;
         
-        console.log(cdr[1][0].components[0].total_duration, cdr[1][0].components[0]._type)
+        console.log(cdr.elements[0].components[0].total_duration, cdr.elements[0].components[0]._type)
         
-        expect(cdr[0].total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
-        expect(cdr[0].total_cost.excl_vat).to.equal(cdr[1][0].components[0].price.excl_vat+cdr[1][0].components[1].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
-        expect(cdr[0].total_cost.incl_vat).to.equal(cdr[1][0].components[0].price.incl_vat+cdr[1][0].components[1].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
-        
-
+        expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        expect(cdr.total_cost.excl_vat).to.equal(cdr.elements[0].components[0].price.excl_vat+cdr.elements[0].components[1].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr.total_cost.incl_vat).to.equal(cdr.elements[0].components[0].price.incl_vat+cdr.elements[0].components[1].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
         
 
-        expect(cdr[1][0].components[1].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
-        expect(cdr[1][0].components[1].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        
+
+        expect(cdr.elements[0].components[1].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
+        expect(cdr.elements[0].components[1].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
         
     })
 
