@@ -259,7 +259,7 @@ contract Sessions is ISessions, Initializable {
         }
 
         // Получаем текущую версию тарифа на момент старта сессии
-        uint256 current_tariff_version = _Tariff().getCurrentVersion(connector.tariff);
+        uint16 current_tariff_version = _Tariff().getCurrentVersion(connector.tariff);
         require(current_tariff_version > 0, "Invalid tariff version");
 
         int256 account_balance = _Balance().balanceOf(start_for);
@@ -327,13 +327,8 @@ contract Sessions is ISessions, Initializable {
             _CDR().createCDR(session_id, sessions[session_id], timestamp, meter_start);
             sessions[session_id].meter_start = meter_start;
             sessions[session_id].start_datetime = timestamp;
-            
-            SessionMeterLog memory log;
 
-            log.meter_value = meter_start;
-            log.timestamp = timestamp;
-
-            sessions[session_id].last_log = log;
+            sessions[session_id].last_log = SessionMeterLog(meter_start, timestamp, 0, 0, 0, 0);
 
             reservations[sessions[session_id].reserve_id].executed = true;
             delete authByReservation[reservations[sessions[session_id].reserve_id].account];

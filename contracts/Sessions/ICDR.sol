@@ -30,8 +30,7 @@ interface ICDR is IBaseErrors, DataTypes {
         Price total_cost;
         uint256 tariff_id;
         uint256 tariff_version;
-        SessionMeterLog prev_log;
-        SessionMeterLog current_log;
+        SessionMeterLog last_log;
     }
 
     struct CDRElement {

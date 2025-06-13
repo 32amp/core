@@ -40,7 +40,7 @@ interface ITariff is DataTypes, IBaseErrors {
 
     struct Output {
         uint256 id;
-        uint256 current_version;
+        uint16 current_version;
         uint256 last_updated;
         TariffData tariff;
     }
@@ -157,6 +157,6 @@ interface ITariff is DataTypes, IBaseErrors {
     function exist(uint256 id) external returns(bool);
     function add(TariffData calldata tariff) external;
     function get(uint256 id) external view returns(Output memory);
-    function getByVersion(uint256 id, uint256 version ) external view returns(Output memory);
-    function getCurrentVersion(uint256 id) external view returns(uint256);
+    function getByVersion(uint256 id, uint16 version ) external view returns(Output memory);
+    function getCurrentVersion(uint256 id) external view returns(uint16);
 }

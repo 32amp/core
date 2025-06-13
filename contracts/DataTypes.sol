@@ -482,14 +482,14 @@ interface DataTypes {
         uint256 start_datetime;
         uint256 stop_datetime;
         uint256 end_datetime;
-        uint256 paid_log_counter;
         uint256 tariff_id;
-        uint256 tariff_version;
         uint256 reserve_id;
         address account;
         Price total_paid;
         SessionStatus status;
         SessionMeterLog last_log;
+        uint16 tariff_version;
+        uint16 paid_log_counter;
     }
 
     struct SessionMeterLog {

@@ -29,9 +29,9 @@ contract Tariff is ITariff, Initializable {
     mapping(uint256 => uint256) last_updated;
     
     /// @dev Tariff data storage id => version => TariffData
-    mapping(uint256 => mapping( uint256 => TariffData )) tariffs;
+    mapping(uint256 => mapping( uint16 => TariffData )) tariffs;
 
-    mapping(uint256 => uint256) current_tariff_version;
+    mapping(uint256 => uint16) current_tariff_version;
 
     /**
      * @notice Initializes the contract with Hub connection
@@ -167,7 +167,7 @@ contract Tariff is ITariff, Initializable {
      * @param version Verion of tariff
      * @return Output Tariff data structure with all associated details
      */    
-    function getByVersion(uint256 id, uint256 version ) external view returns(Output memory) {
+    function getByVersion(uint256 id, uint16 version ) external view returns(Output memory) {
 
         if( !exist(id) ) {
             revert ObjectNotFound("tariff", id);
@@ -185,7 +185,7 @@ contract Tariff is ITariff, Initializable {
 
 
 
-    function getCurrentVersion(uint256 id) external view returns(uint256){
+    function getCurrentVersion(uint256 id) external view returns(uint16){
         if( !exist(id) ) {
             revert ObjectNotFound("tariff", id);
         }
