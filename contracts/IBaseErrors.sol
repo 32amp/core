@@ -114,7 +114,7 @@ interface IBaseErrors {
 
     error ParamNotEncrypted(string param);
 
-
+    error InvalidSessionDuration();
 
 
 }

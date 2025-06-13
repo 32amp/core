@@ -20,7 +20,7 @@ describe("Sessions", function() {
             Connector: true,
             Tariff: true,
             Sessions: true,
-            CDR: true
+            //CDR: true
         });
 
 
@@ -577,7 +577,7 @@ async function runTestSession(params, contracts) {
         
 
 
-        const cdr = await contracts.CDR.getCDR(startSessionResponse.session_id);
+        const cdr = await contracts.Tariff.getCDR(startSessionResponse.session_id);
         
         return cdr;
 }

@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
 import "./ISessions.sol";
-import "./ICDR.sol";
 import "../User/IUserAccess.sol";
 import "../Tariff/ITariff.sol";
 import "../Location/IEVSE.sol";
@@ -78,11 +77,6 @@ contract Sessions is ISessions, Initializable {
     function _Tariff() private view returns(ITariff) {
         return ITariff(IHub(hubContract).getModule("Tariff", partner_id));
     }
-
-    function _CDR() private view returns(ICDR) {
-        return ICDR(IHub(hubContract).getModule("CDR", partner_id));
-    }
-
 
     /// @notice Access control modifier requiring THIRD level privileges
     modifier user_access(uint256 session_id) {
@@ -324,7 +318,7 @@ contract Sessions is ISessions, Initializable {
     function startSessionResponse(uint256 session_id, uint256 timestamp, uint256 meter_start, bool status, string calldata message ) external ocpp_proxy_access {
         if(status){
             _setSessionStatus(session_id, SessionStatus.ACTIVE);
-            _CDR().createCDR(session_id, sessions[session_id], timestamp, meter_start);
+            _Tariff().createCDR(session_id, sessions[session_id], timestamp, meter_start);
             sessions[session_id].meter_start = meter_start;
             sessions[session_id].start_datetime = timestamp;
 
@@ -376,7 +370,7 @@ contract Sessions is ISessions, Initializable {
         int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
         
-        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, session_log, total_duration, sessions[session_id].status);
+        (ITariff.CDR memory cdr, ) = _Tariff().updateCDR(session_id, session_log, total_duration, sessions[session_id].status);
 
         int256 debt = int256(cdr.total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
@@ -464,7 +458,7 @@ contract Sessions is ISessions, Initializable {
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
         
         // Генерируем CDR пока сессия еще ACTIVE
-        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, log, total_duration, SessionStatus.CHARGING_COMPLETED);
+        (ITariff.CDR memory cdr, ) = _Tariff().updateCDR(session_id, log, total_duration, SessionStatus.CHARGING_COMPLETED);
         
 
         _setSessionStatus(session_id, SessionStatus.CHARGING_COMPLETED);
@@ -502,7 +496,7 @@ contract Sessions is ISessions, Initializable {
 
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
         
-        (ICDR.CDR memory cdr, ) = _CDR().updateCDR(session_id, log, total_duration, SessionStatus.FINISHING);
+        (ITariff.CDR memory cdr, ) = _Tariff().updateCDR(session_id, log, total_duration, SessionStatus.FINISHING);
 
         _setSessionStatus(session_id, SessionStatus.FINISHING);
 

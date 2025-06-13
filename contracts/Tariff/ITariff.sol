@@ -143,6 +143,42 @@ interface ITariff is DataTypes, IBaseErrors {
         PriceComponent[] price_components;
     }
 
+
+    /**
+     * @title Charging Data Record (CDR)
+     * @notice Final billing record for session
+     * @param session_id Reference session ID
+     * @param evse_uid Connected EVSE ID
+     * @param connector_id Physical connector ID
+     * @param start_datetime Session start timestamp
+     * @param end_datetime Session end timestamp
+     * @param total_energy Total energy delivered (Wh)
+     * @param total_cost Calculated cost (milliunits)
+     * @param tariff_id Applied tariff ID
+     */
+    struct CDR {
+        uint256 session_id;
+        uint256 evse_uid;
+        uint256 connector_id;
+        uint256 start_datetime;
+        uint256 end_datetime;
+        uint256 total_energy;
+        Price total_cost;
+        uint256 tariff_id;
+        uint16 tariff_version;
+        SessionMeterLog last_log;
+    }
+
+    struct CDRElement {
+        CDRComponent[] components;
+    }
+
+    struct CDRComponent {
+        ITariff.TariffDimensionType _type;
+        uint256 total_duration;
+        Price price;
+    }
+
     /**
      * @notice Emitted when new tariff is added
      * @param uid New tariff ID
@@ -159,4 +195,7 @@ interface ITariff is DataTypes, IBaseErrors {
     function get(uint256 id) external view returns(Output memory);
     function getByVersion(uint256 id, uint16 version ) external view returns(Output memory);
     function getCurrentVersion(uint256 id) external view returns(uint16);
+    function createCDR(uint256 session_id, Session calldata session, uint256 timestamp, uint256 meter_start) external;
+    function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) external returns(CDR memory, CDRElement[] memory);
+    function getCDR(uint256 session_id) external view returns(CDR memory, CDRElement[] memory);
 }
