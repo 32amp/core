@@ -363,8 +363,7 @@ contract Sessions is ISessions, Initializable {
         require(session_log.timestamp > sessions[session_id].last_log.timestamp, "Invalid timestamp sequence");
     
 
-        uint256 total_duration = session_log.timestamp-sessions[session_id].last_log.timestamp;
-    
+        uint256 total_duration = session_log.timestamp-sessions[session_id].start_datetime;
         
         sessions[session_id].last_log = session_log;
         
@@ -434,10 +433,12 @@ contract Sessions is ISessions, Initializable {
         if(sessions[session_id].status != SessionStatus.ACTIVE) {
             revert InvalidSessionStatus(session_id, sessions[session_id].status);
         }
-        SessionMeterLog memory log;
+        
+        SessionMeterLog memory log = sessions[session_id].last_log;
 
-        log.meter_value = meter_stop;
         log.timestamp = timestamp;
+        log.meter_value = meter_stop;
+        
 
         require(log.timestamp >= sessions[session_id].last_log.timestamp, "Invalid final log timestamp");
         require(log.meter_value >= sessions[session_id].last_log.meter_value, "Invalid final meter value");
@@ -494,8 +495,8 @@ contract Sessions is ISessions, Initializable {
             revert InvalidSessionStatus(session_id, sessions[session_id].status);
         }
 
-        SessionMeterLog memory log;
-        log.meter_value = sessions[session_id].last_log.meter_value;
+        SessionMeterLog memory log = sessions[session_id].last_log;
+    
         log.timestamp = timestamp;
 
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;

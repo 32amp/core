@@ -105,8 +105,8 @@ interface ITariff is DataTypes, IBaseErrors {
         uint8 end_time_minute;
         uint256 start_date;
         uint256 end_date;
-        uint32 min_kwh;
-        uint32 max_kwh;
+        uint256 min_kwh;
+        uint256 max_kwh;
         uint32 min_current;
         uint32 max_current;
         uint32 min_power;

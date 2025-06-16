@@ -386,11 +386,6 @@ contract Tariff is ITariff, Initializable {
         ITariff.TariffRestrictions memory restrictions
     ) internal pure returns (bool) {
 
-        if(restrictions.start_time_hour == 0 && restrictions.end_time_hour == 0){
-            return true;
-        }
-
-
         require(timestamp > 0, "Invalid timestamp");
         
         // Проверка времени суток
@@ -425,12 +420,13 @@ contract Tariff is ITariff, Initializable {
         // Проверка дней недели
         if (restrictions.day_of_week.length > 0) {
             // 1 = Monday, 7 = Sunday
-            uint256 day_of_week = (timestamp / 86400 + 4) % 7 + 1;
+            uint256 day_of_week = (timestamp / 86400 + 4) % 7;
+
             bool day_found = false;
             for (uint i = 0; i < restrictions.day_of_week.length; i++) {
                 uint256 day = uint256(uint8(restrictions.day_of_week[i]));
                 if (day == day_of_week) {
-                    day_found = true;
+                    day_found = true;        
                     break;
                 }
             }
@@ -474,6 +470,9 @@ contract Tariff is ITariff, Initializable {
             && restrictions.max_duration == 0
             && restrictions.start_time_hour == 0
             && restrictions.end_time_hour == 0
+            && restrictions.min_current == 0
+            && restrictions.max_current == 0
+            && restrictions.day_of_week.length == 0
 
         ){
             return true;
@@ -513,6 +512,15 @@ contract Tariff is ITariff, Initializable {
             return false;
         }
         if (restrictions.max_duration > 0 && total_duration > restrictions.max_duration) {
+            return false;
+        }
+
+
+        // Проверка тока
+        if (restrictions.min_current > 0 && current_log.current < restrictions.min_current) {
+            return false;
+        }
+        if (restrictions.max_current > 0 && current_log.current > restrictions.max_current) {
             return false;
         }
         
