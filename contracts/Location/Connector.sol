@@ -144,6 +144,13 @@ contract Connector is IConnector, Initializable {
         return ret;
     }
 
+    function getTariff(uint256 id) external view returns(uint256){
+        return connector_tariff[id];
+    }
+    function getStatus(uint256 id) external view returns(ConnectorStatus){
+        return connector_status[id];
+    }
+
     /**
      * @notice Checks connector existence
      * @param id Connector ID to verify

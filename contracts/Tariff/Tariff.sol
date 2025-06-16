@@ -6,7 +6,7 @@ import "../Hub/IHub.sol";
 import "./ITariff.sol";
 import "../User/IUserAccess.sol";
 import "../Services/ICurrencies.sol";
-
+import "hardhat/console.sol";
 /**
  * @title Tariff Management Contract
  * @notice Handles the storage and management of tariff information
@@ -290,7 +290,7 @@ contract Tariff is ITariff, Initializable {
 
         if(status == SessionStatus.FINISHING){
             cdr.total_energy = log.meter_value;
-            cdrs[session_id].end_datetime = log.timestamp;
+            cdr.end_datetime = log.timestamp;
         }
 
         cdr.last_log = log;
@@ -396,35 +396,49 @@ contract Tariff is ITariff, Initializable {
         uint256 timestamp,
         ITariff.TariffRestrictions memory restrictions
     ) internal pure returns (bool) {
+
+        if(restrictions.start_time_hour == 0 && restrictions.end_time_hour == 0){
+            return true;
+        }
+
+
         require(timestamp > 0, "Invalid timestamp");
         
         // Проверка времени суток
         (uint256 hour, uint256 minute) = _getHoursMinutes(timestamp);
-
-
-        uint256 start_hour = uint256(int256(restrictions.start_time_hour));
-        uint256 start_minute = uint256(int256(restrictions.start_time_minute));
-        uint256 end_hour = uint256(int256(restrictions.end_time_hour));
-        uint256 end_minute = uint256(int256(restrictions.end_time_minute));
+    
+        uint256 start_hour = restrictions.start_time_hour;
+        uint256 start_minute = restrictions.start_time_minute;
+        uint256 end_hour = restrictions.end_time_hour;
+        uint256 end_minute = restrictions.end_time_minute;
         
-        if (start_hour != 0 || start_minute != 0 || end_hour != 0 || end_minute != 0) {
-            require(end_hour > start_hour || (end_hour == start_hour && end_minute > start_minute), "Invalid time range");
-            
-            if (hour < start_hour || 
-                (hour == start_hour && minute < start_minute) ||
-                hour > end_hour ||
-                (hour == end_hour && minute > end_minute)) {
-                return false;
+        // Преобразуем время в минуты для удобства сравнения
+        uint256 currentMinutes = hour * 60 + minute;
+        uint256 startMinutes = start_hour * 60 + start_minute;
+        uint256 endMinutes = end_hour * 60 + end_minute;
+    
+        // Обработка периодов, переходящих через полночь
+        if (startMinutes != 0 || endMinutes != 0) {
+            if (endMinutes < startMinutes) {
+                // Период переходит через полночь (например, 22:00-06:00)
+                if (currentMinutes < startMinutes && currentMinutes > endMinutes) {
+                    return false;
+                }
+            } else {
+                // Стандартный период в пределах одних суток
+                if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
+                    return false;
+                }
             }
         }
         
         // Проверка дней недели
         if (restrictions.day_of_week.length > 0) {
-            uint256 day_of_week = (timestamp / 86400 + 4) % 7 + 1; // 1 = Monday, 7 = Sunday
+            // 1 = Monday, 7 = Sunday
+            uint256 day_of_week = (timestamp / 86400 + 4) % 7 + 1;
             bool day_found = false;
             for (uint i = 0; i < restrictions.day_of_week.length; i++) {
-                uint256 day = uint256(restrictions.day_of_week[i]);
-                require(day >= 1 && day <= 7, "Invalid day of week");
+                uint256 day = uint256(uint8(restrictions.day_of_week[i]));
                 if (day == day_of_week) {
                     day_found = true;
                     break;
@@ -436,28 +450,20 @@ contract Tariff is ITariff, Initializable {
         }
         
         // Проверка дат
-        if (restrictions.start_date > 0 && timestamp < uint256(int256(restrictions.start_date))) {
+        if (restrictions.start_date > 0 && timestamp < restrictions.start_date) {
             return false;
         }
-        if (restrictions.end_date > 0 && timestamp > uint256(int256(restrictions.end_date))) {
+        if (restrictions.end_date > 0 && timestamp > restrictions.end_date) {
             return false;
         }
         
         return true;
     }
 
-    function _getHoursMinutes(uint timestamp) public pure returns (uint256, uint256) {
-        // 1. Получить количество секунд с начала текущего дня
-        uint256 secondsInDay = timestamp % 86400; // 86400 секунд = 1 день
-        
-        // 2. Вычислить часы (делением на 3600 секунд)
-        uint256 _hours = secondsInDay / 3600;
-        
-        // 3. Вычислить минуты из оставшихся секунд
-        uint256 remainingSeconds = secondsInDay % 3600;
-        uint256 _minutes = remainingSeconds / 60;
-        
-        return (_hours,_minutes);
+    function _getHoursMinutes(uint timestamp) internal pure returns (uint256 hour, uint256 minute) {
+        uint256 totalMinutes = timestamp % 86400 / 60;
+        hour = totalMinutes / 60;
+        minute = totalMinutes % 60;
     }
 
     /**
@@ -468,6 +474,18 @@ contract Tariff is ITariff, Initializable {
         SessionMeterLog memory current_log,
         uint256 total_duration
     ) internal pure returns (bool) {
+
+        if(
+            restrictions.min_power == 0
+            && restrictions.max_power == 0
+            && restrictions.min_kwh == 0
+            && restrictions.max_kwh == 0
+            && restrictions.min_duration == 0
+            && restrictions.max_duration == 0
+
+        ){
+            return true;
+        }
 
         if(total_duration == 0){
             revert InvalidSessionDuration();

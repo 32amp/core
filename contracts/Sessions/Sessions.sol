@@ -234,18 +234,22 @@ contract Sessions is ISessions, Initializable {
             revert ObjectNotFound("EVSE", evse_uid);
         }
 
-        IConnector.output memory connector = _Connector().get(connector_id);
-        if(connector.id == 0) {
+
+        if(!_Connector().exist(connector_id)) {
             revert ObjectNotFound("Connector", connector_id);
         }
 
+        ConnectorStatus connector_status = _Connector().getStatus(connector_id);
+
         // Проверяем доступность коннектора
-        if(connector.status != ConnectorStatus.Available && connector.status != ConnectorStatus.Reserved) {
+        if(connector_status != ConnectorStatus.Available && connector_status != ConnectorStatus.Reserved) {
             revert ConnectorNotAvailable(connector_id);
         }
 
+
+        uint256 connector_tariff =  _Connector().getTariff(connector_id);
         // Проверяем корректность тарифа
-        require(connector.tariff != 0, "Invalid tariff");
+        require(connector_tariff != 0, "Invalid tariff");
 
         // Проверяем, нет ли уже сессии у пользователя
         if(sessionByAuth[msg.sender] != 0) {
@@ -253,7 +257,7 @@ contract Sessions is ISessions, Initializable {
         }
 
         // Получаем текущую версию тарифа на момент старта сессии
-        uint16 current_tariff_version = _Tariff().getCurrentVersion(connector.tariff);
+        uint16 current_tariff_version = _Tariff().getCurrentVersion(connector_tariff);
         require(current_tariff_version > 0, "Invalid tariff version");
 
         int256 account_balance = _Balance().balanceOf(start_for);
@@ -276,7 +280,7 @@ contract Sessions is ISessions, Initializable {
             end_datetime:0,
             paid_log_counter:0,
             total_paid: Price({incl_vat:0,excl_vat:0}),
-            tariff_id: connector.tariff,
+            tariff_id: connector_tariff,
             account: start_for,
             reserve_id: reserve_id,
             tariff_version: current_tariff_version, // Сохраняем текущую версию тарифа

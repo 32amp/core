@@ -115,12 +115,12 @@ interface ITariff is DataTypes, IBaseErrors {
      * @param day_of_week Applicable days of week
      */
     struct TariffRestrictions {
-        int16 start_time_hour;
-        int16 start_time_minute;
-        int16 end_time_hour;
-        int16 end_time_minute;
-        int256 start_date;
-        int256 end_date;
+        uint8 start_time_hour;
+        uint8 start_time_minute;
+        uint8 end_time_hour;
+        uint8 end_time_minute;
+        uint256 start_date;
+        uint256 end_date;
         uint32 min_kwh;
         uint32 max_kwh;
         uint32 min_current;

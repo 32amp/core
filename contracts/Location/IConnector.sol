@@ -48,4 +48,6 @@ interface IConnector is DataTypes, IBaseErrors {
     function setTariffs(uint256 id, uint256 _tariff) external;
     function exist(uint256 id) external view returns(bool);
     function setStatus(uint256 id, ConnectorStatus status) external;
+    function getTariff(uint256 id) external view returns(uint256);
+    function getStatus(uint256 id) external view returns(ConnectorStatus);
 }
