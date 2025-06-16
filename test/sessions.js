@@ -20,7 +20,6 @@ describe("Sessions", function() {
             Connector: true,
             Tariff: true,
             Sessions: true,
-            //CDR: true
         });
 
 
@@ -209,6 +208,10 @@ describe("Sessions", function() {
 
 
     it("should start session with reservation with single flat tariff", async function(){
+
+
+        const balance = this.contracts.Balance.balanceOf(this.simpleUser.address);
+        console.log("User balance:", ethers.formatEther(balance))
 
         // Add test connector
         const { connector } = require("./lib/evse_data");
