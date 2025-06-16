@@ -769,6 +769,155 @@ const energy_with_day_of_week_restrictions = {
 }
 
 
+
+const energy_with_day_of_week_restrictions_and_min_price = {
+    tariff_alt_text: [{
+        language: "ru",
+        text: "Описание тарифа"
+    }],
+    tariff_alt_url: "",
+    elements: [
+        {
+            price_components: [
+                {
+                    _type: 0, // energy
+                    price: ethers.parseEther("25.0"),
+                    vat: 20
+                }
+            ],
+            restrictions: {
+                start_time_hour: 0,
+                start_time_minute: 0,
+                end_time_hour: 0,
+                end_time_minute: 0,
+                start_date: 0,
+                end_date: 0,
+                min_kwh: 0,
+                max_kwh: 0,
+                min_current: 0,
+                max_current: 0,
+                min_power: 0, // in watt
+                max_power: 0,
+                min_duration: 0, // seconds
+                max_duration: 0,
+                day_of_week: [1]
+            }
+        },
+        {
+            price_components: [
+                {
+                    _type: 0, // energy
+                    price: ethers.parseEther("15.0"),
+                    vat: 20
+                }
+            ],
+            restrictions: {
+                start_time_hour: 0,
+                start_time_minute: 0,
+                end_time_hour: 0,
+                end_time_minute: 0,
+                start_date: 0,
+                end_date: 0,
+                min_kwh: 0,
+                max_kwh: 0,
+                min_current: 0,
+                max_current: 0,
+                min_power: 0,
+                max_power: 0,
+                min_duration: 0,
+                max_duration: 0,
+                day_of_week: [ 2, 3, 4, 5, 6, 7]
+            }
+        }
+    ],
+    min_price: {
+        excl_vat: ethers.parseEther("600.0"),
+        incl_vat: ethers.parseEther("720.0")
+    },
+    max_price: {
+        excl_vat: 0,
+        incl_vat: 0
+    },
+    start_date_time: 0,
+    end_date_time: 0
+}
+
+
+
+
+const energy_with_day_of_week_restrictions_and_max_price = {
+    tariff_alt_text: [{
+        language: "ru",
+        text: "Описание тарифа"
+    }],
+    tariff_alt_url: "",
+    elements: [
+        {
+            price_components: [
+                {
+                    _type: 0, // energy
+                    price: ethers.parseEther("25.0"),
+                    vat: 20
+                }
+            ],
+            restrictions: {
+                start_time_hour: 0,
+                start_time_minute: 0,
+                end_time_hour: 0,
+                end_time_minute: 0,
+                start_date: 0,
+                end_date: 0,
+                min_kwh: 0,
+                max_kwh: 0,
+                min_current: 0,
+                max_current: 0,
+                min_power: 0, // in watt
+                max_power: 0,
+                min_duration: 0, // seconds
+                max_duration: 0,
+                day_of_week: [1]
+            }
+        },
+        {
+            price_components: [
+                {
+                    _type: 0, // energy
+                    price: ethers.parseEther("15.0"),
+                    vat: 20
+                }
+            ],
+            restrictions: {
+                start_time_hour: 0,
+                start_time_minute: 0,
+                end_time_hour: 0,
+                end_time_minute: 0,
+                start_date: 0,
+                end_date: 0,
+                min_kwh: 0,
+                max_kwh: 0,
+                min_current: 0,
+                max_current: 0,
+                min_power: 0,
+                max_power: 0,
+                min_duration: 0,
+                max_duration: 0,
+                day_of_week: [ 2, 3, 4, 5, 6, 7]
+            }
+        }
+    ],
+    max_price: {
+        excl_vat: ethers.parseEther("100.0"),
+        incl_vat: ethers.parseEther("120.0")
+    },
+    min_price: {
+        excl_vat: 0,
+        incl_vat: 0
+    },
+    start_date_time: 0,
+    end_date_time: 0
+}
+
+
 module.exports = {
     free_tariff, 
     energy_tariff, 
@@ -782,5 +931,7 @@ module.exports = {
     energy_with_current_restrictions,
     energy_with_power_restrictions,
     energy_with_duration_restrictions,
-    energy_with_day_of_week_restrictions
+    energy_with_day_of_week_restrictions,
+    energy_with_day_of_week_restrictions_and_min_price,
+    energy_with_day_of_week_restrictions_and_max_price
 }

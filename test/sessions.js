@@ -680,40 +680,107 @@ describe("Sessions", function() {
         
     })
 
-    
 
-/* 
 
-    it("should handle session errors correctly", async function() {
-        // Try to start session with invalid EVSE
-        await expect(
-            this.contracts.Sessions.connect(this.simpleUser).startSessionRequest(999, 1, 0, ethers.ZeroAddress)
-        ).to.be.revertedWithCustomError(this.contracts.Sessions, "ObjectNotFound")
-        .withArgs("EVSE", 999);
+    it("should start session with reservation with energy and parking tariff in one element with day of week and min price restrictions", async function(){
 
-        // Try to start session with invalid connector
-        await expect(
-            this.contracts.Sessions.connect(this.simpleUser).startSessionRequest(1, 999, 0, ethers.ZeroAddress)
-        ).to.be.revertedWithCustomError(this.contracts.Sessions, "ObjectNotFound")
-        .withArgs("Connector", 999);
+        // Add test connector
+        const { connector } = require("./lib/evse_data");
+        await this.contracts.Connector.connect(this.adminUser).add(connector, 1);
+        // Set connector status to Available
+        await this.contracts.Connector.connect(this.adminUser).setStatus(14, 1); // 1 = Available
 
-        // Try to start session with unavailable connector
-        await this.contracts.Connector.connect(this.adminUser).setStatus(1, 2); // Set to Unavailable
-        await expect(
-            this.contracts.Sessions.connect(this.simpleUser).startSessionRequest(1, 1, 0, ethers.ZeroAddress)
-        ).to.be.revertedWithCustomError(this.contracts.Sessions, "ConnectorNotAvailable")
-        .withArgs(1);
-        await this.contracts.Connector.connect(this.adminUser).setStatus(1, 1); // Set back to Available
-    });
+        // Add test tariff
+        const { energy_with_day_of_week_restrictions_and_min_price: tariff } = require("./lib/tariff_data");
+        await this.contracts.Tariff.connect(this.adminUser).add(tariff);
 
-    it("should enforce access control", async function() {
-        const unauthorizedUser = (await ethers.getSigners())[4];
+        await this.contracts.Connector.connect(this.adminUser).setTariffs(14, 14);
+
+
+        const params = {
+            start_from: ethers.ZeroAddress,
+            reservation: true,
+            simpleUser: this.simpleUser,
+            ocppProxy: this.ocppProxy, 
+            evse_id: 1,
+            connector_id: 14,
+            percent_start: 1,
+            percent_end: 100,
+            number_of_logs: 75,
+            meter_value_increment: ethers.parseEther("0.2"),
+            time_increment: 30, // every 30 second
+            parking_duration:60*60, // 1h
+            start_timestamp: Math.floor(Date.parse("2025-06-16T23:30:00Z") / 1000)
+        }
         
-        await expect(
-            this.contracts.Sessions.connect(unauthorizedUser).startSessionRequest(1, 1, 0, ethers.ZeroAddress)
-        ).to.be.revertedWithCustomError(this.contracts.Sessions, "AccessDenied");
-    }); */
+        
 
+        const total_cost_el_one = (params.meter_value_increment*BigInt(59))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
+        const total_cost_el_two = (params.meter_value_increment*BigInt(17))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
+
+
+        const cdr = await runTestSession(params, this.contracts);
+
+        expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        expect(total_cost_el_one).to.equal(cdr.elements[0].components[0].price.excl_vat, "total_cost_el_one")
+        expect(total_cost_el_two).to.equal(cdr.elements[1].components[0].price.excl_vat, "total_cost_el_two")
+
+
+        expect(cdr.total_cost.excl_vat).to.equal(tariff.min_price.excl_vat, "cdr.total_cost.excl_vat")
+        expect(cdr.total_cost.incl_vat).to.equal(tariff.min_price.incl_vat, "cdr.total_cost.incl_vat")
+        
+    })
+
+
+    it("should start session with reservation with energy and parking tariff in one element with day of week and max price restrictions", async function(){
+
+        // Add test connector
+        const { connector } = require("./lib/evse_data");
+        await this.contracts.Connector.connect(this.adminUser).add(connector, 1);
+        // Set connector status to Available
+        await this.contracts.Connector.connect(this.adminUser).setStatus(15, 1); // 1 = Available
+
+        // Add test tariff
+        const { energy_with_day_of_week_restrictions_and_max_price: tariff } = require("./lib/tariff_data");
+        await this.contracts.Tariff.connect(this.adminUser).add(tariff);
+
+        await this.contracts.Connector.connect(this.adminUser).setTariffs(15, 15);
+
+
+        const params = {
+            start_from: ethers.ZeroAddress,
+            reservation: true,
+            simpleUser: this.simpleUser,
+            ocppProxy: this.ocppProxy, 
+            evse_id: 1,
+            connector_id: 15,
+            percent_start: 1,
+            percent_end: 100,
+            number_of_logs: 75,
+            meter_value_increment: ethers.parseEther("0.2"),
+            time_increment: 30, // every 30 second
+            parking_duration:60*60, // 1h
+            start_timestamp: Math.floor(Date.parse("2025-06-16T23:30:00Z") / 1000)
+        }
+        
+        
+
+        const total_cost_el_one = (params.meter_value_increment*BigInt(59))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
+        const total_cost_el_two = (params.meter_value_increment*BigInt(17))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
+
+
+        const cdr = await runTestSession(params, this.contracts);
+
+        expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
+        expect(total_cost_el_one).to.equal(cdr.elements[0].components[0].price.excl_vat, "total_cost_el_one")
+        expect(total_cost_el_two).to.equal(cdr.elements[1].components[0].price.excl_vat, "total_cost_el_two")
+
+
+        expect(cdr.total_cost.excl_vat).to.equal(tariff.max_price.excl_vat, "cdr.total_cost.excl_vat")
+        expect(cdr.total_cost.incl_vat).to.equal(tariff.max_price.incl_vat, "cdr.total_cost.incl_vat")
+        
+    })
+    
 }); 
 
 

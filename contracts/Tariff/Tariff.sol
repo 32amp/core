@@ -280,6 +280,18 @@ contract Tariff is ITariff, Initializable {
         if(status == SessionStatus.FINISHING){
             cdr.total_energy = log.meter_value;
             cdr.end_datetime = log.timestamp;
+
+
+            if(cdr.total_cost.excl_vat < tariff.min_price.excl_vat){
+                cdr.total_cost = tariff.min_price;
+            }
+
+            if(tariff.max_price.excl_vat > 0){
+                if(cdr.total_cost.excl_vat > tariff.max_price.excl_vat){
+                    cdr.total_cost = tariff.max_price;
+                }
+            }
+
         }
 
         cdr.last_log = log;
