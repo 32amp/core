@@ -188,8 +188,8 @@ describe("Sessions", function() {
             start_timestamp: Math.floor(Date.now() / 1000)
         }
 
-        const total_component_price = (BigInt(params.number_of_logs + 1) * BigInt(params.time_increment))/BigInt(60)*time_tariff.tariff.elements[0].price_components[0].price;
-        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(time_tariff.tariff.elements[0].price_components[0].vat))+total_component_price;
+        const total_component_price = (BigInt(params.number_of_logs + 1) * BigInt(params.time_increment))/BigInt(60)*time_tariff.elements[0].price_components[0].price;
+        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(time_tariff.elements[0].price_components[0].vat))+total_component_price;
 
         await this.contracts.Balance.mint(this.simpleUser.address, total_component_price_vat);
 
@@ -241,8 +241,8 @@ describe("Sessions", function() {
         
 
         const cdr = await runTestSession(params, this.contracts);
-        const total_component_price = flat_tariff.tariff.elements[0].price_components[0].price;
-        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(flat_tariff.tariff.elements[0].price_components[0].vat))+total_component_price;
+        const total_component_price = flat_tariff.elements[0].price_components[0].price;
+        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(flat_tariff.elements[0].price_components[0].vat))+total_component_price;
 
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
@@ -289,8 +289,8 @@ describe("Sessions", function() {
         
 
         const cdr = await runTestSession(params, this.contracts);
-        const total_component_price = (energy_and_parking.tariff.elements[1].price_components[0].price/BigInt(60))*BigInt(params.parking_duration);
-        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking.tariff.elements[1].price_components[0].vat))+total_component_price;
+        const total_component_price = (energy_and_parking.elements[1].price_components[0].price/BigInt(60))*BigInt(params.parking_duration);
+        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking.elements[1].price_components[0].vat))+total_component_price;
 
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
@@ -339,8 +339,8 @@ describe("Sessions", function() {
         
 
         const cdr = await runTestSession(params, this.contracts);
-        const total_component_price = (energy_and_parking_2.tariff.elements[0].price_components[1].price/BigInt(60))*BigInt(params.parking_duration);
-        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking_2.tariff.elements[0].price_components[1].vat))+total_component_price;
+        const total_component_price = (energy_and_parking_2.elements[0].price_components[1].price/BigInt(60))*BigInt(params.parking_duration);
+        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking_2.elements[0].price_components[1].vat))+total_component_price;
 
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
@@ -364,8 +364,8 @@ describe("Sessions", function() {
         await this.contracts.Connector.connect(this.adminUser).setStatus(7, 1); // 1 = Available
 
         // Add test tariff
-        const { energy_and_parking_with_time_restrictions } = require("./lib/tariff_data");
-        await this.contracts.Tariff.connect(this.adminUser).add(energy_and_parking_with_time_restrictions);
+        const { energy_with_time_restrictions } = require("./lib/tariff_data");
+        await this.contracts.Tariff.connect(this.adminUser).add(energy_with_time_restrictions);
 
         await this.contracts.Connector.connect(this.adminUser).setTariffs(7, 7);
 
@@ -383,27 +383,16 @@ describe("Sessions", function() {
             meter_value_increment: ethers.parseEther("0.2"),
             time_increment: 30, // every 30 second
             parking_duration:60*60, // 1h
-            start_timestamp: Math.floor(Date.parse("2024-02-26T21:10:00Z") / 1000)
+            start_timestamp: Math.floor(Date.parse("2024-02-26T23:00:00Z") / 1000)
         }
         
 
         const cdr = await runTestSession(params, this.contracts);
         
-        const total_component_price = (energy_and_parking_with_time_restrictions.tariff.elements[0].price_components[1].price/BigInt(60))*BigInt(params.parking_duration);
-        
-        const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking_with_time_restrictions.tariff.elements[0].price_components[1].vat))+total_component_price;
-        
-        console.log(cdr.elements[0].components[0].total_duration, cdr.elements[0].components[0]._type)
-        
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
-        expect(cdr.total_cost.excl_vat).to.equal(cdr.elements[0].components[0].price.excl_vat+cdr.elements[0].components[1].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
-        expect(cdr.total_cost.incl_vat).to.equal(cdr.elements[0].components[0].price.incl_vat+cdr.elements[0].components[1].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
-        
-
-        
-
-        expect(cdr.elements[0].components[1].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
-        expect(cdr.elements[0].components[1].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+        expect(cdr.total_cost.excl_vat).to.equal(cdr.elements[0].components[0].price.excl_vat, "total_cost.excl_vat == price.excl_vat")
+        expect(cdr.total_cost.incl_vat).to.equal(cdr.elements[0].components[0].price.incl_vat, "total_cost.incl_vat == price.incl_vat")
+        expect(ethers.formatEther(cdr.total_cost.incl_vat)).to.equal("234.24")
         
     })
 

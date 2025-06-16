@@ -42,26 +42,7 @@ interface ITariff is DataTypes, IBaseErrors {
         uint256 id;
         uint16 current_version;
         uint256 last_updated;
-        TariffData tariff;
-    }
-
-    /**
-     * @title Complete Tariff Output
-     * @notice Contains full tariff details with all components
-     * @param tariff Main tariff structure
-     * @param min_price Minimum price constraints
-     * @param max_price Maximum price constraints
-     * @param start_date_time Effective start timestamp
-     * @param end_date_time Expiration timestamp
-     * @param energy_mix Renewable energy composition data
-     */
-    struct TariffData {
         Tariff tariff;
-        Price min_price;
-        Price max_price;   
-        uint256 start_date_time;
-        uint256 end_date_time;
-        EnergyMix energy_mix;             
     }
 
 
@@ -74,8 +55,11 @@ interface ITariff is DataTypes, IBaseErrors {
      * @param elements Array of tariff components
      */
     struct Tariff {
-        uint256 currency; 
         string tariff_alt_url;
+        Price min_price;
+        Price max_price;   
+        uint256 start_date_time;
+        uint256 end_date_time;
         DisplayText[] tariff_alt_text;
         TariffElement[] elements;
     }
@@ -192,7 +176,8 @@ interface ITariff is DataTypes, IBaseErrors {
 
     function getVersion() external pure returns(string memory);
     function exist(uint256 id) external returns(bool);
-    function add(TariffData calldata tariff) external;
+    function add(Tariff calldata tariff) external;
+    function update(uint256 id, Tariff calldata tariff) external;
     function get(uint256 id) external view returns(Output memory);
     function getByVersion(uint256 id, uint16 version ) external view returns(Output memory);
     function getCurrentVersion(uint256 id) external view returns(uint16);

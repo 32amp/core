@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
 import "./ITariff.sol";
 import "../User/IUserAccess.sol";
-import "../Services/ICurrencies.sol";
 import "hardhat/console.sol";
 /**
  * @title Tariff Management Contract
@@ -29,7 +28,7 @@ contract Tariff is ITariff, Initializable {
     mapping(uint256 => uint256) last_updated;
     
     /// @dev Tariff data storage id => version => TariffData
-    mapping(uint256 => mapping( uint16 => TariffData )) tariffs;
+    mapping(uint256 => mapping( uint16 => Tariff )) tariffs;
 
     mapping(uint256 => uint16) current_tariff_version;
 
@@ -99,13 +98,6 @@ contract Tariff is ITariff, Initializable {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    /**
-     * @dev Returns Currencies service interface
-     * @return ICurrencies Currencies service instance
-     */
-    function _Currencies() private view returns(ICurrencies) {
-        return ICurrencies(IHub(hubContract).getService("Currencies"));
-    }
 
     /**
      * @notice Adds a new tariff to the registry
@@ -114,16 +106,13 @@ contract Tariff is ITariff, Initializable {
      * @custom:reverts ObjectNotFound If referenced currency does not exist
      * @custom:emits AddTariff On successful tariff addition
      */
-    function add(TariffData calldata tariff) external {
+    function add(Tariff calldata tariff) external {
 
         uint access_level = _UserAccess().getModuleAccessLevel("Tariff", msg.sender);
 
         if(access_level < uint(IUserAccess.AccessLevel.FOURTH)){
             revert AccessDenied("Tariff");
         }
-
-        if(!_Currencies().exist(tariff.tariff.currency))
-            revert ObjectNotFound("Currency",tariff.tariff.currency);
 
         counter++;
 
@@ -138,7 +127,7 @@ contract Tariff is ITariff, Initializable {
 
     }
 
-    function update(uint256 id, TariffData calldata tariff) access(id) external {
+    function update(uint256 id, Tariff calldata tariff) access(id) external {
         if( !exist(id) ) {
             revert ObjectNotFound("tariff", id);
         }
@@ -230,7 +219,7 @@ contract Tariff is ITariff, Initializable {
                 excl_vat:0
             }),
             last_log:log,
-            elements:new CDRElement[](tariffs[session.tariff_id][session.tariff_version].tariff.elements.length)
+            elements:new CDRElement[](tariffs[session.tariff_id][session.tariff_version].elements.length)
         });
         
         cdrs[session_id] = cdr;
@@ -240,20 +229,20 @@ contract Tariff is ITariff, Initializable {
     function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) onlySessionContract external returns(Price memory) {
         
         CDR storage cdr = cdrs[session_id];
-        TariffData storage tariff = tariffs[cdrs[session_id].tariff_id][cdrs[session_id].tariff_version];
+        Tariff storage tariff = tariffs[cdrs[session_id].tariff_id][cdrs[session_id].tariff_version];
 
 
         
-        for (uint i = 0; i < tariff.tariff.elements.length; i++) {
-            ITariff.TariffElement memory element = tariff.tariff.elements[i];
-            
-            
+        for (uint i = 0; i < tariff.elements.length; i++) {
+            ITariff.TariffElement memory element = tariff.elements[i];
             
             if(cdr.elements[i].components.length == 0){
                 cdr.elements[i].components = new CDRComponent[](element.price_components.length);
             }
 
-            if (!_checkTariffRestrictions(element.restrictions,  log, total_duration)) {
+            bool check_restrictions = _checkTariffRestrictions(element.restrictions,  log, total_duration);
+
+            if (!check_restrictions) {
                 continue;
             }
 
@@ -406,6 +395,7 @@ contract Tariff is ITariff, Initializable {
         
         // Проверка времени суток
         (uint256 hour, uint256 minute) = _getHoursMinutes(timestamp);
+
     
         uint256 start_hour = restrictions.start_time_hour;
         uint256 start_minute = restrictions.start_time_minute;
@@ -482,6 +472,8 @@ contract Tariff is ITariff, Initializable {
             && restrictions.max_kwh == 0
             && restrictions.min_duration == 0
             && restrictions.max_duration == 0
+            && restrictions.start_time_hour == 0
+            && restrictions.end_time_hour == 0
 
         ){
             return true;
@@ -491,8 +483,11 @@ contract Tariff is ITariff, Initializable {
             revert InvalidSessionDuration();
         }
 
+
+        bool time_check = _isTimeInTariffPeriod(current_log.timestamp, restrictions);
+
         // Проверка времени
-        if (!_isTimeInTariffPeriod(current_log.timestamp, restrictions)) {
+        if (!time_check) {
             return false;
         }
         
