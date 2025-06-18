@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Hub/IHub.sol";
 import "./ITariff.sol";
 import "../User/IUserAccess.sol";
-import "hardhat/console.sol";
+
 /**
  * @title Tariff Management Contract
  * @notice Handles the storage and management of tariff information
@@ -246,6 +246,8 @@ contract Tariff is ITariff, Initializable {
                 continue;
             }
 
+
+
             for (uint j = 0; j < element.price_components.length; j++) {
                 ITariff.PriceComponent memory component = element.price_components[j];
                 CDRComponent memory component_before_calc = cdr.elements[i].components[j];
@@ -260,6 +262,7 @@ contract Tariff is ITariff, Initializable {
                     cdr.elements[i].components[j] = _calculateTimeCost(cdr.elements[i].components[j], session_id,  log, component);
                 }else if (component._type == ITariff.TariffDimensionType.ENERGY) {
                     cdr.elements[i].components[j] = _calculateEnergyCost(cdr.elements[i].components[j], session_id, log, component);
+        
                 } else if (component._type == ITariff.TariffDimensionType.TIME) {
                     cdr.elements[i].components[j] = _calculateTimeCost(cdr.elements[i].components[j], session_id,  log, component);
                 } else if (component._type == ITariff.TariffDimensionType.FLAT) {
@@ -280,21 +283,30 @@ contract Tariff is ITariff, Initializable {
         if(status == SessionStatus.FINISHING){
             cdr.total_energy = log.meter_value;
             cdr.end_datetime = log.timestamp;
-
-
-            if(cdr.total_cost.excl_vat < tariff.min_price.excl_vat){
+            if(cdr.total_cost.incl_vat < tariff.min_price.incl_vat){
                 cdr.total_cost = tariff.min_price;
             }
-
+    
             if(tariff.max_price.excl_vat > 0){
                 if(cdr.total_cost.excl_vat > tariff.max_price.excl_vat){
                     cdr.total_cost = tariff.max_price;
                 }
             }
-
         }
 
+
         cdr.last_log = log;
+
+        if(cdr.total_cost.incl_vat < tariff.min_price.incl_vat){
+            return tariff.min_price;
+        }
+
+        if(tariff.max_price.excl_vat > 0){
+            if(cdr.total_cost.excl_vat > tariff.max_price.excl_vat){
+                return tariff.max_price;
+            }
+        }
+
 
         return cdr.total_cost;
     }
@@ -317,32 +329,21 @@ contract Tariff is ITariff, Initializable {
         ITariff.PriceComponent memory component
     ) internal view returns (CDRComponent memory) {
         SessionMeterLog memory last_log = cdrs[session_id].last_log;
+
         uint256 total_duration = element.total_duration;
-        uint256 prev_timestamp = last_log.timestamp;
-        uint256 interval_duration = log.timestamp - prev_timestamp;
-
-        
-
+        uint256 interval_duration = log.timestamp - last_log.timestamp;
         uint256 energy_cost = element.price.excl_vat;
         uint256 prev_meter_value = last_log.meter_value;
         
-
-        // Проверяем корректность значений счетчика
         require(log.meter_value >= prev_meter_value, "Negative energy consumption");
         
-        // Рассчитываем потребление энергии между логами
         uint256 energy_consumed = log.meter_value - prev_meter_value;
 
-        
-
         if (energy_consumed > 0 ) {
-            uint256 rounded_kwh = energy_consumed;
-            uint256 cost_increment = (rounded_kwh * component.price) / 1e18;
-            
+            uint256 cost_increment = energy_consumed  * (component.price/1e18);    
             require(energy_cost + cost_increment >= energy_cost, "Cost overflow");
             energy_cost += cost_increment;
         }
-        
 
         require(energy_cost <= MAX_COST, "Cost too high");
 
@@ -391,7 +392,7 @@ contract Tariff is ITariff, Initializable {
     }
 
     /**
-     * @dev Вспомогательная функция для проверки времени в периоде тарифа
+     * @dev Helper function for checking time in tariff period
      */
     function _isTimeInTariffPeriod(
         uint256 timestamp,
@@ -400,36 +401,32 @@ contract Tariff is ITariff, Initializable {
 
         require(timestamp > 0, "Invalid timestamp");
         
-        // Проверка времени суток
         (uint256 hour, uint256 minute) = _getHoursMinutes(timestamp);
 
-    
         uint256 start_hour = restrictions.start_time_hour;
         uint256 start_minute = restrictions.start_time_minute;
         uint256 end_hour = restrictions.end_time_hour;
         uint256 end_minute = restrictions.end_time_minute;
         
-        // Преобразуем время в минуты для удобства сравнения
+        
         uint256 currentMinutes = hour * 60 + minute;
         uint256 startMinutes = start_hour * 60 + start_minute;
         uint256 endMinutes = end_hour * 60 + end_minute;
     
-        // Обработка периодов, переходящих через полночь
+
         if (startMinutes != 0 || endMinutes != 0) {
             if (endMinutes < startMinutes) {
-                // Период переходит через полночь (например, 22:00-06:00)
                 if (currentMinutes < startMinutes && currentMinutes > endMinutes) {
                     return false;
                 }
             } else {
-                // Стандартный период в пределах одних суток
                 if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
                     return false;
                 }
             }
         }
         
-        // Проверка дней недели
+        
         if (restrictions.day_of_week.length > 0) {
             // 1 = Monday, 7 = Sunday
             uint256 day_of_week = (timestamp / 86400 + 4) % 7;
@@ -447,7 +444,7 @@ contract Tariff is ITariff, Initializable {
             }
         }
         
-        // Проверка дат
+        
         if (restrictions.start_date > 0 && timestamp < restrictions.start_date) {
             return false;
         }
@@ -465,7 +462,7 @@ contract Tariff is ITariff, Initializable {
     }
 
     /**
-     * @dev Вспомогательная функция для проверки ограничений тарифа
+     * @dev Helper function for checking tariff restrictions
      */
     function _checkTariffRestrictions(
         ITariff.TariffRestrictions memory restrictions,
@@ -497,12 +494,11 @@ contract Tariff is ITariff, Initializable {
 
         bool time_check = _isTimeInTariffPeriod(current_log.timestamp, restrictions);
 
-        // Проверка времени
         if (!time_check) {
             return false;
         }
         
-        // Проверка мощности
+        
         if (restrictions.min_power > 0 && current_log.power < restrictions.min_power) {
             return false;
         }
@@ -511,7 +507,7 @@ contract Tariff is ITariff, Initializable {
         }
         
 
-        // Проверка энергии
+        
         if (restrictions.min_kwh > 0 && current_log.meter_value < restrictions.min_kwh) {
             return false;
         }
@@ -519,7 +515,7 @@ contract Tariff is ITariff, Initializable {
             return false;
         }
         
-        // Проверка длительности
+        
         if (restrictions.min_duration > 0 && total_duration < restrictions.min_duration) {
             return false;
         }
@@ -528,7 +524,6 @@ contract Tariff is ITariff, Initializable {
         }
 
 
-        // Проверка тока
         if (restrictions.min_current > 0 && current_log.current < restrictions.min_current) {
             return false;
         }

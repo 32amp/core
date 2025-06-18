@@ -1,8 +1,13 @@
 const { accountSelection } = require("./helpers/promt_selection");
 const { savePrivateKey } = require("./helpers/manage_additional_accounts");
 const inquirer = require("inquirer");
-const { default: Choices } = require("inquirer/lib/objects/choices");
 
+
+task("formatEther", "Convert wei to eth")
+.addParam("value", "In wei")
+.setAction( async (args, hre) => {
+  console.log(ethers.formatEther(BigInt(args.value)))
+})
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
     const accounts = await hre.ethers.getSigners();

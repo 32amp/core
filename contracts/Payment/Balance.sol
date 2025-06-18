@@ -136,7 +136,7 @@ contract Balance is Initializable, IBalance {
      * @param account User address
      * @return uint256 Account balance
      */    
-    function balanceOf(address account) onlyUser() external view returns (int256){
+    function balanceOf(address account) external view returns (int256){
         return _balances[account];
     }
 
@@ -175,11 +175,13 @@ contract Balance is Initializable, IBalance {
             _totalSupply += value;
         } else {
             int256 fromBalance = _balances[from];
-            if (fromBalance < int256(value)) {
+            int256 newBalance = fromBalance - int256(value);
+
+            if (newBalance < MIN_NEGATIVE_BALANCE) {
                 revert InsufficientBalance(uint256(fromBalance), value);
             }
             unchecked {
-                _balances[from] = fromBalance - int256(value);
+                _balances[from] = newBalance;
             }
         }
 
@@ -189,9 +191,6 @@ contract Balance is Initializable, IBalance {
             }
         } else {
             int256 newBalance = _balances[to] + int256(value);
-            if (newBalance < MIN_NEGATIVE_BALANCE) {
-                revert InsufficientBalance(uint256(_balances[to]), value);
-            }
             unchecked {
                 _balances[to] = newBalance;
             }

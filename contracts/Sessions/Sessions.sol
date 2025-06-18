@@ -9,7 +9,7 @@ import "../Tariff/ITariff.sol";
 import "../Location/IEVSE.sol";
 import "../Location/IConnector.sol";
 import "../Payment/IBalance.sol";
-import "hardhat/console.sol";
+
 
 /**
  * @title Sessions Management Contract
@@ -241,22 +241,22 @@ contract Sessions is ISessions, Initializable {
 
         ConnectorStatus connector_status = _Connector().getStatus(connector_id);
 
-        // Проверяем доступность коннектора
+        
         if(connector_status != ConnectorStatus.Available && connector_status != ConnectorStatus.Reserved) {
             revert ConnectorNotAvailable(connector_id);
         }
 
 
         uint256 connector_tariff =  _Connector().getTariff(connector_id);
-        // Проверяем корректность тарифа
+        
         require(connector_tariff != 0, "Invalid tariff");
 
-        // Проверяем, нет ли уже сессии у пользователя
+        
         if(sessionByAuth[msg.sender] != 0) {
                 revert SessionAlreadyActive(msg.sender);
         }
 
-        // Получаем текущую версию тарифа на момент старта сессии
+        
         uint16 current_tariff_version = _Tariff().getCurrentVersion(connector_tariff);
         require(current_tariff_version > 0, "Invalid tariff version");
 
@@ -302,7 +302,7 @@ contract Sessions is ISessions, Initializable {
     }
 
     
-    // Централизованная очистка sessionByAuth и authBySession
+    
     function _cleanupSessionAuth(uint256 session_id) private {
         address auth_id = authBySession[session_id];
         if (auth_id != address(0)) {
@@ -311,7 +311,7 @@ contract Sessions is ISessions, Initializable {
         }
     }
 
-    // Централизованное изменение статуса сессии
+    
     function _setSessionStatus(uint256 session_id, SessionStatus new_status) private {
         sessions[session_id].status = new_status;
         if (new_status != SessionStatus.ACTIVE && new_status != SessionStatus.PENDING) {
@@ -369,33 +369,14 @@ contract Sessions is ISessions, Initializable {
         
         last_updated[session_id] = block.timestamp;
 
-
-        int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
-
         
         Price memory total_cost = _Tariff().updateCDR(session_id, session_log, total_duration, sessions[session_id].status);
 
-        int256 debt = int256(total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
-
-                
-        if(int256(total_cost.incl_vat) > user_balance) {
-            emit SessionStopRequest(session_id, address(this));
-        }
-
-        if(debt < user_balance) {
-            if( (user_balance-debt) <= int256(writeoff_treshold)){
-                Price memory amount  = Price({
-                    incl_vat:uint256(debt),
-                    excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
-                });
-                _writeOff(session_id,amount);
-            }
-        }
-
-
+    
+        _writeOffByTreshold(session_id,total_cost);
+        
 
         emit SessionUpdate(session_id, session_log.meter_value, session_log.percent, session_log.power, session_log.current, session_log.voltage, total_cost.incl_vat);
-
 
     }
 
@@ -455,35 +436,25 @@ contract Sessions is ISessions, Initializable {
             return;
         }
 
-        
-        // Теперь меняем статус и завершаем сессию
         sessions[session_id].stop_datetime = stop_time;
 
         
         uint256 total_duration = log.timestamp-sessions[session_id].start_datetime;
         
-        // Генерируем CDR пока сессия еще ACTIVE
         Price memory total_cost = _Tariff().updateCDR(session_id, log, total_duration, SessionStatus.CHARGING_COMPLETED);
         
-
         _setSessionStatus(session_id, SessionStatus.CHARGING_COMPLETED);
 
         last_updated[session_id] = stop_time;
 
-
-        int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
-
         int256 debt = int256(total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
 
-        if(debt < user_balance) {
-            if( (user_balance-debt) <= int256(writeoff_treshold)){
-                Price memory amount  = Price({
-                    incl_vat:uint256(debt),
-                    excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
-                });
-                _writeOff(session_id,amount);
-            }
-        }
+        Price memory amount  = Price({
+            incl_vat:uint256(debt),
+            excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
+        });
+
+        _writeOff(session_id,amount);
 
         emit SessionStopResponse(session_id, status, message);
     }
@@ -508,20 +479,44 @@ contract Sessions is ISessions, Initializable {
 
         last_updated[session_id] = timestamp;
 
+        int256 debt = int256(total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
+
+        Price memory amount  = Price({
+            incl_vat:uint256(debt),
+            excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
+        });
+        
+
+        _writeOff(session_id,amount);
+    }
+
+    function _writeOffByTreshold(uint256 session_id, Price memory total_cost) internal {
+
+        if(total_cost.incl_vat == 0){
+            return;
+        }
+
         int256 user_balance = _Balance().balanceOf(sessions[session_id].account);
 
         int256 debt = int256(total_cost.incl_vat) - int256(sessions[session_id].total_paid.incl_vat);
-
+        
         if(debt < user_balance) {
-            if( (user_balance-debt) <= int256(writeoff_treshold)){
+
+            if( debt >= int256(writeoff_treshold)){
                 Price memory amount  = Price({
                     incl_vat:uint256(debt),
                     excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
                 });
-                _writeOff(session_id,amount);
+                _writeOff(session_id, amount);
             }
-        }
 
+            if((user_balance-debt) <= int256(min_price_for_start_session)){
+                emit SessionStopRequest(session_id, msg.sender);
+            }
+
+        }else{
+            emit SessionStopRequest(session_id, msg.sender);
+        }
     }
 
     function _writeOff(uint256 session_id, Price memory amount) internal {
@@ -529,13 +524,14 @@ contract Sessions is ISessions, Initializable {
         if(amount.incl_vat == 0){
             return;
         }
-        
+
         _Balance().transferFrom(sessions[session_id].account, address(0), amount.incl_vat);
 
         paid_logs[session_id][sessions[session_id].paid_log_counter] = PaidLog({timestamp:block.timestamp,amount:amount});
         sessions[session_id].paid_log_counter++;
         sessions[session_id].total_paid.incl_vat += amount.incl_vat;
         sessions[session_id].total_paid.excl_vat += amount.excl_vat;
+
     }
 
 
@@ -567,15 +563,4 @@ contract Sessions is ISessions, Initializable {
         return sessionByAuth[auth_id];
     }
 
-    // Использовать битовые операции для проверок
-    function _validateLog(SessionMeterLog memory log) internal pure returns (bool) {
-        return (
-            (log.meter_value >= 0) &&
-            (log.percent <= 100) &&
-            (log.power >= 0) &&
-            (log.current >= 0) &&
-            (log.voltage >= 0) &&
-            (log.timestamp > 0)
-        );
-    }
 }

@@ -86,8 +86,10 @@ describe("Sessions", function() {
 
 
     it("should start session with reservation with free tariff", async function() {
+        
 
         await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("10"));
+
 
         const params = {
             start_from: ethers.ZeroAddress,
@@ -115,8 +117,7 @@ describe("Sessions", function() {
 
     it("should start session with reservation with single energy tariff", async function(){
 
-        let tx = await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("2173.6"));
-        await tx.wait()
+
         // Add test connector
         const { connector } = require("./lib/evse_data");
         await this.contracts.Connector.connect(this.adminUser).add(connector, 1);
@@ -124,8 +125,8 @@ describe("Sessions", function() {
         await this.contracts.Connector.connect(this.adminUser).setStatus(2, 1); // 1 = Available
 
         // Add test tariff
-        const { energy_tariff } = require("./lib/tariff_data");
-        await this.contracts.Tariff.connect(this.adminUser).add(energy_tariff);
+        const { energy_tariff: tariff } = require("./lib/tariff_data");
+        await this.contracts.Tariff.connect(this.adminUser).add(tariff);
 
         await this.contracts.Connector.connect(this.adminUser).setTariffs(2, 2);
 
@@ -146,14 +147,19 @@ describe("Sessions", function() {
             parking_duration:0,
             start_timestamp: Math.floor(Date.now() / 1000)
         }
-        
+
+        const total_cost_el_one = (params.meter_value_increment*BigInt(76))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
+        const total_component_price_vat = ((total_cost_el_one/BigInt(100))*BigInt(tariff.elements[0].price_components[0].vat))+total_cost_el_one;
+
+        let tx = await this.contracts.Balance.mint(this.simpleUser.address, total_component_price_vat+ethers.parseEther("10"));
+        await tx.wait()
 
         const cdr = await runTestSession(params, this.contracts);
         const total_energy = BigInt(params.number_of_logs + 1) * params.meter_value_increment;
         expect(cdr.total_energy).to.equal(total_energy, "total_energy");
         
-        expect(ethers.formatEther(cdr.total_cost.excl_vat)).to.equal("228.0", "excl_vat")
-        //expect(ethers.formatEther(cdr[0].total_cost.incl_vat)).to.equal("2073.6", "incl_vat")
+        expect(cdr.total_cost.excl_vat).to.equal(total_cost_el_one, "excl_vat")
+        expect(cdr.total_cost.incl_vat).to.equal(total_component_price_vat, "incl_vat")
     })
 
     it("should start session with reservation with single time tariff", async function(){
@@ -203,15 +209,12 @@ describe("Sessions", function() {
         expect(cdr.elements[0].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
 
         expect(cdr.elements[0].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+
     })
 
 
 
     it("should start session with reservation with single flat tariff", async function(){
-
-
-        const balance = this.contracts.Balance.balanceOf(this.simpleUser.address);
-        console.log("User balance:", ethers.formatEther(balance))
 
         // Add test connector
         const { connector } = require("./lib/evse_data");
@@ -241,11 +244,13 @@ describe("Sessions", function() {
             parking_duration:0,
             start_timestamp: Math.floor(Date.now() / 1000)
         }
-        
-
-        const cdr = await runTestSession(params, this.contracts);
         const total_component_price = flat_tariff.elements[0].price_components[0].price;
         const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(flat_tariff.elements[0].price_components[0].vat))+total_component_price;
+
+        await this.contracts.Balance.mint(this.simpleUser.address, total_component_price_vat);
+
+        const cdr = await runTestSession(params, this.contracts);
+
 
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
@@ -255,6 +260,7 @@ describe("Sessions", function() {
         expect(cdr.elements[0].components[0].price.excl_vat).to.equal(total_component_price, "price.excl_vat")
 
         expect(cdr.elements[0].components[0].price.incl_vat).to.equal(total_component_price_vat,"price.incl_vat")
+
     })
 
 
@@ -289,11 +295,20 @@ describe("Sessions", function() {
             parking_duration:60000*60, // 1h
             start_timestamp: Math.floor(Date.now() / 1000)
         }
-        
 
-        const cdr = await runTestSession(params, this.contracts);
+        const total_cost_el_one = (params.meter_value_increment*BigInt(76))*(energy_and_parking.elements[0].price_components[0].price/BigInt(10**18));
+        const total_component_one_price_vat = ((total_cost_el_one/BigInt(100))*BigInt(energy_and_parking.elements[0].price_components[0].vat))+total_cost_el_one;
+
+
         const total_component_price = (energy_and_parking.elements[1].price_components[0].price/BigInt(60))*BigInt(params.parking_duration);
         const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking.elements[1].price_components[0].vat))+total_component_price;
+
+        await this.contracts.Balance.mint(this.simpleUser.address, total_component_price_vat+total_component_one_price_vat);
+
+        const cdr = await runTestSession(params, this.contracts);
+
+
+        
 
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
@@ -339,11 +354,16 @@ describe("Sessions", function() {
             parking_duration:60*60, // 1h
             start_timestamp: Math.floor(Date.now() / 1000)
         }
-        
 
-        const cdr = await runTestSession(params, this.contracts);
+        const total_cost_el_one = (params.meter_value_increment*BigInt(76))*(energy_and_parking_2.elements[0].price_components[0].price/BigInt(10**18));
+        const total_component_one_price_vat = ((total_cost_el_one/BigInt(100))*BigInt(energy_and_parking_2.elements[0].price_components[0].vat))+total_cost_el_one;
+
         const total_component_price = (energy_and_parking_2.elements[0].price_components[1].price/BigInt(60))*BigInt(params.parking_duration);
         const total_component_price_vat = ((total_component_price/BigInt(100))*BigInt(energy_and_parking_2.elements[0].price_components[1].vat))+total_component_price;
+
+        await this.contracts.Balance.mint(this.simpleUser.address, total_component_price_vat+total_component_one_price_vat);
+        const cdr = await runTestSession(params, this.contracts);
+
 
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
         
@@ -388,6 +408,8 @@ describe("Sessions", function() {
             parking_duration:60*60, // 1h
             start_timestamp: Math.floor(Date.parse("2024-02-26T23:00:00Z") / 1000)
         }
+
+        await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("234.24"));
         
 
         const cdr = await runTestSession(params, this.contracts);
@@ -433,7 +455,7 @@ describe("Sessions", function() {
             start_timestamp: Math.floor(Date.parse("2024-02-26T22:30:00Z") / 1000)
         }
         
-
+        await this.contracts.Balance.mint(this.simpleUser.address, ethers.parseEther("291.84"));
         const cdr = await runTestSession(params, this.contracts);
         
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
@@ -444,6 +466,7 @@ describe("Sessions", function() {
     })
 
     it("should start session with reservation with energy and parking tariff in one element with kwh restrictions", async function(){
+
 
         // Add test connector
         const { connector } = require("./lib/evse_data");
@@ -479,6 +502,11 @@ describe("Sessions", function() {
         const total_cost_el_one = (params.meter_value_increment*BigInt(15))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
         const total_cost_el_two = (params.meter_value_increment*BigInt(61))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
 
+        const total_cost = total_cost_el_one+total_cost_el_two;
+        
+        const total_cost_vat = ((total_cost/BigInt(100))*BigInt(20))+total_cost;
+
+        await this.contracts.Balance.mint(this.simpleUser.address, total_cost_vat);
 
         const cdr = await runTestSession(params, this.contracts);
 
@@ -492,6 +520,7 @@ describe("Sessions", function() {
 
 
     it("should start session with reservation with energy and parking tariff in one element with current restrictions", async function(){
+
 
         // Add test connector
         const { connector } = require("./lib/evse_data");
@@ -526,7 +555,11 @@ describe("Sessions", function() {
 
         const total_cost_el_one = (params.meter_value_increment*BigInt(7))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
         const total_cost_el_two = (params.meter_value_increment*BigInt(69))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
+        const total_cost = total_cost_el_one+total_cost_el_two;
+        
+        const total_cost_vat = ((total_cost/BigInt(100))*BigInt(20))+total_cost;
 
+        await this.contracts.Balance.mint(this.simpleUser.address, total_cost_vat);
 
         const cdr = await runTestSession(params, this.contracts);
 
@@ -540,6 +573,7 @@ describe("Sessions", function() {
 
 
     it("should start session with reservation with energy and parking tariff in one element with power restrictions", async function(){
+
 
         // Add test connector
         const { connector } = require("./lib/evse_data");
@@ -575,6 +609,11 @@ describe("Sessions", function() {
         const total_cost_el_one = (params.meter_value_increment*BigInt(7))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
         const total_cost_el_two = (params.meter_value_increment*BigInt(69))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
 
+        const total_cost = total_cost_el_one+total_cost_el_two;
+        
+        const total_cost_vat = ((total_cost/BigInt(100))*BigInt(20))+total_cost;
+
+        await this.contracts.Balance.mint(this.simpleUser.address, total_cost_vat);
 
         const cdr = await runTestSession(params, this.contracts);
 
@@ -623,6 +662,11 @@ describe("Sessions", function() {
         const total_cost_el_one = (params.meter_value_increment*BigInt(10))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
         const total_cost_el_two = (params.meter_value_increment*BigInt(66))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
 
+                const total_cost = total_cost_el_one+total_cost_el_two;
+        
+        const total_cost_vat = ((total_cost/BigInt(100))*BigInt(20))+total_cost;
+
+        await this.contracts.Balance.mint(this.simpleUser.address, total_cost_vat);
 
         const cdr = await runTestSession(params, this.contracts);
 
@@ -671,6 +715,11 @@ describe("Sessions", function() {
         const total_cost_el_one = (params.meter_value_increment*BigInt(59))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
         const total_cost_el_two = (params.meter_value_increment*BigInt(17))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
 
+        const total_cost = total_cost_el_one+total_cost_el_two;
+        
+        const total_cost_vat = ((total_cost/BigInt(100))*BigInt(20))+total_cost;
+
+        await this.contracts.Balance.mint(this.simpleUser.address, total_cost_vat);
 
         const cdr = await runTestSession(params, this.contracts);
 
@@ -721,7 +770,7 @@ describe("Sessions", function() {
         const total_cost_el_one = (params.meter_value_increment*BigInt(59))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
         const total_cost_el_two = (params.meter_value_increment*BigInt(17))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
 
-
+        await this.contracts.Balance.mint(this.simpleUser.address, tariff.min_price.incl_vat);
         const cdr = await runTestSession(params, this.contracts);
 
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");
@@ -771,7 +820,7 @@ describe("Sessions", function() {
         const total_cost_el_one = (params.meter_value_increment*BigInt(59))*(tariff.elements[0].price_components[0].price/BigInt(10**18));
         const total_cost_el_two = (params.meter_value_increment*BigInt(17))*(tariff.elements[1].price_components[0].price/BigInt(10**18));
 
-
+        await this.contracts.Balance.mint(this.simpleUser.address, tariff.max_price.incl_vat);
         const cdr = await runTestSession(params, this.contracts);
 
         expect(cdr.total_energy).to.equal(BigInt(params.number_of_logs + 1) * params.meter_value_increment, "total_energy");

@@ -781,7 +781,7 @@ const energy_with_day_of_week_restrictions_and_min_price = {
             price_components: [
                 {
                     _type: 0, // energy
-                    price: ethers.parseEther("25.0"),
+                    price: ethers.parseEther("10.0"),
                     vat: 20
                 }
             ],
@@ -831,8 +831,8 @@ const energy_with_day_of_week_restrictions_and_min_price = {
         }
     ],
     min_price: {
-        excl_vat: ethers.parseEther("600.0"),
-        incl_vat: ethers.parseEther("720.0")
+        excl_vat: ethers.parseEther("950.0"),
+        incl_vat: ethers.parseEther("999.0")
     },
     max_price: {
         excl_vat: 0,
