@@ -10,14 +10,14 @@ import "./IOCPPSwarm.sol";
  * @dev Контракт для управления пирами в OCPP сети
  */
 contract OCPPSwarm is Initializable, OwnableUpgradeable, IOCPPSwarm {
-    // PSK ключ для libp2p сети
+    // PSK ключ for libp2p сети
     bytes32 private _psk;
     
-    // Размер депозита для регистрации ноды
+    // Размер депозита for регистрации ноды
     uint256 private _depositAmount;
     uint256 nodeIndex;
     
-    // Маппинг для хранения зарегистрированных нод
+    // Маппинг for хранения зарегистрированных нод
     mapping(uint256 => OCPPNode) private _nodes;
     mapping (string => bool) private exist_node;
     mapping (address => uint256) private address_to_index;
@@ -29,8 +29,8 @@ contract OCPPSwarm is Initializable, OwnableUpgradeable, IOCPPSwarm {
 
     /**
      * @dev Инициализация контракта
-     * @param psk_ PSK ключ для libp2p сети
-     * @param depositAmount_ Размер депозита для регистрации ноды
+     * @param psk_ PSK ключ for libp2p сети
+     * @param depositAmount_ Размер депозита for регистрации ноды
      */
     function initialize(bytes32 psk_, uint256 depositAmount_) public initializer {
         __Ownable_init(msg.sender);

@@ -75,13 +75,13 @@ library Utils  {
         bool isNegative = false;
         uint startIndex = 0;
 
-        // Проверить, есть ли знак минус в начале
+        // Check for negative sign
         if (coordinateBytes[0] == "-") {
             isNegative = true;
             startIndex = 1;
         }
 
-        // Найти индекс точки
+        // Find the index of the decimal point
         for (uint i = startIndex; i < coordinateBytes.length; i++) {
             if (coordinateBytes[i] == ".") {
                 dotIndex = i;
@@ -92,18 +92,18 @@ library Utils  {
 
         require(dotFound, "No decimal point found");
 
-        // Создать массив байтов для целой части
+        // Create a byte array for the integer part
         bytes memory integerPartBytes = new bytes(dotIndex - startIndex);
 
-        // Заполнить целую часть
+        // Fill the integer part
         for (uint i = startIndex; i < dotIndex; i++) {
             integerPartBytes[i - startIndex] = coordinateBytes[i];
         }
         
-        // Преобразовать целую часть в int256
+        // Convert the integer part to int256
         int16 integerPart = parseInt(integerPartBytes);
 
-        // Учитывать отрицательность числа
+        // Consider the sign of the number
         if (isNegative) {
             integerPart = -integerPart;
         }

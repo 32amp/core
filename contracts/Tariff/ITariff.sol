@@ -154,10 +154,24 @@ interface ITariff is DataTypes, IBaseErrors {
         CDRElement[] elements;
     }
 
+    /**
+     * @title CDR Element Structure
+     * @notice Contains components for a CDR
+     * @dev Used to group CDR components for a charging session
+     * @param components Array of CDRComponent structures
+     */
     struct CDRElement {
         CDRComponent[] components;
     }
 
+    /**
+     * @title CDR Component Structure
+     * @notice Contains details for a CDR component
+     * @dev Used to specify type, duration, and price for a CDR component
+     * @param _type Tariff dimension type
+     * @param total_duration Total duration for this component (in seconds)
+     * @param price Price for this component (struct Price)
+     */
     struct CDRComponent {
         ITariff.TariffDimensionType _type;
         uint256 total_duration;
