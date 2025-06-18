@@ -13,12 +13,10 @@ interface IUserGroups is IBaseErrors {
      * @title Group Data Structure
      * @notice Represents a user group within the system
      * @dev Groups are used to organize users and manage permissions collectively
-     * 
-     * @param id      Unique group identifier (auto-incremented)
-     * @param name    Display name of the group
-     * @param owner   Address of the group owner (has full administrative privileges)
+     * @param id Unique group identifier (auto-incremented)
+     * @param name Display name of the group
+     * @param owner Address of the group owner (has full administrative privileges)
      * @param deleted Soft deletion flag (true if group is archived)
-     * 
      * @custom:security Group owners have full control over their groups
      */
     struct Group {

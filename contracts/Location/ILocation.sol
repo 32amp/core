@@ -12,10 +12,11 @@ import "./IEVSE.sol";
  */
 interface ILocation is DataTypes, IBaseErrors {
     /**
-     * @title Geographic Coordinates
+     * @title GeoLocationString Structure
      * @notice String-based latitude/longitude representation
-     * @param latitude Decimal degree format ("41.40338")
-     * @param longitude Decimal degree format ("2.17403")
+     * @dev Used for inputting coordinates as strings
+     * @param latitude Decimal degree format (e.g., "41.40338")
+     * @param longitude Decimal degree format (e.g., "2.17403")
      */
     struct GeoLocationString {
         string latitude;
@@ -23,8 +24,9 @@ interface ILocation is DataTypes, IBaseErrors {
     }
 
     /**
-     * @title Location Creation Data
+     * @title Location Creation Data Structure
      * @notice Input structure for new location registration
+     * @dev Used for adding new locations
      * @param name Location display name
      * @param _address Physical street address
      * @param city Municipality name
@@ -33,7 +35,7 @@ interface ILocation is DataTypes, IBaseErrors {
      * @param country ISO country code
      * @param coordinates GPS position data
      * @param parking_type Vehicle accommodation type
-     * @param facilities Amenities available on site
+     * @param facilities Array of amenities available on site
      * @param time_zone IANA time zone identifier
      * @param charging_when_closed 24/7 availability flag
      * @param publish Public visibility status
@@ -54,14 +56,15 @@ interface ILocation is DataTypes, IBaseErrors {
     }
 
     /**
-     * @title Complete Location Data
+     * @title Complete Location Data Structure
      * @notice Aggregated location information structure
+     * @dev Contains all details about a location, including related points, images, schedule, directions, and EVSEs
      * @param location Core location details
-     * @param related_locations Associated geo-points
-     * @param images Visual references
+     * @param related_locations Array of associated geo-points
+     * @param images Array of visual references
      * @param opening_times Operational schedule
-     * @param directions Multilingual navigation guides
-     * @param evses Connected charging stations
+     * @param directions Array of multilingual navigation guides
+     * @param evses Array of connected charging stations
      */
     struct outLocation {
         Location location;

@@ -14,13 +14,14 @@ interface IConnector is DataTypes, IBaseErrors {
 
 
     /**
-     * @title Connector Output Data
+     * @title Connector Output Data Structure
      * @notice Aggregated connector information structure
+     * @dev Contains all details about a connector, including status and tariff
      * @param id Unique connector identifier
      * @param last_updated Timestamp of last modification
      * @param connector Core connector details
      * @param status Current operational state
-     * @param tariff Associated pricing information
+     * @param tariff Associated pricing information (tariff ID)
      */
     struct output {
         uint256 id;

@@ -18,32 +18,32 @@ import "../User/IUserAccess.sol";
  */
 contract EVSE is IEVSE, Initializable {
     // Storage mappings documentation
-    /// @dev Primary EVSE data storage
+    /// @dev Mapping of EVSE IDs to EVSE structs
     mapping (uint256 => EVSE)  evses;
     
-    /// @dev Metadata storage for EVSEs
+    /// @dev Mapping of EVSE IDs to their metadata
     mapping (uint256 => EVSEMeta)  evses_meta;
     
-    /// @dev Operational status tracking
+    /// @dev Mapping of EVSE IDs to their operational status
     mapping (uint256 => EVSEStatus)  evses_status;
     
-    /// @dev Location association mapping
+    /// @dev Mapping of EVSE IDs to related location IDs
     mapping (uint256 => uint256)  evses_related_location;
     
-    /// @dev Timestamp of last updates
+    /// @dev Mapping of EVSE IDs to last update timestamps
     mapping (uint256 => uint256) evses_last_updated;
     
-    /// @dev Image references storage
+    /// @dev Mapping of EVSE IDs to their images
     mapping (uint256 => Image[]) evse_images;
     
-    /// @dev Connector associations
+    /// @dev Mapping of EVSE IDs to their connector IDs
     mapping (uint256 => uint256[]) evse_connectors;
 
     // State variables documentation
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
     
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
     /// @dev Auto-incrementing EVSE ID counter
@@ -70,17 +70,26 @@ contract EVSE is IEVSE, Initializable {
     }
 
     // Module accessors documentation
-    /// @dev Returns UserAccess module interface    
+    /**
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    /// @dev Returns Location module interface
+    /**
+     * @dev Returns the Location module interface for the current partner
+     * @return ILocation interface instance
+     */
     function _Location() private view returns(ILocation) {
         return ILocation(IHub(hubContract).getModule("Location", partner_id));
     }
 
-    /// @dev Returns Connector module interface
+    /**
+     * @dev Returns the Connector module interface for the current partner
+     * @return IConnector interface instance
+     */
     function _Connector() private view returns(IConnector) {
         return IConnector(IHub(hubContract).getModule("Connector", partner_id));
     }
@@ -255,14 +264,12 @@ contract EVSE is IEVSE, Initializable {
         return ret;
     }
 
-    /// @dev Internal update tracker with cyclic timestamp counter
+    /**
+     * @dev Internal function to update the last_updated timestamp for an EVSE
+     * @param id EVSE ID to update
+     */
     function _updated(uint256 id) internal {
-        evses_last_updated[id] = block.timestamp+timestampCounter;
-
-        timestampCounter++;
-
-        if(timestampCounter == 20)
-            timestampCounter = 0;
+        evses_last_updated[id] = block.timestamp;
     }
 
 }

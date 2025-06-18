@@ -12,12 +12,13 @@ import "./IConnector.sol";
  */
 interface IEVSE is DataTypes, IBaseErrors {
     /**
-     * @title EVSE Metadata
+     * @title EVSE Metadata Structure
      * @notice Extended operational data for EVSE units
-     * @param status_schedule Availability timeline
-     * @param capabilities Supported charging features
+     * @dev Contains status schedule, capabilities, coordinates, parking restrictions, and floor level
+     * @param status_schedule Array of availability periods
+     * @param capabilities Array of supported charging features
      * @param coordinates Physical location details
-     * @param parking_restrictions Vehicle accommodation rules
+     * @param parking_restrictions Array of vehicle accommodation rules
      * @param floor_level Building floor identifier
      */
     struct EVSEMeta {
@@ -29,15 +30,16 @@ interface IEVSE is DataTypes, IBaseErrors {
     }
 
     /**
-     * @title Complete EVSE Data
+     * @title Complete EVSE Data Structure
      * @notice Aggregated EVSE information structure
+     * @dev Contains core EVSE details, metadata, status, location, images, and connectors
      * @param evse Core EVSE details
      * @param meta Extended metadata
      * @param evses_status Current operational state
      * @param location_id Associated location reference
      * @param last_updated Timestamp of last modification
-     * @param images Visual references
-     * @param connectors Associated charging connectors
+     * @param images Array of visual references
+     * @param connectors Array of associated charging connectors
      */
     struct outEVSE {
         EVSE evse;

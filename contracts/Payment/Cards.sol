@@ -16,26 +16,26 @@ import "../Utils.sol";
  */
 contract Cards is ICards, Initializable {
     // State variables documentation
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
     
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
     /// @dev Maximum number of cards allowed per user
     uint256 max_user_cards;
 
     // Storage mappings documentation
-    /// @dev User card storage
+    /// @dev Mapping of user addresses to their cards
     mapping(address => Card[]) cards;
     
-    /// @dev User autopay settings
+    /// @dev Mapping of user addresses to their autopay settings
     mapping(address => AutopaySettings) autopay_settings;
     
-    /// @dev Card addition request IDs
+    /// @dev Mapping of user addresses to their add card request IDs
     mapping(address => uint256) add_card_request_id;
     
-    /// @dev Write-off request IDs
+    /// @dev Mapping of user addresses to their write-off request IDs
     mapping(address => uint256) write_off_request_id;
 
     using Utils for string;
@@ -52,12 +52,18 @@ contract Cards is ICards, Initializable {
         max_user_cards = 5;
     }
 
-    /// @dev Returns UserAccess module interface
+    /**
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    /// @dev Returns User module interface
+    /**
+     * @dev Returns the User module interface for the current partner
+     * @return IUser interface instance
+     */
     function _User() private view returns(IUser) {
         return IUser(IHub(hubContract).getModule("User", partner_id));
     }    

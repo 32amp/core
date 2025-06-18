@@ -16,14 +16,14 @@ import "../Hub/IHub.sol";
  */
 contract LocationSearch is ILocationSearch, Initializable {
     // Storage mapping documentation
-    /// @dev Grid-based spatial index [latitude][longitude] => location IDs
+    /// @dev Grid-based spatial index mapping: [latitude][longitude] => location IDs
     mapping(int16 => mapping(int16 => uint256[])) locations_index;
 
     // State variables documentation
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
     
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
     /// @dev Utility library for string operations
@@ -42,7 +42,10 @@ contract LocationSearch is ILocationSearch, Initializable {
 
 
     // Module accessors documentation
-    /// @dev Returns Location module interface
+    /**
+     * @dev Returns the Location module interface for the current partner
+     * @return ILocation interface instance
+     */
     function _Location() private view returns(ILocation) {
         return ILocation(IHub(hubContract).getModule("Location", partner_id));
     }

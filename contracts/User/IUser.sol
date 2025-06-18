@@ -10,22 +10,25 @@ import "../IBaseErrors.sol";
 interface IUser is IBaseErrors {
 
     /**
-     * @dev Enum representing the type of user.
+     * @notice User type enumeration
+     * @dev Distinguishes between default and company users
      */
     enum TypeUser {DEFAULT, COMPANY}
 
     /**
-     * @dev Struct representing a user.
-     * @param id The unique identifier for the user.
-     * @param tg_id Encrypted the Telegram ID of the user.
-     * @param phone Encrypted the phone number of the user.
-     * @param email Encrypted the email address of the user.
-     * @param first_name Encrypted the first name of the user.
-     * @param last_name Encrypted the last name of the user.
-     * @param language_code Encrypted the language code preferred by the user (e.g., "en", "ru").
-     * @param user_type The type of the user (either DEFAULT or COMPANY).
-     * @param enable A boolean indicating whether the user account is enabled.
-     * @param last_updated The timestamp of the last update to the user's information.
+     * @title User Data Structure
+     * @notice Represents a user profile in the system
+     * @dev Contains encrypted personal and contact information
+     * @param id Unique user identifier
+     * @param tg_id Encrypted Telegram ID
+     * @param phone Encrypted phone number
+     * @param email Encrypted email address
+     * @param first_name Encrypted first name
+     * @param last_name Encrypted last name
+     * @param language_code Encrypted preferred language code (e.g., "en", "ru")
+     * @param user_type User type (DEFAULT or COMPANY)
+     * @param enable Whether the user account is enabled
+     * @param last_updated Timestamp of the last update
      */
     struct User {
         uint256 id;
@@ -41,18 +44,20 @@ interface IUser is IBaseErrors {
     }
 
     /**
-     * @dev Struct representing company-specific information for a user.
-     * @param name Encrypted the name of the company.
-     * @param description Encrypted a brief description of the company.
-     * @param inn Encrypted the Taxpayer Identification Number (INN) of the company.
-     * @param kpp Encrypted the Tax Registration Reason Code (KPP) of the company.
-     * @param ogrn Encrypted the Primary State Registration Number (OGRN) of the company.
-     * @param bank_account Encrypted the bank account number of the company.
-     * @param bank_name Encrypted the name of the bank where the company has an account.
-     * @param bank_bik Encrypted the Bank Identifier Code (BIK) of the company's bank.
-     * @param bank_corr_account Encrypted the correspondent account number of the company's bank.
-     * @param bank_inn Encrypted the INN of the company's bank.
-     * @param bank_kpp_account Encrypted the KPP associated with the company's bank account.
+     * @title Company Data Structure
+     * @notice Represents company-specific information for a user
+     * @dev All fields are encrypted
+     * @param name Company name
+     * @param description Company description
+     * @param inn Taxpayer Identification Number (INN)
+     * @param kpp Tax Registration Reason Code (KPP)
+     * @param ogrn Primary State Registration Number (OGRN)
+     * @param bank_account Bank account number
+     * @param bank_name Name of the bank
+     * @param bank_bik Bank Identifier Code (BIK)
+     * @param bank_corr_account Correspondent account number
+     * @param bank_inn Bank's INN
+     * @param bank_kpp_account KPP associated with the bank account
      */
     struct Company {
         string name;
@@ -69,10 +74,12 @@ interface IUser is IBaseErrors {
     }
 
     /**
-     * @dev Struct representing data related to a car owned by a user.
-     * @param brand Encrypted the brand of the car (e.g., "Toyota").
-     * @param model Encrypted the model of the car (e.g., "Camry").
-     * @param connectors An array of connector types supported by the car (e.g., charging connectors).
+     * @title Car Data Structure
+     * @notice Represents data related to a user's car
+     * @dev All fields are encrypted except connectors
+     * @param brand Car brand (e.g., "Toyota")
+     * @param model Car model (e.g., "Camry")
+     * @param connectors Array of supported connector types
      */
     struct CarData {
         string brand;
@@ -81,8 +88,8 @@ interface IUser is IBaseErrors {
     }
 
     /**
-     * @dev Event emitted when a new user is added to the system.
-     * @param account The address of the newly added user account.
+     * @notice Emitted when a new user is added to the system
+     * @param account Address of the newly added user account
      */
     event AddUser(address account);
 

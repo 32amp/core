@@ -17,7 +17,7 @@ contract Currencies is ICurrencies, Initializable, OwnableUpgradeable {
     uint256 counter;
 
     // Storage mappings documentation
-    /// @dev Currency storage by ID
+    /// @dev Mapping of currency IDs to Currency structs
     mapping(uint256 => Currency) currencies;
     
     /// @dev Mapping of alphabetic codes to currency IDs
@@ -50,9 +50,8 @@ contract Currencies is ICurrencies, Initializable, OwnableUpgradeable {
     }
 
     /**
-     * @dev Internal function to add a new currency
+     * @dev Internal function to add a new currency to the registry
      * @param currency Currency data structure to add
-     * @custom:reverts AlreadyExist If the currency's alphabetic code already exists
      */
     function _add(Currency memory currency) private {
         if (isexist[currency.alphabetic_code] != 0) {

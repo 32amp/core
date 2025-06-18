@@ -17,25 +17,37 @@ import "../Payment/IBalance.sol";
  * @dev Manages session creation, updates, and termination with tariff calculations
  */
 contract Sessions is ISessions, Initializable {
-    // State variables
+    /// @notice Reference to the Hub contract
     address hubContract;
+    /// @notice Reference to the OCPP contract
     address ocpp;
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
+    /// @dev Auto-incrementing session ID counter
     uint256 sessionCounter;
+    /// @dev Auto-incrementing reservation ID counter
     uint256 reservationsCounter;
+    /// @dev Minimum price required to start a session
     uint256 min_price_for_start_session;
-    uint256 reservation_time; // in minutes
+    /// @dev Reservation time in minutes
+    uint256 reservation_time;
+    /// @dev Write-off threshold for session payments
     uint256 writeoff_treshold;
     
-    // Storage mappings
+    /// @dev Mapping of session IDs to Session structs
     mapping(uint256 => Session) sessions;
+    /// @dev Mapping of reservation IDs to Reservation structs
     mapping(uint256 => Reservation) reservations;
+    /// @dev Mapping of user addresses to their reservation IDs
     mapping(address => uint256) authByReservation;
+    /// @dev Mapping of session IDs and log IDs to PaidLog structs
     mapping(uint256 => mapping(uint256 => PaidLog)) paid_logs;
-
+    /// @dev Mapping of session IDs to last update timestamps
     mapping(uint256 => uint256) last_updated;
-    mapping(address => uint256) sessionByAuth; // auth_id -> session_id
-    mapping(uint256 => address) authBySession; // session_id -> auth_id
+    /// @dev Mapping of user addresses to their session IDs (auth_id -> session_id)
+    mapping(address => uint256) sessionByAuth;
+    /// @dev Mapping of session IDs to user addresses (session_id -> auth_id)
+    mapping(uint256 => address) authBySession;
 
 
     /**
@@ -57,23 +69,42 @@ contract Sessions is ISessions, Initializable {
         return "1.0";
     }
 
-    // Module accessors
+    /**
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
+    /**
+     * @dev Returns the Balance module interface for the current partner
+     * @return IBalance interface instance
+     */
     function _Balance() private view returns(IBalance) {
         return IBalance(IHub(hubContract).getModule("Balance", partner_id));
     }
 
+    /**
+     * @dev Returns the EVSE module interface for the current partner
+     * @return IEVSE interface instance
+     */
     function _EVSE() private view returns(IEVSE) {
         return IEVSE(IHub(hubContract).getModule("EVSE", partner_id));
     }
 
+    /**
+     * @dev Returns the Connector module interface for the current partner
+     * @return IConnector interface instance
+     */
     function _Connector() private view returns(IConnector) {
         return IConnector(IHub(hubContract).getModule("Connector", partner_id));
     }
 
+    /**
+     * @dev Returns the Tariff module interface for the current partner
+     * @return ITariff interface instance
+     */
     function _Tariff() private view returns(ITariff) {
         return ITariff(IHub(hubContract).getModule("Tariff", partner_id));
     }

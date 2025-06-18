@@ -15,23 +15,23 @@ import "../Utils.sol";
  */
 contract UserSupportChat is IUserSupportChat, Initializable {
     // State variables documentation
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
     
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
     /// @dev Auto-incrementing topic ID counter
     uint256 topic_counter;
 
     // Storage mappings documentation
-    /// @dev Topic data storage by ID
+    /// @dev Mapping of topic IDs to Topic structs
     mapping(uint256 => Topic) topics;
     
-    /// @dev Message storage by topic and message ID
+    /// @dev Mapping of topic IDs and message IDs to UserMessage structs
     mapping(uint256 => mapping(uint256 => UserMessage)) messages;
     
-    /// @dev User-to-topics mapping: address => topic IDs[]
+    /// @dev Mapping of user addresses to their topic IDs
     mapping(address => uint256[]) user_topics;
 
     using Utils for string;
@@ -56,14 +56,17 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     }
 
     /**
-     * @dev Internal access to UserAccess module
-     * @return IUserAccess UserAccess module interface
-     */    
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    /// @dev Returns User module interface
+    /**
+     * @dev Returns the User module interface for the current partner
+     * @return IUser interface instance
+     */
     function _User() private view returns(IUser) {
         return IUser(IHub(hubContract).getModule("User", partner_id));
     }        
@@ -314,8 +317,8 @@ contract UserSupportChat is IUserSupportChat, Initializable {
     }
     
     /**
-     * @dev Reorders topics to keep most recent first
-     * @param topic_id ID of the topic to prioritize
+     * @dev Internal function to move a topic to the first position in the user's topic list
+     * @param topic_id ID of the topic to move
      */
     function makeTopicFirst(uint256 topic_id) internal {
 

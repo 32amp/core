@@ -15,10 +15,10 @@ import "../Hub/IHub.sol";
  */
 contract MobileAppSettings is IMobileAppSettings, Initializable {
     // State variables documentation
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
     
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
     /// @dev Current configuration settings
@@ -46,7 +46,10 @@ contract MobileAppSettings is IMobileAppSettings, Initializable {
         _;
     }
 
-    /// @dev Returns UserAccess module interface
+    /**
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }

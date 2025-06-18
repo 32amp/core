@@ -14,38 +14,38 @@ import "../User/IUserAccess.sol";
  */
 contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
     // Individual object access mappings
-    /// @dev Access levels for specific objects: module => object ID => account => level
+    /// @dev Mapping: module => object ID => account => access level
     mapping(string => mapping(bytes32 => mapping(address => AccessLevel))) private object_access;
     
-    /// @dev List of accessible objects per module/account: module => account => object IDs[]
+    /// @dev Mapping: module => account => object IDs[]
     mapping(string => mapping(address => bytes32[])) private object_access_list;
 
     // Module access mappings
-    /// @dev Access levels for modules: account => module => level
+    /// @dev Mapping: account => module => access level
     mapping(address => mapping(string => AccessLevel)) private modules_access;
     
-    /// @dev List of accessible modules per account: account => module names[]
+    /// @dev Mapping: account => module names[]
     mapping(address => string[]) private modules_access_list;
 
     // Group object access mappings
-    /// @dev Group-based object access: module => object ID => group ID => level
+    /// @dev Mapping: module => object ID => group ID => access level
     mapping(string => mapping(bytes32 => mapping(uint256 => AccessLevel))) private group_object_access;
     
-    /// @dev List of accessible objects per group: module => group ID => object IDs[]
+    /// @dev Mapping: module => group ID => object IDs[]
     mapping(string => mapping(uint256 => bytes32[])) private group_object_access_list;
 
     // Group module access mappings
-    /// @dev Group-based module access: group ID => module => level
+    /// @dev Mapping: group ID => module => access level
     mapping(uint256 => mapping(string => AccessLevel)) private group_modules_access;
     
-    /// @dev List of accessible modules per group: group ID => module names[]
+    /// @dev Mapping: group ID => module names[]
     mapping(uint256 => string[]) private group_modules_access_list;
 
     // System configuration
-    /// @notice Associated partner ID from Hub
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
-    /// @notice Hub contract address
+    /// @notice Reference to the Hub contract
     address hubContract;
 
     /**
@@ -83,7 +83,7 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
     }
 
     /**
-     * @dev Internal function to set object-level access
+     * @dev Internal function to set object-level access for a user
      * @param user_address Target address
      * @param module Module name
      * @param object_id Object identifier
@@ -97,7 +97,7 @@ contract UserAccess is IUserAccess, Initializable, OwnableUpgradeable {
     }
 
     /**
-     * @dev Internal function to set module-level access
+     * @dev Internal function to set module-level access for a user
      * @param user_address Target address
      * @param module Module name
      * @param access_level Permission level to set

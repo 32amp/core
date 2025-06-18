@@ -17,26 +17,26 @@ import "../User/IUserAccess.sol";
  */
 contract Connector is IConnector, Initializable {
     // State variables documentation
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
     
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
     /// @dev Auto-incrementing connector ID counter
     uint256 connector_counter;
 
     // Storage mappings documentation
-    /// @dev Primary connector data storage
+    /// @dev Mapping of connector IDs to Connector structs
     mapping (uint256 => Connector) connectors;
     
-    /// @dev Last update timestamps
+    /// @dev Mapping of connector IDs to last update timestamps
     mapping (uint256 => uint256) last_updated;
     
-    /// @dev Operational status tracking
+    /// @dev Mapping of connector IDs to their operational status
     mapping (uint256 => ConnectorStatus) connector_status;
     
-    /// @dev Tariff associations
+    /// @dev Mapping of connector IDs to assigned tariff IDs
     mapping (uint256 => uint256) connector_tariff;
 
     /**
@@ -63,17 +63,26 @@ contract Connector is IConnector, Initializable {
     }
 
     // Module accessors documentation
-    /// @dev Returns UserAccess module interface
+    /**
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    /// @dev Returns EVSE module interface
+    /**
+     * @dev Returns the EVSE module interface for the current partner
+     * @return IEVSE interface instance
+     */
     function _EVSE() private view returns(IEVSE) {
         return IEVSE(IHub(hubContract).getModule("EVSE", partner_id));
     }
 
-    /// @dev Returns Tariff module interface
+    /**
+     * @dev Returns the Tariff module interface for the current partner
+     * @return ITariff interface instance
+     */
     function _Tariff() private view returns(ITariff) {
         return ITariff(IHub(hubContract).getModule("Tariff", partner_id));
     }
@@ -174,7 +183,10 @@ contract Connector is IConnector, Initializable {
         _updated(id);
     }
     
-    /// @dev Internal update tracker
+    /**
+     * @dev Internal function to update the last_updated timestamp for a connector
+     * @param id Connector ID to update
+     */
     function _updated(uint256 id) internal {
         last_updated[id] = block.timestamp;
     }

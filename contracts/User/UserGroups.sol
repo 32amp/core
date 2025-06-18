@@ -16,23 +16,23 @@ import "./IUser.sol";
  */
 contract UserGroups is IUserGroups, Initializable, OwnableUpgradeable {
     // Storage mappings documentation
-    /// @dev Group data storage by group ID
+    /// @dev Mapping of group IDs to Group structs
     mapping(uint256 => Group) groups;
     
-    /// @dev Group membership storage: group ID => member addresses
+    /// @dev Mapping of group IDs to member addresses
     mapping(uint256 => address[]) users_group;
     
-    /// @dev User-group associations: address => group IDs[]
+    /// @dev Mapping of user addresses to their group IDs
     mapping(address => uint256[]) user_group_list;
 
     // State variables documentation
     /// @dev Auto-incrementing group ID counter
     uint256 groupIndex;
     
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
     
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
 
     /**
@@ -59,14 +59,17 @@ contract UserGroups is IUserGroups, Initializable, OwnableUpgradeable {
     }
 
     /**
-     * @dev Internal access to UserAccess module
-     * @return IUserAccess UserAccess module interface
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
      */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    /// @dev Returns User module interface
+    /**
+     * @dev Returns the User module interface for the current partner
+     * @return IUser interface instance
+     */
     function _User() private view returns(IUser) {
         return IUser(IHub(hubContract).getModule("User", partner_id));
     }    
@@ -99,8 +102,7 @@ contract UserGroups is IUserGroups, Initializable, OwnableUpgradeable {
      * @dev Internal group creation mechanism
      * @param name Group display name
      * @param owner Initial group owner address
-     * @custom:warning Automatically adds owner to group members
-     */    
+     */
     function _addGroup(string memory name, address owner) internal {
         groupIndex++;
 

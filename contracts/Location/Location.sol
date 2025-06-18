@@ -19,22 +19,22 @@ import "../Utils.sol";
 contract Location is ILocation, Initializable {
     using Utils for string;
 
-    /// @dev Main location storage mapped by location ID
+    /// @dev Mapping of location IDs to Location structs
     mapping(uint256 => Location) locations;
     
-    /// @dev Additional geo-coordinates associated with locations
+    /// @dev Mapping of location IDs to their additional geo-coordinates
     mapping(uint256 => AdditionalGeoLocation[]) related_locations;
     
-    /// @dev Image metadata storage for location visuals
+    /// @dev Mapping of location IDs to their images
     mapping(uint256 => Image[]) images_location;
     
-    /// @dev Opening hours configuration for locations
+    /// @dev Mapping of location IDs to their opening hours
     mapping(uint256 => Hours) opening_times_location;
     
-    /// @dev Navigation instructions for locations
+    /// @dev Mapping of location IDs to navigation instructions
     mapping(uint256 => DisplayText[]) directions_location;
     
-    /// @dev List of EVSE IDs associated with locations
+    /// @dev Mapping of location IDs to their associated EVSE IDs
     mapping(uint256 => uint256[]) evses_location;
 
     /// @dev Auto-incrementing location ID tracker
@@ -43,7 +43,7 @@ contract Location is ILocation, Initializable {
     /// @notice Reference to Hub contract address
     address hubContract;
     
-    /// @notice Associated partner ID from Hub
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
     /// @dev Cyclic timestamp counter for update tracking
@@ -65,17 +65,26 @@ contract Location is ILocation, Initializable {
         return "1.0";
     }
 
-    /// @dev Returns UserAccess module interface
+    /**
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
-    /// @dev Returns EVSE module interface
+    /**
+     * @dev Returns the EVSE module interface for the current partner
+     * @return IEVSE interface instance
+     */
     function _EVSE() private view returns(IEVSE) {
         return IEVSE(IHub(hubContract).getModule("EVSE", partner_id));
     }
 
-    /// @dev Returns LocationSearch module interface
+    /**
+     * @dev Returns the LocationSearch module interface for the current partner
+     * @return ILocationSearch interface instance
+     */
     function _LocationSearch() private view returns(ILocationSearch) {
         return ILocationSearch(IHub(hubContract).getModule("LocationSearch", partner_id));
     }
@@ -316,9 +325,12 @@ contract Location is ILocation, Initializable {
         return false;
     }
 
-    /// @dev Internal update tracker with cyclic timestamp counter    
-    function _updated(uint256 location_id) internal {
-        locations[location_id].last_updated = block.timestamp+timestampCounter;
+    /**
+     * @dev Internal function to update the last_updated timestamp for a location
+     * @param id Location ID to update
+     */
+    function _updated(uint256 id) internal {
+        locations[id].last_updated = block.timestamp+timestampCounter;
 
         timestampCounter++;
 

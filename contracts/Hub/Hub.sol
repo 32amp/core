@@ -16,28 +16,28 @@ import "./IHub.sol";
 
 contract Hub is IHub, Initializable, OwnableUpgradeable {
     
-    /// @dev Storage for partner data mapped by partner ID
+    /// @dev Mapping of partner IDs to Member structs
     mapping (uint256 => IHub.Member) partners;
     
-    /// @dev Unique index for country_code + party_id combinations
+    /// @dev Mapping of country_code and party_id to unique partner ID
     mapping (bytes2 => mapping(bytes3 => uint256)) unique_idex;
     
     /// @dev Mapping of owner addresses to their partner ID
     mapping (address => uint256) owner_address_to_id;
     
-    /// @dev Partner modules mapped by name and partner ID
+    /// @dev Mapping of partner IDs and module names to module addresses
     mapping (uint256 => mapping(string => address)) modules;
     
-    /// @dev List of module names for each partner
+    /// @dev Mapping of partner IDs to their module names
     mapping (uint256 => string[]) modules_list;
 
-    /// @dev Registry of services by their name
+    /// @dev Mapping of service names to service addresses
     mapping (string => address) services;
     
-    /// @dev Partner deposits mapped by their address
+    /// @dev Mapping of partner addresses to their deposit amount
     mapping (address => uint256) deposit;
 
-    /// @dev Counter for generating unique partner IDs
+    /// @dev Auto-incrementing partner ID counter
     uint256 counter;
     
     /// @dev Required deposit amount for partner registration

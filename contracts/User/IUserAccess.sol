@@ -12,18 +12,23 @@ interface IUserAccess is IBaseErrors {
     /**
      * @title Access Level Enumeration
      * @notice Tiered permission system for granular access control
-     * @dev 
-     * The access levels are ordered hierarchically with increasing privileges:
-     * 
-     * - **ZERO**: No access (default state)
-     * - **FIRST**: Read-only access (view operations only)
-     * - **SECOND**: Read + Execute (view and trigger basic operations)
-     * - **THIRD**: Read + Execute + Edit (modify existing resources)
-     * - **FOURTH**: Read + Edit + Add (create new resources)
-     * - **FIFTH**: Full CRUD access (Create, Read, Update, Delete)
-     * - **GOD**: Unlimited system access (bypass all permission checks)
-     * 
-     * @custom:security Important: GOD level should be restricted to system admins
+     * @dev The access levels are ordered hierarchically with increasing privileges:
+     * - ZERO: No access (default state)
+     * - FIRST: Read-only access (view operations only)
+     * - SECOND: Read + Execute (view and trigger basic operations)
+     * - THIRD: Read + Execute + Edit (modify existing resources)
+     * - FOURTH: Read + Edit + Add (create new resources)
+     * - FIFTH: Full CRUD access (Create, Read, Update, Delete)
+     * - GOD: Unlimited system access (bypass all permission checks)
+     * @custom:security GOD level should be restricted to system admins
+     * @enum AccessLevel
+     * @param ZERO No access (default)
+     * @param FIRST View only
+     * @param SECOND View and execute
+     * @param THIRD View, execute, and edit
+     * @param FOURTH View, edit, and add
+     * @param FIFTH Full CRUD access
+     * @param GOD Unlimited system access
      */
     enum AccessLevel {
         ZERO,    // 0 - Access denied

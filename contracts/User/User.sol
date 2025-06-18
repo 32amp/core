@@ -16,23 +16,23 @@ import "../Utils.sol";
  */
 contract User is IUser, Initializable, OwnableUpgradeable {
     // Storage mappings documentation
-    /// @dev User profile storage
+    /// @dev Mapping of user addresses to User structs
     mapping(address => IUser.User) users;
 
-    /// @dev Company information storage
+    /// @dev Mapping of user addresses to their company information
     mapping(address => IUser.Company) user_company_data;
 
-    /// @dev User car data storage
+    /// @dev Mapping of user addresses to their car data
     mapping(address => IUser.CarData[]) user_cars;
 
     // State variables documentation
     /// @dev Auto-incrementing user ID counter
     uint256 usersIndex;
 
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
 
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
 
     using Utils for string;
@@ -46,12 +46,11 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     }
 
     /**
-     * @dev Returns UserAccess module interface
-     * @return IUserAccess UserAccess module instance
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
      */
     function _UserAccess() private view returns (IUserAccess) {
-        return
-            IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
+        return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
 
     modifier onlyAdmin() {
@@ -139,9 +138,9 @@ contract User is IUser, Initializable, OwnableUpgradeable {
     /**
      * @dev Internal function to update user profile data
      * @param account Address of the user to update
-     * @param first_name User's first name
-     * @param last_name User's last name
-     * @param language_code Preferred language code
+     * @param first_name User's first name (encrypted)
+     * @param last_name User's last name (encrypted)
+     * @param language_code Preferred language code (encrypted)
      */
     function _updateData(
         address account,
@@ -152,9 +151,7 @@ contract User is IUser, Initializable, OwnableUpgradeable {
         exist(account);
 
         if (!first_name.isEncrypted()) revert ParamNotEncrypted("first_name");
-
         if (!last_name.isEncrypted()) revert ParamNotEncrypted("last_name");
-
         if (!language_code.isEncrypted()) revert ParamNotEncrypted("language_code");
 
         users[account].first_name = first_name;

@@ -17,26 +17,26 @@ import "../User/IUser.sol";
  */
 contract Balance is Initializable, IBalance {
     // State variables documentation
-    /// @notice Hub contract reference
+    /// @notice Reference to the Hub contract
     address hubContract;
     
-    /// @notice Currencies service contract address
+    /// @notice Reference to the Currencies service contract
     address currenciesServiceAddress;
     
-    /// @notice Associated partner ID
+    /// @notice Partner ID associated with this contract
     uint256 partner_id;
     
-    /// @dev Total token supply
+    /// @dev Total token supply in the system
     uint256 _totalSupply;
     
-    /// @dev Currency identifier
+    /// @dev Currency identifier for this balance contract
     uint256 _currency;
     
-    /// @dev Minimum allowed negative balance
+    /// @dev Minimum allowed negative balance (in tokens)
     int256 constant MIN_NEGATIVE_BALANCE = -1000 * 10**18; // -1000 tokens
     
     // Storage mappings documentation
-    /// @dev Account balances storage
+    /// @dev Mapping of account addresses to their balances
     mapping(address => int256) _balances;
     
 
@@ -61,12 +61,18 @@ contract Balance is Initializable, IBalance {
     }
 
 
-    /// @dev Returns UserAccess module interface
+    /**
+     * @dev Returns the UserAccess module interface for the current partner
+     * @return IUserAccess interface instance
+     */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
     }
     
-    /// @dev Returns User module interface
+    /**
+     * @dev Returns the User module interface for the current partner
+     * @return IUser interface instance
+     */
     function _User() private view returns(IUser) {
         return IUser(IHub(hubContract).getModule("User", partner_id));
     }        
@@ -199,7 +205,11 @@ contract Balance is Initializable, IBalance {
         emit Transfer(from, to, value, _balances[from], _balances[to]);
     }
 
-    /// @dev Internal minting implementation    
+    /**
+     * @dev Internal minting implementation
+     * @param account Address to mint tokens to
+     * @param value Amount to mint
+     */
     function _mint(address account, uint256 value) internal {
         if (account == address(0)) {
             revert InvalidReceiver(account);
@@ -207,7 +217,11 @@ contract Balance is Initializable, IBalance {
         _update(address(0), account, value);
     }
 
-    /// @dev Internal burning implementation
+    /**
+     * @dev Internal burning implementation
+     * @param account Address to burn tokens from
+     * @param value Amount to burn
+     */
     function _burn(address account, uint256 value) internal {
         if (account == address(0)) {
             revert InvalidSender(account);
