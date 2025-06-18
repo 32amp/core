@@ -314,7 +314,7 @@ contract Sessions is ISessions, Initializable {
             tariff_id: connector_tariff,
             account: start_for,
             reserve_id: reserve_id,
-            tariff_version: current_tariff_version, // Сохраняем текущую версию тарифа
+            tariff_version: current_tariff_version,
             status: SessionStatus.PENDING,
             meter_start: 0,
             meter_stop:0,
@@ -388,7 +388,7 @@ contract Sessions is ISessions, Initializable {
             revert InvalidSessionStatus(session_id, sessions[session_id].status);
         }
         
-        // Проверяем корректность значений в логе
+        
         require(session_log.meter_value >= 0, "Invalid meter value");
         require(session_log.timestamp > 0, "Invalid timestamp");
         require(session_log.timestamp > sessions[session_id].last_log.timestamp, "Invalid timestamp sequence");
