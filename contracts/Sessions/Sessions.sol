@@ -19,8 +19,6 @@ import "../Payment/IBalance.sol";
 contract Sessions is ISessions, Initializable {
     /// @notice Reference to the Hub contract
     address hubContract;
-    /// @notice Reference to the OCPP contract
-    address ocpp;
     /// @notice Partner ID associated with this contract
     uint256 partner_id;
     /// @dev Auto-incrementing session ID counter
@@ -28,12 +26,7 @@ contract Sessions is ISessions, Initializable {
     /// @dev Auto-incrementing reservation ID counter
     uint256 reservationsCounter;
     /// @dev Minimum price required to start a session
-    uint256 min_price_for_start_session;
-    /// @dev Reservation time in minutes
-    uint256 reservation_time;
-    /// @dev Write-off threshold for session payments
-    uint256 writeoff_treshold;
-    
+
     /// @dev Mapping of session IDs to Session structs
     mapping(uint256 => Session) sessions;
     /// @dev Mapping of reservation IDs to Reservation structs
@@ -55,13 +48,9 @@ contract Sessions is ISessions, Initializable {
      * @param _partner_id Partner ID from Hub registry
      * @param _hubContract Address of Hub contract
      */
-    function initialize(uint256 _partner_id, address _hubContract, address _ocpp, uint256 _writeoff_treshold) public initializer {
+    function initialize(uint256 _partner_id, address _hubContract) public initializer {
         hubContract = _hubContract;
         partner_id = _partner_id;
-        min_price_for_start_session = 10 ether;
-        reservation_time = 15; 
-        ocpp = _ocpp;
-        writeoff_treshold = _writeoff_treshold;
     }
 
     /// @notice Returns current contract version
@@ -115,18 +104,13 @@ contract Sessions is ISessions, Initializable {
         _;
     }
 
-    modifier ocpp_proxy_access() {
-        if (ocpp != msg.sender){
+    modifier ocpp_proxy_access(uint256 evse_uid) {
+        if (_EVSE().getOcppProxy(evse_uid) != msg.sender){
             revert AccessDenied("ocpp_proxy_access");
         }
         _;
     }
 
-
-    function changeOcpp(address new_ocpp) external {
-         _UserAccess().checkAccessModule(msg.sender, "Sessions", uint(IUserAccess.AccessLevel.GOD));
-        ocpp = new_ocpp;
-    }
 
     function createReservationRequest( uint256 evse_uid, uint256 connector_id, address start_for) external {
 
@@ -166,6 +150,8 @@ contract Sessions is ISessions, Initializable {
 
         reservationsCounter++;
 
+        uint8 reservation_time = _Tariff().getReservationTime(connector.tariff);
+
         uint256 expire_time;
         unchecked {
             expire_time = block.timestamp + (reservation_time * 1 minutes);
@@ -173,6 +159,7 @@ contract Sessions is ISessions, Initializable {
 
         Reservation memory r = Reservation({
             time_expire: expire_time,
+            evse_id:evse_uid,
             account: start_for,
             confirmed: false,
             canceled: false,
@@ -185,7 +172,7 @@ contract Sessions is ISessions, Initializable {
     }
 
     
-    function createReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access {
+    function createReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access(reservations[reserve_id].evse_id) {
         if(status){
             reservations[reserve_id].confirmed = true;
             authByReservation[reservations[reserve_id].account] = reserve_id;
@@ -219,7 +206,7 @@ contract Sessions is ISessions, Initializable {
     }
 
 
-    function cancelReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access {
+    function cancelReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access(reservations[reserve_id].evse_id) {
         if(status){
             delete authByReservation[reservations[reserve_id].account];
         }
@@ -289,6 +276,8 @@ contract Sessions is ISessions, Initializable {
 
         
         uint16 current_tariff_version = _Tariff().getCurrentVersion(connector_tariff);
+        uint256 min_price_for_start_session = _Tariff().getMinPriceForStart(connector_tariff);
+        uint256 writeoff_treshold = _Tariff().getWriteoffTresshold(connector_tariff);
         require(current_tariff_version > 0, "Invalid tariff version");
 
         int256 account_balance = _Balance().balanceOf(start_for);
@@ -318,7 +307,9 @@ contract Sessions is ISessions, Initializable {
             status: SessionStatus.PENDING,
             meter_start: 0,
             meter_stop:0,
-            last_log:log
+            last_log:log,
+            min_price_for_start_session: min_price_for_start_session,
+            writeoff_treshold: writeoff_treshold
         });
 
         sessions[sessionCounter] = s;
@@ -350,7 +341,7 @@ contract Sessions is ISessions, Initializable {
         }
     }
 
-    function startSessionResponse(uint256 session_id, uint256 timestamp, uint256 meter_start, bool status, string calldata message ) external ocpp_proxy_access {
+    function startSessionResponse(uint256 session_id, uint256 timestamp, uint256 meter_start, bool status, string calldata message ) external ocpp_proxy_access(sessions[session_id].evse_uid) {
         if(status){
             _setSessionStatus(session_id, SessionStatus.ACTIVE);
             _Tariff().createCDR(session_id, sessions[session_id], timestamp, meter_start);
@@ -377,7 +368,7 @@ contract Sessions is ISessions, Initializable {
      * @custom:reverts "InvalidTimestamp" if timestamp is not monotonic
      * @custom:reverts "InvalidSessionStatus" if session not ACTIVE
      */
-    function updateSession(uint256 session_id, SessionMeterLog memory session_log) external ocpp_proxy_access {
+    function updateSession(uint256 session_id, SessionMeterLog memory session_log) external ocpp_proxy_access(sessions[session_id].evse_uid) {
 
         
         if(sessions[session_id].uid == 0) {
@@ -437,7 +428,7 @@ contract Sessions is ISessions, Initializable {
      * @custom:reverts "InvalidFinalLog" if final log is invalid
      * @custom:emits SessionEnd on success
      */
-    function stopSessionResponse(uint256 session_id, uint256 meter_stop, uint256 timestamp, bool status, string calldata message ) public ocpp_proxy_access {
+    function stopSessionResponse(uint256 session_id, uint256 meter_stop, uint256 timestamp, bool status, string calldata message ) public ocpp_proxy_access(sessions[session_id].evse_uid) {
         if(sessions[session_id].uid == 0) {
             revert ObjectNotFound("Session", session_id);
         }
@@ -491,7 +482,7 @@ contract Sessions is ISessions, Initializable {
     }
 
 
-    function endSession(uint256 session_id, uint256 timestamp) external ocpp_proxy_access {
+    function endSession(uint256 session_id, uint256 timestamp) external ocpp_proxy_access(sessions[session_id].evse_uid) {
 
         if(sessions[session_id].status != SessionStatus.CHARGING_COMPLETED) {
             revert InvalidSessionStatus(session_id, sessions[session_id].status);
@@ -533,7 +524,7 @@ contract Sessions is ISessions, Initializable {
         
         if(debt < user_balance) {
 
-            if( debt >= int256(writeoff_treshold)){
+            if( debt >= int256(sessions[session_id].writeoff_treshold)){
                 Price memory amount  = Price({
                     incl_vat:uint256(debt),
                     excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
@@ -541,7 +532,7 @@ contract Sessions is ISessions, Initializable {
                 _writeOff(session_id, amount);
             }
 
-            if((user_balance-debt) <= int256(min_price_for_start_session)){
+            if((user_balance-debt) <= int256(sessions[session_id].min_price_for_start_session)){
                 emit SessionStopRequest(session_id, msg.sender);
             }
 

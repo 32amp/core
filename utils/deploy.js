@@ -1,4 +1,4 @@
-module.exports.deployProxy = async function (contract, init = [], libs = []) {
+module.exports.deployProxy = async function (contract, init = [], libs = [], signer = null) {
     const { upgrades, ethers } = require("hardhat");
 
     const libraries = {}
@@ -7,16 +7,26 @@ module.exports.deployProxy = async function (contract, init = [], libs = []) {
         for (let index = 0; index < libs.length; index++) {
             const libname = libs[index];
 
-            const contractFactory = await ethers.getContractFactory(libname)
+            var contractFactory = await ethers.getContractFactory(libname)
+
+            if(signer != null){
+                contractFactory = contractFactory.connect(signer);
+            }
+
             const deploy = await contractFactory.deploy()
             const deployed = await deploy.waitForDeployment()
             libraries[libname] = deployed.target
         }
     }
 
-    const contractFactory = await ethers.getContractFactory(contract, {
+    var contractFactory = await ethers.getContractFactory(contract, {
         libraries 
     })
+
+    if(signer != null){
+        contractFactory = contractFactory.connect(signer);
+    }
+    
     const deploy = await upgrades.deployProxy(contractFactory, init, {
         unsafeAllow: ["external-library-linking"]
     })

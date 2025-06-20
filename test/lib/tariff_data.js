@@ -4,6 +4,9 @@ const free_tariff = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -50,6 +53,9 @@ const energy_tariff = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -97,6 +103,9 @@ const time_tariff = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -144,6 +153,9 @@ const flat_tariff = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -191,6 +203,9 @@ const energy_and_parking = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -264,6 +279,9 @@ const energy_and_parking_2 = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -317,6 +335,9 @@ const energy_with_time_restrictions = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -363,6 +384,9 @@ const energy_with_date_restrictions = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -409,6 +433,9 @@ const energy_with_kwh_restrictions = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -482,6 +509,9 @@ const energy_with_current_restrictions = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -556,6 +586,9 @@ const energy_with_power_restrictions = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -629,6 +662,9 @@ const energy_with_duration_restrictions = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -702,6 +738,9 @@ const energy_with_day_of_week_restrictions = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -776,6 +815,9 @@ const energy_with_day_of_week_restrictions_and_min_price = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [
@@ -851,6 +893,9 @@ const energy_with_day_of_week_restrictions_and_max_price = {
         text: "Описание тарифа"
     }],
     tariff_alt_url: "",
+    reservation_time:15,
+    writeoff_treshold: ethers.parseEther("500"),
+    min_price_for_start: ethers.parseEther("10"),
     elements: [
         {
             price_components: [

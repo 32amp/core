@@ -3,6 +3,7 @@ const { formatPartner, formatPartners } = require("../helpers/Hub");
 const hubScope = scope("Hub", "Tasks for HUB");
 const { loadConfig, saveConfig } = require("./helpers/configs")
 const { accountSelection, partnerSelection, currencySelection } = require("./helpers/promt_selection");
+const {deployProxy} = require("../utils/deploy");
 
 
 
@@ -13,9 +14,9 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
 
         if (typeof config?.deployed?.Currencies == "undefined")
             throw new Error("Currencies not deployed")
-
+/* 
         if (typeof config?.deployed?.OCPPSwarm == "undefined")
-            throw new Error("OCPPSwarm not deployed")
+            throw new Error("OCPPSwarm not deployed") */
 
         if (typeof config?.deployed?.Hub != "undefined")
             throw new Error("Hub already deployed")
@@ -26,10 +27,10 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
                 name: "Currencies",
                 contract_address: config.deployed.Currencies
             },
-            {
+/*             {
                 name: "OCPPSwarm",
                 contract_address: config.deployed.OCPPSwarm
-            }
+            } */
         ]
 
         const HubFactory = await hre.ethers.getContractFactory("Hub");
@@ -145,6 +146,7 @@ hubScope.task("add-partner-modules", "Add modules to partner")
             "UserSupportChat",
             "User",
             "UserGroups",
+            "Sessions",
             "UserAccess"
         ]
 
@@ -159,19 +161,20 @@ hubScope.task("add-partner-modules", "Add modules to partner")
 
                 console.log(`Module "${mod}" not exist, try to deploy`);
                 var initialize = [partner_id, config.deployed.Hub];
+                var libs = [];
 
 
                 if (mod == "Balance") {
                     const currency = await currencySelection(hre);
-                    var initialize = [partner_id, config.deployed.Hub, currency];
+                    initialize = [partner_id, config.deployed.Hub, currency];
                 }
 
 
-                const contractFactory = await hre.ethers.getContractFactory(mod);
-                const contractFactorySigner = contractFactory.connect(signer);
-                const module = await hre.upgrades.deployProxy(contractFactorySigner, initialize, { initializer: "initialize" });
-                const deployed = await module.waitForDeployment();
+                if(mod == "Cards" || mod == "UserSupportChat" || mod == "User"){
+                    libs = ["Utils"]
+                }
 
+                const deployed = await deployProxy(mod,initialize, libs, signer);
 
 
                 if (typeof deployed?.target != "undefined") {

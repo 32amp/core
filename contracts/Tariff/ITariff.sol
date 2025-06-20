@@ -60,6 +60,9 @@ interface ITariff is DataTypes, IBaseErrors {
         Price max_price;   
         uint256 start_date_time;
         uint256 end_date_time;
+        uint8 reservation_time;
+        uint256 min_price_for_start;
+        uint256 writeoff_treshold;
         DisplayText[] tariff_alt_text;
         TariffElement[] elements;
     }
@@ -195,6 +198,9 @@ interface ITariff is DataTypes, IBaseErrors {
     function get(uint256 id) external view returns(Output memory);
     function getByVersion(uint256 id, uint16 version ) external view returns(Output memory);
     function getCurrentVersion(uint256 id) external view returns(uint16);
+    function getReservationTime(uint256 id) external view returns(uint8);
+    function getMinPriceForStart(uint256 id) external view returns(uint256);
+    function getWriteoffTresshold(uint256 id) external view returns(uint256);
     function createCDR(uint256 session_id, Session calldata session, uint256 timestamp, uint256 meter_start) external;
     function updateCDR(uint256 session_id, SessionMeterLog calldata log, uint256 total_duration, SessionStatus status) external returns(Price memory);
     function getCDR(uint256 session_id) external view returns(CDR memory);

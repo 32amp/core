@@ -23,7 +23,7 @@ describe("Sessions", function() {
         });
 
 
-        await this.contracts.Sessions.changeOcpp(this.ocppProxy.address);
+        
 
         // Setup test environment
         await this.contracts.User.addUser(this.simpleUser.address);
@@ -48,6 +48,7 @@ describe("Sessions", function() {
         await this.contracts.Location.connect(this.adminUser).addLocation(location);
         
         const { EVSEdata } = require("./lib/evse_data");
+        EVSEdata.ocpp_proxy = this.ocppProxy.address;
         await this.contracts.EVSE.connect(this.adminUser).add(EVSEdata, 1);
         
         // Add test connector

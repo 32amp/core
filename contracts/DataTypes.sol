@@ -441,6 +441,7 @@ interface DataTypes {
         uint256 evse_model;
         bytes32 physical_reference;
         DisplayText[] directions;
+        address ocpp_proxy;
     }
 
     /// @notice Technical connector specifications
@@ -490,6 +491,8 @@ interface DataTypes {
         SessionMeterLog last_log;
         uint16 tariff_version;
         uint16 paid_log_counter;
+        uint256 min_price_for_start_session;
+        uint256 writeoff_treshold;
     }
 
     struct SessionMeterLog {

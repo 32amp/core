@@ -14,6 +14,7 @@ interface ISessions is DataTypes, IBaseErrors {
 
     struct Reservation {
         uint256 time_expire;
+        uint256 evse_id;
         address account;
         bool confirmed;
         bool canceled;

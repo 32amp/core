@@ -48,6 +48,13 @@ describe("EVSE", function(){
         await tx.wait()
     })
 
+    it("setOcppProxy", async function(){
+        let tx = await this.contracts.EVSE.connect(this.adminUser).setOcppProxy(1, this.owner.address)
+        await tx.wait()
+    })
+
+
+
     it("addImage", async function(){
         let tx = await this.contracts.EVSE.connect(this.adminUser).addImage(1, image);
         await tx.wait()

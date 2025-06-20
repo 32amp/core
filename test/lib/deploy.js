@@ -54,7 +54,7 @@ module.exports.deploy = async function(modules, showlog = false) {
     await deployModule("MobileAppSettings");
     await deployModule("Balance", [1]);
     await deployModule("Cards",[], ["Utils"]);
-    await deployModule("Sessions", [ethers.ZeroAddress, ethers.parseEther("500.0")]);
+    await deployModule("Sessions");
     await deployModule("CDR");
 
     retmodules.UserAccess = await deployProxy("UserAccess", [partner.id, retmodules.Hub.target]);

@@ -158,6 +158,17 @@ contract EVSE is IEVSE, Initializable {
     }
 
     /**
+     * @notice Updates address of OCPP proxy contract
+     * @param evse_id Target EVSE ID
+     * @param ocpp_proxy Address of OCPP proxy contract
+     * @custom:reverts "AccessDenied" if insufficient privileges
+     */  
+    function setOcppProxy(uint256 evse_id, address ocpp_proxy) access(evse_id) external {
+        evses[evse_id].ocpp_proxy = ocpp_proxy;
+        _updated(evse_id);
+    }
+
+    /**
      * @notice Adds image reference to EVSE
      * @param evse_id Target EVSE ID
      * @param image Image data structure
@@ -238,30 +249,40 @@ contract EVSE is IEVSE, Initializable {
 
     /**
      * @notice Retrieves complete EVSE data
-     * @param id EVSE ID to query
+     * @param evse_id EVSE ID to query
      * @return outEVSE Aggregated EVSE information
      */
-    function get(uint256 id) external view returns(outEVSE memory){
+    function get(uint256 evse_id) external view returns(outEVSE memory){
         outEVSE memory ret;
 
-        ret.evse = evses[id];
-        ret.meta = evses_meta[id];
-        ret.evses_status = evses_status[id];
-        ret.last_updated = evses_last_updated[id];
-        ret.location_id = evses_related_location[id];
-        ret.images = evse_images[id];
+        ret.evse = evses[evse_id];
+        ret.meta = evses_meta[evse_id];
+        ret.evses_status = evses_status[evse_id];
+        ret.last_updated = evses_last_updated[evse_id];
+        ret.location_id = evses_related_location[evse_id];
+        ret.images = evse_images[evse_id];
 
-        if(evse_connectors[id].length > 0){
-            IConnector.output[] memory connectors = new IConnector.output[](evse_connectors[id].length);
+        if(evse_connectors[evse_id].length > 0){
+            IConnector.output[] memory connectors = new IConnector.output[](evse_connectors[evse_id].length);
 
-            for (uint i = 0; i < evse_connectors[id].length; i++) {
-                connectors[i] = _Connector().get(evse_connectors[id][i]);
+            for (uint i = 0; i < evse_connectors[evse_id].length; i++) {
+                connectors[i] = _Connector().get(evse_connectors[evse_id][i]);
             }
             ret.connectors = connectors;
         }
 
 
         return ret;
+    }
+
+
+    /**
+     * @notice Retrieves address of OCPP proxy contract
+     * @param evse_id EVSE ID to query
+     * @return address address of OCPP proxy contract
+     */
+    function getOcppProxy(uint256 evse_id)  external view returns (address) {
+        return evses[evse_id].ocpp_proxy;
     }
 
     /**

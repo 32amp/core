@@ -196,6 +196,18 @@ contract Tariff is ITariff, Initializable {
     }
 
 
+    function getReservationTime(uint256 id) external view returns(uint8){
+        return tariffs[id][current_tariff_version[id]].reservation_time;
+    }
+
+    function getMinPriceForStart(uint256 id) external view returns(uint256){
+        return tariffs[id][current_tariff_version[id]].min_price_for_start;
+    }
+
+    function getWriteoffTresshold(uint256 id) external view returns(uint256){
+        return tariffs[id][current_tariff_version[id]].writeoff_treshold;
+    }
+
     /**
      * @dev Function to generate Charging Data Record
      * @param session_id Session ID to process

@@ -9,7 +9,8 @@ const EVSEdata = {
             language: "ru",
             text: "Возле пожарного выхода",
         }
-    ]
+    ],
+    ocpp_proxy: ethers.ZeroAddress
 }
 
 const EVSEmeta = {
