@@ -321,6 +321,7 @@ contract Sessions is ISessions, Initializable {
         _UserAccess().setAccessLevelToModuleObject(bytes32(sessionCounter), msg.sender, "Sessions", IUserAccess.AccessLevel.THIRD);
 
         emit SessionStartRequest(evse_uid, connector_id,  msg.sender, sessionCounter);
+        emit SessionLog(sessionCounter, SessionLogInfo.SessionStartRequest, SessionLogInfoType.INFO);
     }
 
     
@@ -354,8 +355,10 @@ contract Sessions is ISessions, Initializable {
             delete authByReservation[reservations[sessions[session_id].reserve_id].account];
         }else{
             _setSessionStatus(session_id, SessionStatus.INVALID);
+            emit SessionLog(session_id, SessionLogInfo.RejectedStartingRequest, SessionLogInfoType.ERROR);
         }
         emit SessionStartResponse(session_id, status, message);
+        emit SessionLog(session_id, SessionLogInfo.AcceptedStartingRequest, SessionLogInfoType.INFO);
     }
 
     /**
@@ -413,7 +416,7 @@ contract Sessions is ISessions, Initializable {
         }else{
             revert AccessDenied("Sessions");
         }
-       
+        emit SessionLog(session_id, SessionLogInfo.SessionStopRequest, SessionLogInfoType.INFO);
     }
 
 
@@ -455,6 +458,7 @@ contract Sessions is ISessions, Initializable {
 
         if (!status){
             emit SessionStopResponse(session_id, status, message);
+            emit SessionLog(session_id, SessionLogInfo.RejectedStoppingRequest, SessionLogInfoType.ERROR);
             return;
         }
 
@@ -479,6 +483,7 @@ contract Sessions is ISessions, Initializable {
         _writeOff(session_id,amount);
 
         emit SessionStopResponse(session_id, status, message);
+        emit SessionLog(session_id, SessionLogInfo.ChargingComplited, SessionLogInfoType.INFO);
     }
 
 
@@ -510,6 +515,7 @@ contract Sessions is ISessions, Initializable {
         
 
         _writeOff(session_id,amount);
+        emit SessionLog(session_id, SessionLogInfo.SessionEnded, SessionLogInfoType.INFO);
     }
 
     function _writeOffByTreshold(uint256 session_id, Price memory total_cost) internal {
@@ -530,15 +536,24 @@ contract Sessions is ISessions, Initializable {
                     excl_vat:total_cost.excl_vat-sessions[session_id].total_paid.excl_vat
                 });
                 _writeOff(session_id, amount);
+                
             }
 
             if((user_balance-debt) <= int256(sessions[session_id].min_price_for_start_session)){
                 emit SessionStopRequest(session_id, msg.sender);
+                emit SessionLog(session_id, SessionLogInfo.InsufficientBalance, SessionLogInfoType.ERROR);
+                emit SessionLog(session_id, SessionLogInfo.SessionStopRequest, SessionLogInfoType.INFO);
             }
 
         }else{
             emit SessionStopRequest(session_id, msg.sender);
+            emit SessionLog(session_id, SessionLogInfo.InsufficientBalance, SessionLogInfoType.ERROR);
+            emit SessionLog(session_id, SessionLogInfo.SessionStopRequest, SessionLogInfoType.INFO);
         }
+    }
+
+    function sessionUserLog(uint256 session_id, SessionLogInfo info, SessionLogInfoType log_type) external ocpp_proxy_access(sessions[session_id].evse_uid) {
+        emit SessionLog(session_id, info, log_type);
     }
 
     function _writeOff(uint256 session_id, Price memory amount) internal {
@@ -554,6 +569,7 @@ contract Sessions is ISessions, Initializable {
         sessions[session_id].total_paid.incl_vat += amount.incl_vat;
         sessions[session_id].total_paid.excl_vat += amount.excl_vat;
 
+        emit SessionLog(session_id, SessionLogInfo.WriteOffFromBalance, SessionLogInfoType.INFO);
     }
 
 
@@ -584,5 +600,8 @@ contract Sessions is ISessions, Initializable {
     function getSessionByAuth(address auth_id) external view returns(uint256) {
         return sessionByAuth[auth_id];
     }
+
+
+
 
 }

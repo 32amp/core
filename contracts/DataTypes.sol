@@ -511,6 +511,7 @@ interface DataTypes {
     enum SessionStatus {
         ACTIVE,     // Ongoing charging
         FINISHING,  // Successfully ended
+        PAUSED,
         CHARGING_COMPLETED,
         INVALID,    // Rejected/errored
         PENDING     // Awaiting start
@@ -522,5 +523,24 @@ interface DataTypes {
         INFO
     }
 
+
+    enum SessionLogInfo {
+        ConnectorError, // Charging error. Please check the connector or try another station.
+        EVConnected, // EV connected. Charging will start shortly.
+        SuspendedEV, // Charging paused by the vehicle. Will resume automatically.
+        SuspendedEVSE, // Charging paused by the station due to power limits.
+        Charging, // Charging in progress…
+        Preparing, // Connector ready. Try to start charging
+
+        ChargingComplited, // Charging complete. You may unplug the cable, started count parking time.
+        AcceptedStartingRequest, // Charging request accepted. Connecting…
+        RejectedStartingRequest, // Charging request denied. 
+        RejectedStoppingRequest, // Stopping request denied. Try again 
+        SessionStartRequest, // Starting charging session…
+        SessionStopRequest, // Stopping charging session…
+        WriteOffFromBalance, // Funds deducted
+        InsufficientBalance, // Insufficient balance
+        SessionEnded // Session ended
+    }
 
 }

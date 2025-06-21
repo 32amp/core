@@ -156,12 +156,15 @@ contract UserSupportChat is IUserSupportChat, Initializable {
         uint256 timestamp =  block.timestamp+topics[topic_id].message_counter;
 
         topics[topic_id].update_at = timestamp;
-   
-        messages[topic_id][topics[topic_id].message_counter].text = message.text;
-        messages[topic_id][topics[topic_id].message_counter].create_at = timestamp;
-        messages[topic_id][topics[topic_id].message_counter].account = msg.sender;
-        messages[topic_id][topics[topic_id].message_counter].reply_to = message.reply_to;
-        messages[topic_id][topics[topic_id].message_counter].image = message.image;
+
+        messages[topic_id][topics[topic_id].message_counter] = UserMessage({
+            text: message.text,
+            image:message.image,
+            reply_to:message.reply_to,
+            create_at:timestamp,
+            readed:false,
+            account: msg.sender
+        });
 
         makeTopicFirst(topic_id);
 

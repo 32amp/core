@@ -105,7 +105,7 @@ interface ISessions is DataTypes, IBaseErrors {
     );
 
 
-    event SessionLogInfo(uint256 indexed session_id, SessionLogInfoType log_type);
+    event SessionLog(uint256 indexed session_id, SessionLogInfo info, SessionLogInfoType log_type);
 
     // Custom errors
     error SessionAlreadyActive(address auth_id);
