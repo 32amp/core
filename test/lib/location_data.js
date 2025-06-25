@@ -1,3 +1,5 @@
+const ethers = require("ethers");  
+
 const location = {
     name: "New location",
     _address: "Dom kolotuskina",

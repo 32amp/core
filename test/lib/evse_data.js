@@ -1,5 +1,7 @@
 
 
+const ethers = require("ethers");  
+
 const EVSEdata = {
     evse_id: "ufo0001",
     evse_model: 1,

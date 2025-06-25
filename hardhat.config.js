@@ -17,9 +17,9 @@ module.exports = {
       networkid:544566,
       accounts: {mnemonic: mnemonic}
     },
-    local: {
-      url: "http://localhost:8545",
-      networkid:32382,
+    dev: {
+      url: "https://node1.portalcharge.ru",
+      networkid:544566,
       accounts: {mnemonic: mnemonic}
     }
   },

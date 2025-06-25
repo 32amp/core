@@ -1,3 +1,5 @@
+const ethers = require("ethers");  
+
 const free_tariff = {
     tariff_alt_text: [{
         language: "ru",
@@ -978,5 +980,22 @@ module.exports = {
     energy_with_duration_restrictions,
     energy_with_day_of_week_restrictions,
     energy_with_day_of_week_restrictions_and_min_price,
-    energy_with_day_of_week_restrictions_and_max_price
+    energy_with_day_of_week_restrictions_and_max_price,
+    tariff_array:[
+        free_tariff, 
+        energy_tariff, 
+        time_tariff, 
+        flat_tariff, 
+        energy_and_parking, 
+        energy_and_parking_2, 
+        energy_with_time_restrictions, 
+        energy_with_date_restrictions, 
+        energy_with_kwh_restrictions,
+        energy_with_current_restrictions,
+        energy_with_power_restrictions,
+        energy_with_duration_restrictions,
+        energy_with_day_of_week_restrictions,
+        energy_with_day_of_week_restrictions_and_min_price,
+        energy_with_day_of_week_restrictions_and_max_price,
+    ]
 }

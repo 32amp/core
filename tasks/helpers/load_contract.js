@@ -3,17 +3,20 @@ const { accountSelection, partnerSelection } = require("./promt_selection");
 
 
 // Helper function to initialize the Balance contract
-async function loadContract(contract,hre) {
+async function loadContract(contract,hre, signer = null, partner_id = null) {
     const config = await loadConfig("config");
     
     if (typeof config?.deployed?.Hub === "undefined") {
         throw new Error("Hub not deployed");
     }
-
-    const signer = await accountSelection(hre);
+    
+    if(signer == null)
+        signer = await accountSelection(hre);
     
     const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
-    const partner_id = await partnerSelection();
+
+    if(partner_id == null)
+        partner_id = await partnerSelection();
 
     const exist = await hub.getModule(contract, partner_id);
 
