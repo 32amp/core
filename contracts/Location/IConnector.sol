@@ -34,14 +34,18 @@ interface IConnector is DataTypes, IBaseErrors {
     /**
      * @notice Emitted when new connector is added to the system
      * @param uid Auto-generated connector ID
-     * @param partner_id Hub-registered operator ID
      * @param account Creator's wallet address
      */
     event AddConnector(
         uint256 indexed uid,
-        uint256 indexed partner_id,
         address indexed account
     );
+
+    event UpdateStatus(
+        uint256 indexed uid,
+        ConnectorStatus status
+    );
+
 
     function getVersion() external pure returns(string memory);
     function add(Connector memory connector, uint256 evse_id) external;

@@ -358,10 +358,8 @@ evseScope.task("get", "Get EVSE details")
             "Location ID": data.location_id.toString(),
             "Last Updated": new Date(Number(data.last_updated) * 1000).toISOString(),
             "Metadata": {
-                "Capabilities": data.meta.capabilities.map(c =>
-                    getEnumName(DataTypes.Capabilities, c)),
-                "Parking Restrictions": data.meta.parking_restrictions.map(p =>
-                    getEnumName(DataTypes.ParkingRestriction, p)),
+                "Capabilities": data.meta.capabilities.map(c => getEnumName(DataTypes.Capabilities, c)),
+                "Parking Restrictions": data.meta.parking_restrictions.map(p => getEnumName(DataTypes.ParkingRestriction, p)),
                 "Coordinates": `Lat: ${ethers.formatEther(data.meta.coordinates.latitude)}, Lon: ${ethers.formatEther(data.meta.coordinates.longitude)}`,
                 "Floor Level": data.meta.floor_level.toString()
             },
@@ -385,3 +383,4 @@ evseScope.task("get", "Get EVSE details")
         console.dir(formatted, { depth: null, colors: true });
         return formatted;
     });
+

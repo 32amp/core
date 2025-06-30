@@ -115,7 +115,7 @@ contract Connector is IConnector, Initializable {
         _EVSE().addConnector(evse_id, connector_counter);
 
 
-        emit AddConnector(connector_counter, partner_id, msg.sender);
+        emit AddConnector(connector_counter, msg.sender);
 
         _updated(connector_counter);
     }
@@ -180,6 +180,7 @@ contract Connector is IConnector, Initializable {
      */
     function setStatus(uint256 id, ConnectorStatus status) access(id) external {
         connector_status[id] = status;
+        emit UpdateStatus(id, status);
         _updated(id);
     }
     

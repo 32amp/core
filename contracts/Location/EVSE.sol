@@ -142,7 +142,7 @@ contract EVSE is IEVSE, Initializable {
 
         _Location().addEVSE(location_id, evsecounter);
 
-        emit AddEVSE(evsecounter, partner_id, msg.sender);        
+        emit AddEVSE(evsecounter, msg.sender);        
         _updated(evsecounter);
     }
 

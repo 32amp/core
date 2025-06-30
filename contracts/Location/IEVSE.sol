@@ -54,14 +54,13 @@ interface IEVSE is DataTypes, IBaseErrors {
     /**
      * @notice Emitted when new EVSE is added to the system
      * @param uid Auto-generated EVSE ID
-     * @param partner_id Hub-registered operator ID
      * @param account Creator's wallet address
      */
     event AddEVSE(
         uint256 indexed uid,
-        uint256 indexed partner_id,
         address indexed account
     );
+
         
     function getVersion() external pure returns(string memory);
     function exist(uint256 id) external view returns(bool);
