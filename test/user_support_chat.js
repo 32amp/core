@@ -17,10 +17,13 @@ describe("UserSupportChat", function () {
         this.adminUser = accounts[2];
         this.contracts = await deploy({ User: true, UserSupportChat: true })
 
-        await this.contracts.User.addUser(this.simpleUser.address);
-        await this.contracts.User.addUser(this.adminUser.address);
+        let tx_1 = await this.contracts.User.addUser(this.simpleUser.address);
+        await tx_1.wait()
+        let tx_2 = await this.contracts.User.addUser(this.adminUser.address);
+        await tx_2.wait()
 
-        await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address, "UserSupportChat", 4);
+        let tx_3 = await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address, "UserSupportChat", 4);
+        await tx_3.wait()
 
 
 

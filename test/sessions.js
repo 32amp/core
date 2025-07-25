@@ -20,6 +20,7 @@ describe("Sessions", function() {
             Connector: true,
             Tariff: true,
             Sessions: true,
+            UserTokens:true
         });
 
 
@@ -68,17 +69,16 @@ describe("Sessions", function() {
 
     it("should initialize with correct values", async function() {
         const version = await this.contracts.Sessions.getVersion();
-        expect(version).to.equal("1.0");
+        expect(version).to.equal("1.1");
     });
 
     it("should create reservation request and cancel", async function() {
         const tx = await this.contracts.Sessions.connect(this.simpleUser).createReservationRequest(1, 1, ethers.ZeroAddress);
         await this.contracts.Sessions.connect(this.ocppProxy).createReservationResponse(1, true);
-        const event = await getEventArguments(tx, "ReservationRequest");
+        const event = await getEventArguments(tx, "CreateReservationRequest");
         
         expect(event.id).to.equal(1);
         expect(event.account).to.equal(this.simpleUser.address);
-        expect(event.time_expire).to.be.gt(0);
 
         await this.contracts.Sessions.connect(this.simpleUser).cancelReservationRequest(1, ethers.ZeroAddress)
         await this.contracts.Sessions.connect(this.ocppProxy).cancelReservationResponse(1, true);
@@ -850,7 +850,7 @@ async function runTestSession(params, contracts) {
         if(params.reservation){
             // Create and confirm reservation
             let reservationTx = await contracts.Sessions.connect(params.simpleUser).createReservationRequest(params.evse_id, params.connector_id, start_from);
-            let reservation = await getEventArguments(reservationTx, "ReservationRequest");
+            let reservation = await getEventArguments(reservationTx, "CreateReservationRequest");
             await contracts.Sessions.connect(params.ocppProxy).createReservationResponse(reservation.id, true)
 
             reservation_id = reservation.id;
@@ -962,12 +962,14 @@ async function runTestSession(params, contracts) {
         const finalTimestamp = startTimestamp + (i * timeIncrement);
         
 
-        await contracts.Sessions.connect(params.simpleUser).stopSessionRequest(startSessionResponse.session_id);
+        let tx_1 = await contracts.Sessions.connect(params.simpleUser).stopSessionRequest(startSessionResponse.session_id);
+        await tx_1.wait()
         
-        await contracts.Sessions.connect(params.ocppProxy).stopSessionResponse(startSessionResponse.session_id, finalMeterValue, finalTimestamp, true, "ok");
+        let tx_2 = await contracts.Sessions.connect(params.ocppProxy).stopSessionResponse(startSessionResponse.session_id, finalMeterValue, finalTimestamp, true, "ok");
+        await tx_2.wait()
         
-        await contracts.Sessions.connect(params.ocppProxy).endSession(startSessionResponse.session_id, finalTimestamp+params.parking_duration);
-        
+        let tx_3 = await contracts.Sessions.connect(params.ocppProxy).endSession(startSessionResponse.session_id, finalTimestamp+params.parking_duration);
+        await tx_3.wait()
 
 
         const cdr = await contracts.Tariff.getCDR(startSessionResponse.session_id);

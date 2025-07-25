@@ -1,5 +1,8 @@
 const userAccessScope = scope("UserAccess", "Tasks for UserAccess module");
 const { loadContract } = require("./helpers/load_contract");
+const { accountSelection, partnerSelection } = require("./helpers/promt_selection");
+const { loadConfig } = require("./helpers/configs");
+const { deployProxy } = require("../utils/deploy");
 const inquirer = require("inquirer");
 
 
@@ -10,6 +13,20 @@ userAccessScope
         const version = await userAccess.getVersion();
         console.log(`UserAccess contract version: ${version}`);
     });
+
+userAccessScope.task("deploy", "Deploy contract")
+.setAction(async (args, hre) => {
+    const config = await loadConfig("config")
+    const signer = await accountSelection(hre);
+    const partner_id = await partnerSelection();
+
+    if (typeof config?.deployed?.Hub == "undefined")
+        throw new Error("Hub not deployed")
+
+    const deployed = await deployProxy("UserAccess",[partner_id, config.deployed.Hub], [], signer);
+
+    console.log("Module deployed by address", deployed.target)
+})
 
 // Task to upgrade of the UserAccess contract
 userAccessScope

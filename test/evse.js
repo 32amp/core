@@ -39,7 +39,9 @@ describe("EVSE", function(){
 
         let result = await getEventArguments(tx2, "AddEVSE")
         expect(result.uid).to.equal(1)
-        expect(result.partner_id).to.equal(1)
+        expect(result.account).to.equal(this.adminUser.address)
+        expect(result.hardware_id).to.equal(EVSEdata.hardware_id)
+
 
     })
 
@@ -47,12 +49,6 @@ describe("EVSE", function(){
         let tx = await this.contracts.EVSE.connect(this.adminUser).setMeta(1, EVSEmeta)
         await tx.wait()
     })
-
-    it("setOcppProxy", async function(){
-        let tx = await this.contracts.EVSE.connect(this.adminUser).setOcppProxy(1, this.owner.address)
-        await tx.wait()
-    })
-
 
 
     it("addImage", async function(){

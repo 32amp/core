@@ -3,7 +3,7 @@
 const ethers = require("ethers");  
 
 const EVSEdata = {
-    evse_id: "ufo0001",
+    hardware_id: "ufo0001",
     evse_model: 1,
     physical_reference: ethers.encodeBytes32String("Под номером 10"),
     directions: [
@@ -11,8 +11,7 @@ const EVSEdata = {
             language: "ru",
             text: "Возле пожарного выхода",
         }
-    ],
-    ocpp_proxy: ethers.ZeroAddress
+    ]
 }
 
 const EVSEmeta = {

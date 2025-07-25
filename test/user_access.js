@@ -31,7 +31,7 @@ describe("UserAccess", function(){
 
     it("setAccessLevelToModule", async function(){
         const tx = await this.contracts.UserAccess.setAccessLevelToModule(this.accounts[1].address,"User", 6);
-        tx.wait()
+        await tx.wait()
 
         const result = await this.contracts.UserAccess.getModuleAccessLevel("User",this.accounts[1].address)
 

@@ -1,6 +1,6 @@
 const { loadConfig, saveConfig } = require("./helpers/configs")
 const currencyScope = scope("Currencies", "Currency for HUB");
-
+const { accountSelection } = require("./helpers/promt_selection");
 
 currencyScope.task("deploy", "Deploys a Currencies contract")
     .setAction(async (taskArgs, hre) => {
@@ -17,8 +17,10 @@ currencyScope.task("deploy", "Deploys a Currencies contract")
         if (typeof config?.deployed?.Currencies != "undefined")
             throw new Error("Currencies already deployed")
 
+        const signer = await accountSelection(hre);
+
         const CurrencyFactory = await hre.ethers.getContractFactory("Currencies");
-        const deploy = await hre.upgrades.deployProxy(CurrencyFactory, [], { initializer: "initialize" });
+        const deploy = await hre.defender.deployProxy(CurrencyFactory, [], { initializer: "initialize" , salt: "mysaltdarkrain",  deployer: signer  });
         const deployed = await deploy.waitForDeployment();
 
         if (typeof config?.deployed == "undefined")

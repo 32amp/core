@@ -437,11 +437,10 @@ interface DataTypes {
     /// @param physical_reference Physical label
     /// @param directions Access instructions
     struct EVSE {
-        string evse_id; 
+        string hardware_id; 
         uint256 evse_model;
         bytes32 physical_reference;
         DisplayText[] directions;
-        address ocpp_proxy;
     }
 
     /// @notice Technical connector specifications
@@ -541,6 +540,12 @@ interface DataTypes {
         WriteOffFromBalance, // Funds deducted
         InsufficientBalance, // Insufficient balance
         SessionEnded // Session ended
+    }
+
+    struct Context {
+        address caller;
+        uint256 location_id;
+        uint256 evse_id;
     }
 
 }

@@ -87,7 +87,9 @@ contract Tariff is ITariff, Initializable {
      * @param id Tariff ID to update
      */
     function _updated(uint256 id) internal {
-        last_updated[id] = block.timestamp;
+        if(last_updated[id]+15 < block.timestamp){
+            last_updated[id] = block.timestamp;
+        }
     }
 
     /**

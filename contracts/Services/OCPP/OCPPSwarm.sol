@@ -43,7 +43,7 @@ contract OCPPSwarm is Initializable, OwnableUpgradeable, IOCPPSwarm {
      * @param peerAddress_ Мультиадрес пира в сети
      * @param peerId_ ID пира в сети
      */
-    function registerNode(string memory peerAddress_, string calldata peerId_) external payable {
+    function registerNode(string memory peerAddress_, string calldata peerId_, string calldata publicKey) external payable {
         if (msg.value != _depositAmount) revert IncorrectDepositAmount();
         if (exist_node[peerId_]) revert NodeAlreadyRegistered();
         
@@ -55,6 +55,7 @@ contract OCPPSwarm is Initializable, OwnableUpgradeable, IOCPPSwarm {
             peerId: peerId_,
             isActive: true,
             deposit: msg.value,
+            publicKey: publicKey,
             owner: msg.sender
         });
         

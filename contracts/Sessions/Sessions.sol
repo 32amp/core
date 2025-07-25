@@ -104,10 +104,8 @@ contract Sessions is ISessions, Initializable {
         _;
     }
 
-    modifier ocpp_proxy_access(uint256 evse_uid) {
-        if (_EVSE().getOcppProxy(evse_uid) != msg.sender){
-            revert AccessDenied("ocpp_proxy_access");
-        }
+    modifier ocpp_proxy_access() {
+        _UserAccess().checkAccessModule(msg.sender, "Sessions", uint(IUserAccess.AccessLevel.FOURTH));
         _;
     }
 
@@ -137,7 +135,13 @@ contract Sessions is ISessions, Initializable {
         }
 
 
-        IConnector.output memory connector = _Connector().get(connector_id);
+        Context memory ctx;
+        ctx.caller = msg.sender;
+        ctx.location_id = _EVSE().getLocation(evse_uid);
+        ctx.evse_id = evse_uid;
+
+        IConnector.output memory connector = _Connector().get(connector_id, ctx);
+
 
         if(connector.id == 0) {
             revert ObjectNotFound("Connector", connector_id);
@@ -160,6 +164,7 @@ contract Sessions is ISessions, Initializable {
         Reservation memory r = Reservation({
             time_expire: expire_time,
             evse_id:evse_uid,
+            connector_id: connector_id,
             account: start_for,
             confirmed: false,
             canceled: false,
@@ -168,11 +173,11 @@ contract Sessions is ISessions, Initializable {
 
         reservations[reservationsCounter] = r;
 
-        emit ReservationRequest(reservationsCounter, start_for, r.time_expire);
+        emit CreateReservationRequest(reservationsCounter, start_for, r);
     }
 
     
-    function createReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access(reservations[reserve_id].evse_id) {
+    function createReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access() {
         if(status){
             reservations[reserve_id].confirmed = true;
             authByReservation[reservations[reserve_id].account] = reserve_id;
@@ -206,7 +211,7 @@ contract Sessions is ISessions, Initializable {
     }
 
 
-    function cancelReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access(reservations[reserve_id].evse_id) {
+    function cancelReservationResponse(uint256 reserve_id, bool status) external ocpp_proxy_access() {
         if(status){
             delete authByReservation[reservations[reserve_id].account];
         }
@@ -264,8 +269,12 @@ contract Sessions is ISessions, Initializable {
             revert ConnectorNotAvailable(connector_id);
         }
 
+        Context memory ctx;
+        ctx.caller = msg.sender;
+        ctx.location_id = _EVSE().getLocation(evse_uid);
+        ctx.evse_id = evse_uid;
 
-        uint256 connector_tariff =  _Connector().getTariff(connector_id);
+        uint256 connector_tariff =  _Connector().getTariff(connector_id, ctx);
         
         require(connector_tariff != 0, "Invalid tariff");
 
@@ -314,13 +323,13 @@ contract Sessions is ISessions, Initializable {
 
         sessions[sessionCounter] = s;
 
-        sessionByAuth[msg.sender] = sessionCounter;
-        authBySession[sessionCounter] = msg.sender;
+        sessionByAuth[start_for] = sessionCounter;
+        authBySession[sessionCounter] = start_for;
         last_updated[sessionCounter] = block.timestamp;
 
-        _UserAccess().setAccessLevelToModuleObject(bytes32(sessionCounter), msg.sender, "Sessions", IUserAccess.AccessLevel.THIRD);
+        _UserAccess().setAccessLevelToModuleObject(bytes32(sessionCounter), start_for, "Sessions", IUserAccess.AccessLevel.THIRD);
 
-        emit SessionStartRequest(evse_uid, connector_id,  msg.sender, sessionCounter);
+        emit SessionStartRequest(evse_uid, connector_id,  start_for, sessionCounter);
         emit SessionLog(sessionCounter, SessionLogInfo.SessionStartRequest, SessionLogInfoType.INFO);
     }
 
@@ -342,7 +351,7 @@ contract Sessions is ISessions, Initializable {
         }
     }
 
-    function startSessionResponse(uint256 session_id, uint256 timestamp, uint256 meter_start, bool status, string calldata message ) external ocpp_proxy_access(sessions[session_id].evse_uid) {
+    function startSessionResponse(uint256 session_id, uint256 timestamp, uint256 meter_start, bool status, string calldata message ) external ocpp_proxy_access() {
         if(status){
             _setSessionStatus(session_id, SessionStatus.ACTIVE);
             _Tariff().createCDR(session_id, sessions[session_id], timestamp, meter_start);
@@ -371,7 +380,7 @@ contract Sessions is ISessions, Initializable {
      * @custom:reverts "InvalidTimestamp" if timestamp is not monotonic
      * @custom:reverts "InvalidSessionStatus" if session not ACTIVE
      */
-    function updateSession(uint256 session_id, SessionMeterLog memory session_log) external ocpp_proxy_access(sessions[session_id].evse_uid) {
+    function updateSession(uint256 session_id, SessionMeterLog memory session_log) external ocpp_proxy_access() {
 
         
         if(sessions[session_id].uid == 0) {
@@ -431,7 +440,7 @@ contract Sessions is ISessions, Initializable {
      * @custom:reverts "InvalidFinalLog" if final log is invalid
      * @custom:emits SessionEnd on success
      */
-    function stopSessionResponse(uint256 session_id, uint256 meter_stop, uint256 timestamp, bool status, string calldata message ) public ocpp_proxy_access(sessions[session_id].evse_uid) {
+    function stopSessionResponse(uint256 session_id, uint256 meter_stop, uint256 timestamp, bool status, string calldata message ) public ocpp_proxy_access() {
         if(sessions[session_id].uid == 0) {
             revert ObjectNotFound("Session", session_id);
         }
@@ -487,7 +496,7 @@ contract Sessions is ISessions, Initializable {
     }
 
 
-    function endSession(uint256 session_id, uint256 timestamp) external ocpp_proxy_access(sessions[session_id].evse_uid) {
+    function endSession(uint256 session_id, uint256 timestamp) external ocpp_proxy_access() {
 
         if(sessions[session_id].status != SessionStatus.CHARGING_COMPLETED) {
             revert InvalidSessionStatus(session_id, sessions[session_id].status);
@@ -552,7 +561,7 @@ contract Sessions is ISessions, Initializable {
         }
     }
 
-    function sessionUserLog(uint256 session_id, SessionLogInfo info, SessionLogInfoType log_type) external ocpp_proxy_access(sessions[session_id].evse_uid) {
+    function sessionUserLog(uint256 session_id, SessionLogInfo info, SessionLogInfoType log_type) external ocpp_proxy_access() {
         emit SessionLog(session_id, info, log_type);
     }
 

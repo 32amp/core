@@ -139,10 +139,11 @@ contract EVSE is IEVSE, Initializable {
         evses_related_location[evsecounter] = location_id;
 
         _UserAccess().setAccessLevelToModuleObject(bytes32(evsecounter), msg.sender, "EVSE", IUserAccess.AccessLevel.FOURTH);
+        _UserAccess().setAccessLevelToModuleObject(bytes32(evsecounter), IHub(hubContract).getModule("OCPPProxy", partner_id), "EVSE", IUserAccess.AccessLevel.FOURTH);
 
         _Location().addEVSE(location_id, evsecounter);
 
-        emit AddEVSE(evsecounter, msg.sender);        
+        emit AddEVSE(evsecounter, msg.sender, evse.hardware_id);        
         _updated(evsecounter);
     }
 
@@ -158,13 +159,14 @@ contract EVSE is IEVSE, Initializable {
     }
 
     /**
-     * @notice Updates address of OCPP proxy contract
+     * @notice Updates hardware id
      * @param evse_id Target EVSE ID
-     * @param ocpp_proxy Address of OCPP proxy contract
+     * @param hardware_id Address of OCPP proxy contract
      * @custom:reverts "AccessDenied" if insufficient privileges
      */  
-    function setOcppProxy(uint256 evse_id, address ocpp_proxy) access(evse_id) external {
-        evses[evse_id].ocpp_proxy = ocpp_proxy;
+    function setHardwareId(uint256 evse_id, string calldata hardware_id) access(evse_id) external {
+        evses[evse_id].hardware_id = hardware_id;
+        emit UpdateHardwareId(evse_id, evses[evse_id].hardware_id);   
         _updated(evse_id);
     }
 
@@ -225,6 +227,7 @@ contract EVSE is IEVSE, Initializable {
                 revert ObjectNotFound("Connector", connector_id);
 
         evse_connectors[evse_id].push(connector_id);
+        emit AddConnector(evse_id,evse_connectors[evse_id].length, connector_id);
         _updated(evse_id);
     }
 
@@ -240,8 +243,8 @@ contract EVSE is IEVSE, Initializable {
         for (uint i = connector_id; i < evse_connectors[evse_id].length - 1; i++) {
             evse_connectors[evse_id][i] = evse_connectors[evse_id][i + 1];
         }
-
         evse_connectors[evse_id].pop();
+        emit RemoveConnector(evse_id,connector_id);
         _updated(evse_id);
     }
 
@@ -252,7 +255,7 @@ contract EVSE is IEVSE, Initializable {
      * @param evse_id EVSE ID to query
      * @return outEVSE Aggregated EVSE information
      */
-    function get(uint256 evse_id) external view returns(outEVSE memory){
+    function get(uint256 evse_id, Context memory ctx) external view returns(outEVSE memory){
         outEVSE memory ret;
 
         ret.evse = evses[evse_id];
@@ -261,12 +264,19 @@ contract EVSE is IEVSE, Initializable {
         ret.last_updated = evses_last_updated[evse_id];
         ret.location_id = evses_related_location[evse_id];
         ret.images = evse_images[evse_id];
+        
+        ctx.evse_id = evse_id;
+
+        if(ctx.location_id == 0){
+            ctx.location_id = evses_related_location[evse_id];
+        }
 
         if(evse_connectors[evse_id].length > 0){
             IConnector.output[] memory connectors = new IConnector.output[](evse_connectors[evse_id].length);
 
             for (uint i = 0; i < evse_connectors[evse_id].length; i++) {
-                connectors[i] = _Connector().get(evse_connectors[evse_id][i]);
+       
+                connectors[i] = _Connector().get(evse_connectors[evse_id][i], ctx);
             }
             ret.connectors = connectors;
         }
@@ -276,21 +286,19 @@ contract EVSE is IEVSE, Initializable {
     }
 
 
-    /**
-     * @notice Retrieves address of OCPP proxy contract
-     * @param evse_id EVSE ID to query
-     * @return address address of OCPP proxy contract
-     */
-    function getOcppProxy(uint256 evse_id)  external view returns (address) {
-        return evses[evse_id].ocpp_proxy;
+    function getLocation(uint256 evse_id) external view returns(uint256){
+        return evses_related_location[evse_id];
     }
+
 
     /**
      * @dev Internal function to update the last_updated timestamp for an EVSE
      * @param id EVSE ID to update
      */
     function _updated(uint256 id) internal {
-        evses_last_updated[id] = block.timestamp;
+        if(evses_last_updated[id]+15 < block.timestamp){
+            evses_last_updated[id] = block.timestamp;
+        }
     }
 
 }

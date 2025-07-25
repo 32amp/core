@@ -10,6 +10,7 @@ interface IOCPPSwarm {
         uint256 id;
         string peerAddress;
         string peerId;
+        string publicKey;
         bool isActive;
         uint256 deposit;
         address owner;
@@ -25,7 +26,7 @@ interface IOCPPSwarm {
     error NodeAlreadyRegistered();
     error OnlyOwner();
 
-    function registerNode(string calldata peerAddress_, string calldata peerId_) external payable;
+    function registerNode(string calldata peerAddress_, string calldata peerId_,  string calldata publicKey) external payable;
     function getNodeInfo(address nodeAddress) external view returns (OCPPNode memory node);
     function setDepositAmount(uint256 newAmount) external;
     function setPSK(bytes32 newPSK) external;

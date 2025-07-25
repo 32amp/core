@@ -7,6 +7,9 @@ import "./IEVSE.sol";
 import "./IConnector.sol";
 import "../Tariff/ITariff.sol";
 import "../User/IUserAccess.sol";
+import "../User/IUserTokens.sol";
+
+
 
 /**
  * @title Connector Management Contract
@@ -39,6 +42,9 @@ contract Connector is IConnector, Initializable {
     /// @dev Mapping of connector IDs to assigned tariff IDs
     mapping (uint256 => uint256) connector_tariff;
 
+    /// @dev Cyclic timestamp counter for update tracking
+    uint256 timestampCounter;
+
     /**
      * @notice Initializes contract with Hub connection
      * @param _partner_id Partner ID from Hub registry
@@ -53,6 +59,22 @@ contract Connector is IConnector, Initializable {
     /// @notice Returns current contract version
     function getVersion() external pure returns(string memory){
         return "1.0";
+    }
+    
+    /**
+     * @dev Internal function to update the last_updated timestamp for a connector
+     * @param id Connector ID to update
+     */
+    function _updated(uint256 id) internal {
+        
+        timestampCounter++;
+
+        if(timestampCounter == 20)
+            timestampCounter = 0;
+
+
+        last_updated[id] = block.timestamp+timestampCounter;
+        
     }
 
     /// @notice Access control modifier requiring FOURTH level privileges
@@ -69,6 +91,16 @@ contract Connector is IConnector, Initializable {
      */
     function _UserAccess() private view returns(IUserAccess) {
         return IUserAccess(IHub(hubContract).getModule("UserAccess", partner_id));
+    }
+
+
+    // Module user tokens documentation
+    /**
+     * @dev Returns the UserTokens module interface for the current partner
+     * @return IUserTokens interface instance
+     */
+    function _UserTokens() private view returns(IUserTokens) {
+        return IUserTokens(IHub(hubContract).getModule("UserTokens", partner_id));
     }
 
     /**
@@ -112,11 +144,12 @@ contract Connector is IConnector, Initializable {
         connectors[connector_counter] = connector;
 
         _UserAccess().setAccessLevelToModuleObject(bytes32(connector_counter),msg.sender,"Connector",IUserAccess.AccessLevel.FOURTH);
+        _UserAccess().setAccessLevelToModuleObject(bytes32(connector_counter), IHub(hubContract).getModule("OCPPProxy", partner_id), "EVSE", IUserAccess.AccessLevel.FOURTH);
         _EVSE().addConnector(evse_id, connector_counter);
 
 
         emit AddConnector(connector_counter, msg.sender);
-
+        
         _updated(connector_counter);
     }
 
@@ -140,21 +173,25 @@ contract Connector is IConnector, Initializable {
      * @param id Connector ID to query
      * @return output Aggregated connector information
      */
-    function get(uint256 id) external view returns (output memory) {
+    function get(uint256 id, Context calldata ctx) external view returns (output memory) {
         output memory ret;
+
+        uint256 personal_tariff = _UserTokens().getTariffFromPrimaryToken(ctx.caller,ctx);
 
         ret.id = id;
         ret.connector = connectors[id];
         ret.last_updated = last_updated[id];
         ret.status = connector_status[id];
-        ret.tariff = connector_tariff[id];
-
+        ret.tariff = (personal_tariff == 0) ? connector_tariff[id] : personal_tariff;
 
         return ret;
     }
 
-    function getTariff(uint256 id) external view returns(uint256){
-        return connector_tariff[id];
+
+
+    function getTariff(uint256 id,  Context calldata ctx) external view returns(uint256){
+        uint256 personal_tariff = _UserTokens().getTariffFromPrimaryToken(ctx.caller,ctx);
+        return (personal_tariff == 0) ? connector_tariff[id] : personal_tariff;
     }
     function getStatus(uint256 id) external view returns(ConnectorStatus){
         return connector_status[id];
@@ -183,12 +220,5 @@ contract Connector is IConnector, Initializable {
         emit UpdateStatus(id, status);
         _updated(id);
     }
-    
-    /**
-     * @dev Internal function to update the last_updated timestamp for a connector
-     * @param id Connector ID to update
-     */
-    function _updated(uint256 id) internal {
-        last_updated[id] = block.timestamp;
-    }
+
 }

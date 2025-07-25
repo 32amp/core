@@ -58,7 +58,24 @@ interface IEVSE is DataTypes, IBaseErrors {
      */
     event AddEVSE(
         uint256 indexed uid,
-        address indexed account
+        address indexed account,
+        string hardware_id
+    );
+
+    event UpdateHardwareId( 
+        uint256 indexed uid,
+        string hardware_id
+    );
+
+    event AddConnector(
+        uint256 indexed uid,
+        uint256 connector_index,
+        uint256 connector_id
+    );
+
+    event RemoveConnector(
+        uint256 indexed uid,
+        uint256 connector_index
     );
 
         
@@ -66,13 +83,12 @@ interface IEVSE is DataTypes, IBaseErrors {
     function exist(uint256 id) external view returns(bool);
     function add(EVSE calldata evse, uint256 location_id) external;
     function setMeta(uint256 evse_id, EVSEMeta calldata meta) external;
-    function setOcppProxy(uint256 evse_id, address ocpp_proxy) external;
     function addImage(uint256 evse_id, Image calldata image ) external;
     function removeImage(uint256 evse_id, uint image_id) external;
     function setStatus(uint256 evse_id, EVSEStatus status) external;
     function addConnector(uint256 evse_id,  uint256 connector_id ) external;
     function removeConnector(uint256 evse_id, uint connector_id) external;
-    function get(uint256 id) external view returns(outEVSE memory);
-    function getOcppProxy(uint256 evse_id)  external view returns (address);
+    function get(uint256 id, Context memory ctx) external view returns(outEVSE memory);
+    function getLocation(uint256 evse_id) external view returns(uint256);
 
 }

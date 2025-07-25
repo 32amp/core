@@ -112,6 +112,8 @@ interface IHub is IBaseErrors {
         address owner_address
     );
 
+    event Copy(address new_address);
+
 
     function getVersion() external pure returns(string memory);
     function registerPartner(bytes32 name,bytes2 country_code,bytes3 party_id) external payable returns (uint256);
@@ -130,4 +132,5 @@ interface IHub is IBaseErrors {
     function getPartnerName(uint256 partner_id) external view returns(bytes32);
     function getPartnerPartyId(uint256 partner_id) external view returns(bytes3);
     function getPartnerCountryCode(uint256 partner_id) external view returns(bytes2);
+    
 }

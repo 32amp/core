@@ -75,17 +75,18 @@ contract OCPP is Initializable, OwnableUpgradeable, IOCPP {
         evses[id].signer = new_signer;
     }
 
-    function setOnline(SetEVSEOnline[] calldata statuses, bytes[] calldata signatures) external {
+    function setOnlineBatch(SetEVSEOnline[] calldata statuses) external {
 
-        
+        /* 
         if(signatures.length < 2)
             revert SignaturesNotEnouth();
+ */
 
-
-
+/* 
         for (uint i = 0; i < statuses.length; i++) {
-            evses[statuses[i].evse].online = statuses[i].status;
-        }
+            statuses[i].evseonline = statuses[i].status;
+            emit UpdateStatusEvse(statuses[i].evse, statuses[i].evse.evse_id, statuses[i].evse.partner_id, statuses[i].status);
+        } */
     }
 
     function verify() internal {

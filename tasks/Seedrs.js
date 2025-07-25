@@ -49,11 +49,6 @@ seedrsScope.task("generate-locations", "Generate locations with random EVSEs ins
             message: "Enter maximum conectors in EVSE:",
             validate: (input) => !isNaN(input) && input > 0,
         },
-        {
-            type: "input",
-            name: "ocpp_proxy",
-            message: "Enter OCPP proxy address:"
-        },
     ];
 
     const answers = await inquirer.prompt(questions);
@@ -113,15 +108,9 @@ seedrsScope.task("generate-locations", "Generate locations with random EVSEs ins
 
 
             const evsel = EVSEdata;
-            evsel.evse_id = `evse-${loci}-${evsei}`;
+            evsel.hardware_id = `evse-${loci}-${evsei}`;
 
             evsel.directions = [direction_evse];
-
-            if (answers.ocpp_proxy) {
-                evsel.ocpp_proxy = answers.ocpp_proxy;
-            } else {
-                evsel.ocpp_proxy = hre.ethers.ZeroAddress;
-            }
             
             evsel.physical_reference = generatePhysicalReference();
             const meta = generateEVSEmeta(locationel.coordinates);

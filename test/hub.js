@@ -1,9 +1,6 @@
 const { expect } = require('chai');
-
-
-const {getEventArguments, createpayload} = require("../utils/utils");
-const {deploy} = require("./lib/deploy");
-
+const { deploy } = require("./lib/deploy");
+const {getEventArguments} = require("../utils/utils");
 
 describe("Hub", function(){
 
@@ -12,7 +9,7 @@ describe("Hub", function(){
         const accounts = await ethers.getSigners();
         this.owner = accounts[0].address
 
-        this.contracts = await deploy({User:true})
+        this.contracts = await deploy({User:true, MobileAppSettings: true, UserGroups: true, Tariff:true,Location: true,LocationSearch:true, EVSE:true, Connector: true,  UserSupportChat: true, MobileAppSettings: true, Balance: true, Cards: true, Sessions: true}, true)
 
     })
 
@@ -57,7 +54,9 @@ describe("Hub", function(){
     })
 
     it("changeModuleAddress", async function(){
-        await this.contracts.Hub.changeModuleAddress("User", this.contracts.Hub.target)
+        let txzero = await this.contracts.Hub.changeModuleAddress("User", this.contracts.Hub.target)
+        
+        await txzero.wait()
 
         let moduleAdress = await this.contracts.Hub.getModule("User", 1)
 
@@ -105,4 +104,5 @@ describe("Hub", function(){
         
         expect(code).to.equal(ethers.hexlify(ethers.toUtf8Bytes("RU")))
     })
+
 })

@@ -49,10 +49,10 @@ interface IConnector is DataTypes, IBaseErrors {
 
     function getVersion() external pure returns(string memory);
     function add(Connector memory connector, uint256 evse_id) external;
-    function get(uint256 id) external view returns (output memory);
+    function get(uint256 id, Context calldata ctx) external view returns (output memory);
     function setTariffs(uint256 id, uint256 _tariff) external;
     function exist(uint256 id) external view returns(bool);
     function setStatus(uint256 id, ConnectorStatus status) external;
-    function getTariff(uint256 id) external view returns(uint256);
+    function getTariff(uint256 id,  Context calldata ctx) external view returns(uint256);
     function getStatus(uint256 id) external view returns(ConnectorStatus);
 }

@@ -15,6 +15,7 @@ interface ISessions is DataTypes, IBaseErrors {
     struct Reservation {
         uint256 time_expire;
         uint256 evse_id;
+        uint256 connector_id;
         address account;
         bool confirmed;
         bool canceled;
@@ -26,10 +27,10 @@ interface ISessions is DataTypes, IBaseErrors {
         Price amount;
     }
 
-    event ReservationRequest(
+    event CreateReservationRequest(
         uint256 indexed id, 
         address indexed account, 
-        uint256 indexed time_expire
+        Reservation indexed reservation
     );
 
     event ReservationCancelRequest(
@@ -125,4 +126,5 @@ interface ISessions is DataTypes, IBaseErrors {
     function getSession(uint256 session_id) external view returns(Session memory);
     function exist(uint256 session_id) external view returns(bool);
     function getSessionByAuth(address auth_id) external view returns(uint256);
+    function createReservationResponse(uint256 reserve_id, bool status) external;
 }

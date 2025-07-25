@@ -20,7 +20,8 @@ describe("UserGroups", function(){
 
     it("getMyGroups", async function(){
 
-        await this.contracts.UserAccess.setAccessLevelToModule(this.simpleUser.address,"UserGroups", 4);
+        let tx = await this.contracts.UserAccess.setAccessLevelToModule(this.simpleUser.address,"UserGroups", 4);
+        await tx.wait()
         
         const myGroups =  await this.contracts.UserGroups.connect(this.simpleUser).getMyGroups();
         expect(myGroups.length).to.equal(0)

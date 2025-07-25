@@ -22,7 +22,8 @@ describe("Tariff", function(){
 
     it("update tariff fields via update", async function() {
         await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Tariff", 4);
-        await this.contracts.Tariff.connect(this.adminUser).add(free_tariff);
+        let tx_1 = await this.contracts.Tariff.connect(this.adminUser).add(free_tariff);
+        await tx_1.wait()
 
         // изменяем min_price, max_price, start_date_time, end_date_time
         const updatedTariff = {
@@ -32,7 +33,9 @@ describe("Tariff", function(){
             start_date_time: 1234567890,
             end_date_time: 2234567890
         };
-        await this.contracts.Tariff.connect(this.adminUser).update(1, updatedTariff);
+        let tx_2 = await this.contracts.Tariff.connect(this.adminUser).update(1, updatedTariff);
+
+        await tx_2.wait()
 
         const tariff = await this.contracts.Tariff.get(1);
         expect(tariff.tariff.min_price.excl_vat).to.equal(10);
@@ -43,7 +46,8 @@ describe("Tariff", function(){
 
     it("get", async function(){
         await this.contracts.UserAccess.setAccessLevelToModule(this.adminUser.address,"Tariff", 4);
-        await this.contracts.Tariff.connect(this.adminUser).add(free_tariff);
+        let tx = await this.contracts.Tariff.connect(this.adminUser).add(free_tariff);
+        await tx.wait()
         const tariff = await this.contracts.Tariff.get(1);
         expect(tariff.last_updated).not.to.be.equal(0)
     })

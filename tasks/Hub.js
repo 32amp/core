@@ -3,7 +3,7 @@ const { formatPartner, formatPartners } = require("../helpers/Hub");
 const hubScope = scope("Hub", "Tasks for HUB");
 const { loadConfig, saveConfig } = require("./helpers/configs")
 const { accountSelection, partnerSelection, currencySelection } = require("./helpers/promt_selection");
-const {deployProxy} = require("../utils/deploy");
+const { deployProxy } = require("../utils/deploy");
 
 
 
@@ -14,9 +14,9 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
 
         if (typeof config?.deployed?.Currencies == "undefined")
             throw new Error("Currencies not deployed")
-/* 
-        if (typeof config?.deployed?.OCPPSwarm == "undefined")
-            throw new Error("OCPPSwarm not deployed") */
+        /* 
+                if (typeof config?.deployed?.OCPPSwarm == "undefined")
+                    throw new Error("OCPPSwarm not deployed") */
 
         if (typeof config?.deployed?.Hub != "undefined")
             throw new Error("Hub already deployed")
@@ -27,10 +27,10 @@ hubScope.task("deploy", "Deploys a Hub contract with initial services")
                 name: "Currencies",
                 contract_address: config.deployed.Currencies
             },
-/*             {
-                name: "OCPPSwarm",
-                contract_address: config.deployed.OCPPSwarm
-            } */
+            /*             {
+                            name: "OCPPSwarm",
+                            contract_address: config.deployed.OCPPSwarm
+                        } */
         ]
 
         const HubFactory = await hre.ethers.getContractFactory("Hub");
@@ -101,25 +101,34 @@ hubScope.task("register-partner", "Registers a new partner")
         if (name.length < 3) throw new Error("Name must be at least 3 characters long");
         if (country.length !== 2) throw new Error("Country code must be exactly 2 characters long");
         if (party.length !== 3) throw new Error("Party ID must be exactly 3 characters long");
-
+        
         const hub = await hre.ethers.getContractAt("Hub", config.deployed.Hub, signer);
+        
+        try {   
+            const tx = await hub.registerPartner(ethers.encodeBytes32String(name), ethers.toUtf8Bytes(country), ethers.toUtf8Bytes(party), {
+                value: hre.ethers.parseEther("1"),
+            });
+            const { id } = await getEventArguments(tx, "AddPartner");
 
-        const tx = await hub.registerPartner(ethers.encodeBytes32String(name), ethers.toUtf8Bytes(country), ethers.toUtf8Bytes(party), {
-            value: hre.ethers.parseEther("1"),
-        });
-        const { id } = await getEventArguments(tx, "AddPartner");
 
-        console.log("Partner registered, transaction:", tx.hash);
-        console.log("Partner ID:", id);
+            console.log("Partner registered, transaction:", tx.hash);
+            console.log("Partner ID:", id);
 
-        if (typeof config?.partners == "undefined")
-            config.partners = []
+            const result = await tx.wait()
+            console.log("Gas used:", result.gasUsed.toString());
 
-        config.partners.push({
-            name, country, party, id: Number(id)
-        })
+            if (typeof config?.partners == "undefined")
+                config.partners = []
 
-        await saveConfig("config", config)
+            config.partners.push({
+                name, country, party, id: Number(id)
+            })
+
+            await saveConfig("config", config)
+        } catch (error) {
+            const decodedError = hub.interface.parseError(error.data);
+            console.log("Decoded error:", decodedError);
+        }
     });
 
 
@@ -147,7 +156,8 @@ hubScope.task("add-partner-modules", "Add modules to partner")
             "User",
             "UserGroups",
             "Sessions",
-            "UserAccess"
+            "OCPPProxy",
+            "UserAccess",
         ]
 
         for (let index = 0; index < modules.length; index++) {
@@ -170,18 +180,22 @@ hubScope.task("add-partner-modules", "Add modules to partner")
                 }
 
 
-                if(mod == "Cards" || mod == "UserSupportChat" || mod == "User"){
+                if (mod == "Cards" || mod == "UserSupportChat" || mod == "User") {
                     libs = ["Utils"]
                 }
 
-                const deployed = await deployProxy(mod,initialize, libs, signer);
+                const deployed = await deployProxy(mod, initialize, libs, signer);
 
 
                 if (typeof deployed?.target != "undefined") {
                     console.log(`Module "${mod}" success deployed to ${deployed.target}`)
+
+
                     let txadd = await hub.addModule(mod, deployed.target)
 
-                    await txadd.wait()
+                    let resultadd = await txadd.wait()
+
+                    console.log("Gas resultadd used:", resultadd.gasUsed.toString());
 
                     console.log(`Module "${mod}" success added to hub`)
 

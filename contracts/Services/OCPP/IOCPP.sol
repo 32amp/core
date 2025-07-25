@@ -21,5 +21,6 @@ interface IOCPP is IBaseErrors{
     }
 
     event AddEvse(bytes32 indexed id, uint256 indexed evse_id, uint256 partner_id);
+    event UpdateStatusEvse(bytes32 indexed id, uint256 indexed evse_id, uint256 indexed partner_id, bool status);
     error SignaturesNotEnouth();
 }

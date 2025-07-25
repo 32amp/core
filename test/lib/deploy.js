@@ -19,6 +19,7 @@ module.exports.deploy = async function(modules, showlog = false) {
         contract_address: Currencies.target
     }]]);
 
+    if (showlog) console.log("Currencies deployed to:", Currencies.target);
     if (showlog) console.log("Hub deployed to:", retmodules.Hub.target);
 
     const tx = await retmodules.Hub.registerPartner(
@@ -34,6 +35,7 @@ module.exports.deploy = async function(modules, showlog = false) {
     
     const deployModule = async (moduleName, additionalArgs = [], libs = []) => {
         if (typeof modules?.[moduleName] !== "undefined") {
+            
             retmodules[moduleName] = await deployProxy(moduleName, [partner.id, retmodules.Hub.target, ...additionalArgs], libs);
             const tx = await retmodules.Hub.addModule(moduleName, retmodules[moduleName].target);
             await tx.wait();
@@ -42,7 +44,7 @@ module.exports.deploy = async function(modules, showlog = false) {
     };
 
 
-    await deployModule("MobileApp");
+    
     await deployModule("User", [], ["Utils"]);
     await deployModule("UserGroups");
     await deployModule("Tariff");
@@ -55,7 +57,7 @@ module.exports.deploy = async function(modules, showlog = false) {
     await deployModule("Balance", [1]);
     await deployModule("Cards",[], ["Utils"]);
     await deployModule("Sessions");
-    await deployModule("CDR");
+    await deployModule("UserTokens");
 
     retmodules.UserAccess = await deployProxy("UserAccess", [partner.id, retmodules.Hub.target]);
     const tx11 = await retmodules.Hub.addModule("UserAccess", retmodules.UserAccess.target);

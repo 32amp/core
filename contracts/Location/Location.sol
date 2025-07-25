@@ -294,6 +294,9 @@ contract Location is ILocation, Initializable {
     function getLocation(uint256 id) external view returns (outLocation memory){
 
         outLocation memory loc;
+        Context memory ctx;
+        ctx.caller = msg.sender;
+        ctx.location_id = id;
 
 
         loc.location = locations[id];
@@ -306,7 +309,7 @@ contract Location is ILocation, Initializable {
             IEVSE.outEVSE[] memory evses = new IEVSE.outEVSE[](evses_location[id].length);
 
             for (uint i = 0; i < evses_location[id].length; i++) {
-                evses[i] = _EVSE().get(evses_location[id][i]);
+                evses[i] = _EVSE().get(evses_location[id][i], ctx);
             }
     
             loc.evses = evses;
